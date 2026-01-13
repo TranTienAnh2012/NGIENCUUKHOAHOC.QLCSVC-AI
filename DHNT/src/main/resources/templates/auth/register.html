@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký - QLCSVC-AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="auth-wrapper">
+    <div class="auth-card fade-in">
+        <div class="auth-header">
+            <h1>Đăng ký tài khoản</h1>
+            <p>Tham gia hệ thống quản lý CSVC thông minh</p>
+        </div>
+
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="hoTen">Họ và tên</label>
+                <input type="text" id="hoTen" name="hoTen" class="form-control" placeholder="Nguyễn Văn A" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" class="form-control" placeholder="example@dhnt.edu.vn"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Mật khẩu</label>
+                <input type="password" id="password" name="password" class="form-control" placeholder="••••••••"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label for="soDienThoai">Số điện thoại</label>
+                <input type="tel" id="soDienThoai" name="soDienThoai" class="form-control" placeholder="0123456789">
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                <i data-lucide="user-plus"></i> Đăng ký
+            </button>
+        </form>
+
+        <div style="margin-top: 25px; text-align: center; font-size: 14px;">
+            <p style="color: var(--gray-500);">Đã có tài khoản? <a th:href="@{/login}"
+                    style="color: var(--primary); font-weight: 600;">Đăng nhập</a></p>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert('Đăng ký thành công! Vui lòng đăng nhập.');
+                    window.location.href = '/login';
+                } else {
+                    const result = await response.json();
+                    alert('Lỗi: ' + (result.message || 'Không thể đăng ký'));
+                }
+            } catch (err) {
+                alert('Có lỗi xảy ra kết nối đến máy chủ');
+            }
+        });
+    </script>
+</body>
+
+</html>

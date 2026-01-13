@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head th:fragment="header_fragment">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title != null ? title + ' - QLCSVC-AI' : 'QLCSVC-AI'}">QLCSVC-AI</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dhnt: {
+                            primary: '#0d6efd',
+                            secondary: '#6c757d',
+                            dark: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/custom.css}">
+
+    <!-- Page Specific Head -->
+    <th:block th:replace="${extra_head} ?: ~{}"></th:block>
+</head>
+
+<body>
+    <div class="dashboard-container" th:fragment="layout_fragment(content, extra_head)">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>QLCSVC-AI</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <!-- Admin Menu -->
+                    <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                        <a th:href="@{/admin}" class="nav-link">
+                            <i data-lucide="layout-dashboard"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                        <a th:href="@{/admin/users}" class="nav-link">
+                            <i data-lucide="users"></i> Người dùng
+                        </a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                        <a th:href="@{/admin/thiet-bi}" class="nav-link">
+                            <i data-lucide="monitor"></i> Thiết bị
+                        </a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                        <a th:href="@{/admin/phong-hoc}" class="nav-link">
+                            <i data-lucide="home"></i> Phòng học
+                        </a>
+                    </li>
+
+                    <!-- Giao Vien Menu -->
+                    <li class="nav-item" sec:authorize="hasRole('GIAO_VIEN')">
+                        <a th:href="@{/giao-vien}" class="nav-link">
+                            <i data-lucide="layout-dashboard"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('GIAO_VIEN')">
+                        <a th:href="@{/giao-vien/muon-tra}" class="nav-link">
+                            <i data-lucide="repeat"></i> Mượn trả
+                        </a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('GIAO_VIEN')">
+                        <a th:href="@{/giao-vien/bao-hong}" class="nav-link">
+                            <i data-lucide="alert-triangle"></i> Báo hỏng
+                        </a>
+                    </li>
+
+                    <!-- CSVC Menu -->
+                    <li class="nav-item" sec:authorize="hasRole('NHAN_VIEN_CSVC')">
+                        <a th:href="@{/csvc}" class="nav-link">
+                            <i data-lucide="layout-dashboard"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('NHAN_VIEN_CSVC')">
+                        <a th:href="@{/csvc/bao-hong}" class="nav-link">
+                            <i data-lucide="clipboard-list"></i> Phiếu báo hỏng
+                        </a>
+                    </li>
+                    <li class="nav-item" sec:authorize="hasRole('NHAN_VIEN_CSVC')">
+                        <a th:href="@{/csvc/bao-tri}" class="nav-link">
+                            <i data-lucide="tool"></i> Bảo trì
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="page-info">
+                    <h3 th:text="${title}">Dashboard</h3>
+                </div>
+                <div class="user-menu" style="display: flex; align-items: center; gap: 15px;">
+                    <span sec:authentication="name" style="font-weight: 600;">Username</span>
+                    <form th:action="@{/logout}" method="post">
+                        <button type="submit" class="btn" style="color: var(--danger); padding: 5px;">
+                            <i data-lucide="log-out"></i>
+                        </button>
+                    </form>
+                </div>
+            </header>
+
+            <div class="content-wrapper fade-in">
+                <div th:replace="${content}"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <div th:fragment="scripts_fragment">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        <script th:src="@{/js/app.js}"></script>
+        <script>
+            lucide.createIcons();
+        </script>
+    </div>
+</body>
+
+</html>

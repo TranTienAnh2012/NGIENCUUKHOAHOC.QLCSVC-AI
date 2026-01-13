@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::content})}">
+
+<head>
+    <title>Giáo viên Dashboard</title>
+</head>
+
+<body>
+    <div th:fragment="content">
+        <div class="card-grid">
+            <div class="stat-card">
+                <span class="stat-label">Thiết bị đang mượn</span>
+                <span class="stat-value">3</span>
+                <span style="color: var(--info); font-size: 13px;">Hạn trả gần nhất: 15/01</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Tổng lượt mượn</span>
+                <span class="stat-value">42</span>
+                <span style="color: var(--gray-500); font-size: 13px;">Trong học kỳ này</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Báo hỏng đã gửi</span>
+                <span class="stat-value">1</span>
+                <span style="color: var(--success); font-size: 13px;">Đã được xử lý</span>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin-top: 30px;">
+            <div class="stat-card">
+                <h4 style="font-size: 18px; font-weight: 700; margin-bottom: 20px;">Thiết bị đang sử dụng</h4>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--gray-200); text-align: left;">
+                                <th style="padding: 12px; color: var(--gray-500); font-size: 13px;">Tên thiết bị</th>
+                                <th style="padding: 12px; color: var(--gray-500); font-size: 13px;">Ngày mượn</th>
+                                <th style="padding: 12px; color: var(--gray-500); font-size: 13px;">Hạn trả</th>
+                                <th style="padding: 12px; color: var(--gray-500); font-size: 13px;">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="i : ${#numbers.sequence(1, 2)}"
+                                style="border-bottom: 1px solid var(--gray-100);">
+                                <td style="padding: 12px; font-weight: 600;">Máy chiếu Sony #102</td>
+                                <td style="padding: 12px;">10/01/2026</td>
+                                <td style="padding: 12px;">15/01/2026</td>
+                                <td style="padding: 12px;">
+                                    <button class="btn" style="color: var(--primary); padding: 5px;"><i
+                                            data-lucide="corner-up-left" style="width: 18px;"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="stat-card"
+                style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: var(--white);">
+                <h4 style="font-size: 18px; font-weight: 700; margin-bottom: 15px;">Hỗ trợ AI Chatbot</h4>
+                <p style="font-size: 14px; opacity: 0.9; margin-bottom: 20px;">Bạn gặp khó khăn trong việc mượn thiết bị
+                    hoặc báo hỏng? Hãy hỏi trợ lý ảo AI của chúng tôi.</p>
+                <a th:href="@{/chatbot}" class="btn"
+                    style="background: rgba(255,255,255,0.2); color: var(--white); backdrop-filter: blur(10px);">
+                    <i data-lucide="message-square"></i> Trò chuyện ngay
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
