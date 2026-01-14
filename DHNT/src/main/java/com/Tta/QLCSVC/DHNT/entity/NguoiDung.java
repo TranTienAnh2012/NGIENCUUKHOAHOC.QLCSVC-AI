@@ -148,9 +148,19 @@ public class NguoiDung {
     }
 
     public enum VaiTro {
-        ADMIN,
-        GIAO_VIEN,
-        NHAN_VIEN_CSVC
+        ADMIN("Quản trị viên"),
+        GIAO_VIEN("Giáo viên"),
+        NHAN_VIEN_CSVC("Nhân viên CSVC");
+
+        private final String ten;
+
+        VaiTro(String ten) {
+            this.ten = ten;
+        }
+
+        public String getTen() {
+            return ten;
+        }
     }
 
     public enum TrangThaiNguoiDung {

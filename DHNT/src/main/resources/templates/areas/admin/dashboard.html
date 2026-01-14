@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
 
-<head th:replace="~{layout/main :: header_fragment}">
-    <title>Admin Dashboard</title>
+<head>
+    <title th:text="${title}">Admin Dashboard</title>
 </head>
 
 <body>
-    <div th:replace="~{layout/main :: layout_fragment(~{::content}, ~{::head})}">
-        <div th:fragment="content" class="container-fluid py-4">
+    <div layout:fragment="content">
+        <div class="container-fluid py-4">
             <!-- Header Section -->
             <div class="mb-4 d-flex justify-content-between align-items-center">
                 <div>
@@ -103,7 +104,7 @@
                                             <i data-lucide="plus-circle" class="w-5 h-5"></i>
                                         </div>
                                         <div class="flex-grow">
-                                            <div class="flex justify-between items-start mb-1">
+                                            <div class="flex justify-content-between items-start mb-1">
                                                 <h6 class="font-bold text-slate-800 m-0 text-base">Thêm 5 thiết bị mới
                                                 </h6>
                                                 <span class="text-xs text-slate-400">2 giờ trước</span>
@@ -122,7 +123,7 @@
                                             <i data-lucide="tool" class="w-5 h-5"></i>
                                         </div>
                                         <div class="flex-grow">
-                                            <div class="flex justify-between items-start mb-1">
+                                            <div class="flex justify-content-between items-start mb-1">
                                                 <h6 class="font-bold text-slate-800 m-0 text-base">Hoàn thành bảo trị
                                                     #BT-102</h6>
                                                 <span class="text-xs text-slate-400">5 giờ trước</span>
@@ -141,7 +142,7 @@
                                             <i data-lucide="alert-circle" class="w-5 h-5"></i>
                                         </div>
                                         <div class="flex-grow">
-                                            <div class="flex justify-between items-start mb-1">
+                                            <div class="flex justify-content-between items-start mb-1">
                                                 <h6 class="font-bold text-slate-800 m-0 text-base">Báo hỏng mới tại Tòa
                                                     T3
                                                 </h6>
@@ -209,7 +210,15 @@
             </div>
         </div>
     </div>
-    <div th:replace="~{layout/main :: scripts_fragment}"></div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            // Dashboard specific scripts
+            document.addEventListener('DOMContentLoaded', function () {
+                lucide.createIcons();
+            });
+        </script>
+    </th:block>
 </body>
 
 </html>

@@ -20,7 +20,7 @@ public class MainViewController {
         } else if (authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_GIAO_VIEN"))) {
             return "redirect:/giao-vien";
         } else if (authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_NHAN_VIEN_CSVC"))) {
-            return "redirect:/csvc";
+            return "redirect:/nhanvien-csvc";
         }
 
         return "redirect:/login";

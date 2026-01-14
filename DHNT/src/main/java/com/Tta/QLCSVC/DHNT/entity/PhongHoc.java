@@ -26,8 +26,8 @@ public class PhongHoc {
     @Column(name = "suc_chua")
     private Integer sucChua;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "loai_phong", nullable = false)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "loai_phong_id", nullable = true)
     private LoaiPhong loaiPhong;
 
     @Column(name = "created_at", updatable = false)
@@ -115,11 +115,5 @@ public class PhongHoc {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
-    }
-
-    public enum LoaiPhong {
-        LY_THUYET,
-        THI_NGHIEM,
-        MAY_TINH
     }
 }

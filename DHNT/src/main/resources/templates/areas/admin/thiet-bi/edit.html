@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${title}">Sửa thiết bị</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/admin}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/admin/thiet-bi}">Thiết bị</a></li>
+                    <li class="breadcrumb-item active">Sửa</li>
+                </ol>
+            </nav>
+
+            <!-- Form Card -->
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0"><i data-lucide="edit"></i> Sửa thông tin thiết bị</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Loading State -->
+                            <div id="loadingState" class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Đang tải...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Đang tải dữ liệu...</p>
+                            </div>
+
+                            <!-- Form -->
+                            <form id="editForm" style="display: none;">
+                                <input type="hidden" id="thietBiId" th:value="${id}">
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="tenThietBi" class="form-label">Tên thiết bị <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="tenThietBi" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="maThietBi" class="form-label">Mã thiết bị <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="maThietBi" required>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="loaiThietBiId" class="form-label">Loại thiết bị <span
+                                                class="text-danger">*</span></label>
+                                        <select class="form-select" id="loaiThietBiId" required>
+                                            <option value="">-- Chọn loại --</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="phongId" class="form-label">Phòng học</label>
+                                        <select class="form-select" id="phongId">
+                                            <option value="">-- Chọn phòng --</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="trangThai" class="form-label">Trạng thái</label>
+                                        <select class="form-select" id="trangThai">
+                                            <option value="TOT">Tốt</option>
+                                            <option value="BAO_TRI">Bảo trì</option>
+                                            <option value="HONG">Hỏng</option>
+                                            <option value="THANH_LY">Thanh lý</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="ngayMua" class="form-label">Ngày mua</label>
+                                        <input type="date" class="form-control" id="ngayMua">
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="ghiChu" class="form-label">Ghi chú</label>
+                                    <textarea class="form-control" id="ghiChu" rows="4"></textarea>
+                                </div>
+
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <a th:href="@{/admin/thiet-bi}" class="btn btn-secondary">
+                                        <i data-lucide="x"></i> Hủy
+                                    </a>
+                                    <button type="submit" class="btn btn-warning text-dark">
+                                        <i data-lucide="save"></i> Cập nhật
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            const id = /*[[${id}]]*/ 0;
+
+            document.addEventListener('DOMContentLoaded', function () {
+                loadLoaiThietBi();
+                loadPhongHoc();
+                loadThietBiData();
+                lucide.createIcons();
+            });
+
+            function loadLoaiThietBi() {
+                fetch('/api/admin/loai-thiet-bi/all')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const select = document.getElementById('loaiThietBiId');
+                            data.data.forEach(item => {
+                                const option = document.createElement('option');
+                                option.value = item.id;
+                                option.textContent = item.tenLoai;
+                                select.appendChild(option);
+                            });
+                        }
+                    });
+            }
+
+            function loadPhongHoc() {
+                fetch('/api/admin/phong-hoc/all')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const select = document.getElementById('phongId');
+                            data.data.forEach(item => {
+                                const option = document.createElement('option');
+                                option.value = item.id;
+                                option.textContent = item.tenPhong;
+                                select.appendChild(option);
+                            });
+                        }
+                    });
+            }
+
+            function loadThietBiData() {
+                fetch(`/api/admin/thiet-bi/${id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const item = data.data;
+                            document.getElementById('tenThietBi').value = item.tenThietBi;
+                            document.getElementById('maThietBi').value = item.maThietBi;
+                            document.getElementById('loaiThietBiId').value = item.loaiThietBi?.id || '';
+                            document.getElementById('phongId').value = item.phong?.id || '';
+                            document.getElementById('trangThai').value = item.trangThai;
+                            document.getElementById('ngayMua').value = item.ngayMua || '';
+                            document.getElementById('ghiChu').value = item.ghiChu || '';
+
+                            // Show form, hide loading
+                            document.getElementById('loadingState').style.display = 'none';
+                            document.getElementById('editForm').style.display = 'block';
+                        } else {
+                            alert('Không tìm thấy thiết bị');
+                            window.location.href = '/admin/thiet-bi';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Có lỗi xảy ra khi tải dữ liệu');
+                    });
+            }
+
+            document.getElementById('editForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const data = {
+                    tenThietBi: document.getElementById('tenThietBi').value,
+                    maThietBi: document.getElementById('maThietBi').value,
+                    trangThai: document.getElementById('trangThai').value,
+                    ngayMua: document.getElementById('ngayMua').value || null,
+                    ghiChu: document.getElementById('ghiChu').value
+                };
+
+                const loaiId = document.getElementById('loaiThietBiId').value;
+                if (loaiId) data.loaiThietBi = { id: parseInt(loaiId) };
+
+                const phongId = document.getElementById('phongId').value;
+                if (phongId) data.phong = { id: parseInt(phongId) };
+
+                fetch(`/api/admin/thiet-bi/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Cập nhật thành công!');
+                            window.location.href = '/admin/thiet-bi';
+                        } else {
+                            alert('Lỗi: ' + (data.message || 'Không thể cập nhật'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Có lỗi xảy ra khi cập nhật');
+                    });
+            });
+        </script>
+    </th:block>
+</body>
+
+</html>

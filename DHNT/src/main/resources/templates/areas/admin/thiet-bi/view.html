@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${title}">Chi tiết thiết bị</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/admin}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/admin/thiet-bi}">Thiết bị</a></li>
+                    <li class="breadcrumb-item active">Chi tiết</li>
+                </ol>
+            </nav>
+
+            <!-- Detail Card -->
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i data-lucide="eye"></i> Thông tin chi tiết thiết bị</h5>
+                            <div class="btn-group">
+                                <a th:href="@{/admin/thiet-bi/edit/{id}(id=${id})}" class="btn btn-sm btn-warning">
+                                    <i data-lucide="edit"></i> Sửa
+                                </a>
+                                <button class="btn btn-sm btn-danger" onclick="deleteItem()">
+                                    <i data-lucide="trash-2"></i> Xóa
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Loading State -->
+                            <div id="loadingState" class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Đang tải...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Đang tải dữ liệu...</p>
+                            </div>
+
+                            <!-- Data Display -->
+                            <div id="dataDisplay" style="display: none;">
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-4 text-muted">ID</dt>
+                                    <dd class="col-sm-8" id="display-id">-</dd>
+
+                                    <dt class="col-sm-4 text-muted">Tên thiết bị</dt>
+                                    <dd class="col-sm-8 fw-bold" id="display-ten">-</dd>
+
+                                    <dt class="col-sm-4 text-muted">Mã thiết bị</dt>
+                                    <dd class="col-sm-8"><code id="display-ma">-</code></dd>
+
+                                    <dt class="col-sm-4 text-muted">Loại thiết bị</dt>
+                                    <dd class="col-sm-8" id="display-loai">-</dd>
+
+                                    <dt class="col-sm-4 text-muted">Phòng học</dt>
+                                    <dd class="col-sm-8" id="display-phong">-</dd>
+
+                                    <dt class="col-sm-4 text-muted">Trạng thái</dt>
+                                    <dd class="col-sm-8" id="display-trang-thai">-</dd>
+
+                                    <dt class="col-sm-4 text-muted">Ngày mua</dt>
+                                    <dd class="col-sm-8" id="display-ngay-mua">-</dd>
+
+                                    <dt class="col-sm-4 text-muted">Mô tả</dt>
+                                    <dd class="col-sm-8" id="display-mo-ta">-</dd>
+
+                                    <dt class="col-sm-4 text-muted">Ngày tạo</dt>
+                                    <dd class="col-sm-8 text-muted small" id="display-created">-</dd>
+
+                                    <dt class="col-sm-4 text-muted">Cập nhật lần cuối</dt>
+                                    <dd class="col-sm-8 text-muted small" id="display-updated">-</dd>
+                                </dl>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-light">
+                            <a th:href="@{/admin/thiet-bi}" class="btn btn-secondary">
+                                <i data-lucide="arrow-left"></i> Quay lại danh sách
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            const id = /*[[${id}]]*/ 0;
+
+            document.addEventListener('DOMContentLoaded', function () {
+                loadThietBiData();
+                lucide.createIcons();
+            });
+
+            function loadThietBiData() {
+                fetch(`/api/admin/thiet-bi/${id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const item = data.data;
+
+                            document.getElementById('display-id').textContent = item.id;
+                            document.getElementById('display-ten').textContent = item.tenThietBi;
+                            document.getElementById('display-ma').textContent = item.maThietBi;
+                            document.getElementById('display-loai').textContent = item.loaiThietBi?.tenLoai || 'Chưa phân loại';
+                            document.getElementById('display-phong').textContent = item.phongHoc?.tenPhong || 'Chưa gán phòng';
+
+                            // Status badge
+                            const statusBadge = item.trangThai === 'HOAT_DONG' ? 'bg-success' :
+                                item.trangThai === 'BAO_TRI' ? 'bg-warning' :
+                                    item.trangThai === 'HONG' ? 'bg-danger' : 'bg-secondary';
+                            document.getElementById('display-trang-thai').innerHTML =
+                                `<span class="badge ${statusBadge}">${item.trangThai}</span>`;
+
+                            document.getElementById('display-ngay-mua').textContent =
+                                item.ngayMua ? new Date(item.ngayMua).toLocaleDateString('vi-VN') : 'Chưa có thông tin';
+
+                            document.getElementById('display-mo-ta').textContent = item.moTa || 'Không có mô tả';
+
+                            document.getElementById('display-created').textContent =
+                                new Date(item.createdAt).toLocaleString('vi-VN');
+
+                            document.getElementById('display-updated').textContent =
+                                new Date(item.updatedAt).toLocaleString('vi-VN');
+
+                            // Show data, hide loading
+                            document.getElementById('loadingState').style.display = 'none';
+                            document.getElementById('dataDisplay').style.display = 'block';
+
+                            lucide.createIcons();
+                        } else {
+                            alert('Không tìm thấy thiết bị');
+                            window.location.href = '/admin/thiet-bi';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Có lỗi xảy ra khi tải dữ liệu');
+                    });
+            }
+
+            function deleteItem() {
+                if (confirm('Bạn có chắc chắn muốn xóa thiết bị này?')) {
+                    fetch(`/api/admin/thiet-bi/${id}`, { method: 'DELETE' })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert('Xóa thành công!');
+                                window.location.href = '/admin/thiet-bi';
+                            } else {
+                                alert('Lỗi: ' + (data.message || 'Không thể xóa'));
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Có lỗi xảy ra khi xóa');
+                        });
+                }
+            }
+        </script>
+    </th:block>
+</body>
+
+</html>

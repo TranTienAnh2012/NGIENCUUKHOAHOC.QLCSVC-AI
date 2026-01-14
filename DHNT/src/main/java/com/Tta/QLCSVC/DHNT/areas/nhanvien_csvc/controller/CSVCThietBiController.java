@@ -1,6 +1,6 @@
-package com.Tta.QLCSVC.DHNT.areas.csvc.controller;
+package com.Tta.QLCSVC.DHNT.areas.nhanvien_csvc.controller;
 
-import com.Tta.QLCSVC.DHNT.areas.csvc.service.CSVCThietBiService;
+import com.Tta.QLCSVC.DHNT.areas.nhanvien_csvc.service.CSVCThietBiService;
 import com.Tta.QLCSVC.DHNT.dto.ApiResponse;
 import com.Tta.QLCSVC.DHNT.entity.ThietBi;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/csvc/thiet-bi")
+@RequestMapping("/api/nhanvien-csvc/thiet-bi")
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('NHAN_VIEN_CSVC', 'ADMIN')")
 @Tag(name = "CSVC - Thiết bị", description = "API quản lý thiết bị (CSVC)")

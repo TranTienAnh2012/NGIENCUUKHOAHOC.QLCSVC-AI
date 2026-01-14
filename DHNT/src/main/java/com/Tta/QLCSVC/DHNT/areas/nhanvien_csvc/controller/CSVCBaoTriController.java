@@ -1,6 +1,6 @@
-package com.Tta.QLCSVC.DHNT.areas.csvc.controller;
+package com.Tta.QLCSVC.DHNT.areas.nhanvien_csvc.controller;
 
-import com.Tta.QLCSVC.DHNT.areas.csvc.service.CSVCBaoTriService;
+import com.Tta.QLCSVC.DHNT.areas.nhanvien_csvc.service.CSVCBaoTriService;
 import com.Tta.QLCSVC.DHNT.dto.ApiResponse;
 import com.Tta.QLCSVC.DHNT.entity.BaoTri;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,7 +15,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/csvc/bao-tri")
+@RequestMapping("/api/nhanvien-csvc/bao-tri")
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('NHAN_VIEN_CSVC', 'ADMIN')")
 @Tag(name = "CSVC - Bảo trì", description = "API quản lý bảo trì thiết bị (CSVC)")

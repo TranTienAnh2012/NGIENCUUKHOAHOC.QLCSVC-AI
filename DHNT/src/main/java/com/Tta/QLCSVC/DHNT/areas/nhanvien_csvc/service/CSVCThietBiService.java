@@ -1,4 +1,4 @@
-package com.Tta.QLCSVC.DHNT.areas.csvc.service;
+package com.Tta.QLCSVC.DHNT.areas.nhanvien_csvc.service;
 
 import com.Tta.QLCSVC.DHNT.entity.ThietBi;
 import com.Tta.QLCSVC.DHNT.exception.ResourceNotFoundException;

@@ -47,19 +47,20 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints & Static resources
                         .requestMatchers("/api/auth/**", "/login", "/register", "/auth/**").permitAll()
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/fonts/**", "/assets/**", "/webjars/**")
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/fonts/**", "/assets/**", "/webjars/**",
+                                "/uploads/**")
                         .permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
 
                         // UI Areas (Role-based)
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/giao-vien/**").hasAnyRole("GIAO_VIEN", "ADMIN")
-                        .requestMatchers("/csvc/**").hasAnyRole("NHAN_VIEN_CSVC", "ADMIN")
+                        .requestMatchers("/nhanvien-csvc/**").hasAnyRole("NHAN_VIEN_CSVC", "ADMIN")
 
                         // API Endpoints (Role-based)
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/giao-vien/**").hasAnyRole("GIAO_VIEN", "ADMIN")
-                        .requestMatchers("/api/csvc/**").hasAnyRole("NHAN_VIEN_CSVC", "ADMIN")
+                        .requestMatchers("/api/nhanvien-csvc/**").hasAnyRole("NHAN_VIEN_CSVC", "ADMIN")
 
                         // All other requests need authentication
                         .anyRequest().authenticated())

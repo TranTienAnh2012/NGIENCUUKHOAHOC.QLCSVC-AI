@@ -7,6 +7,7 @@ import com.Tta.QLCSVC.DHNT.entity.NguoiDung;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -57,5 +58,21 @@ public class AdminUserController {
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id) {
         adminNguoiDungService.deleteUser(id);
         return ResponseEntity.ok(ApiResponse.success("Xóa người dùng thành công", null));
+    }
+
+    @PostMapping
+    @Operation(summary = "Tạo người dùng mới", description = "Thêm người dùng mới vào hệ thống")
+    public ResponseEntity<ApiResponse<NguoiDung>> createUser(@Valid @RequestBody NguoiDung nguoiDung) {
+        NguoiDung created = adminNguoiDungService.createUser(nguoiDung);
+        return ResponseEntity.ok(ApiResponse.success("Tạo người dùng thành công", created));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Cập nhật người dùng", description = "Cập nhật thông tin người dùng")
+    public ResponseEntity<ApiResponse<NguoiDung>> updateUser(
+            @PathVariable Long id,
+            @Valid @RequestBody NguoiDung nguoiDung) {
+        NguoiDung updated = adminNguoiDungService.updateUser(id, nguoiDung);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật người dùng thành công", updated));
     }
 }
