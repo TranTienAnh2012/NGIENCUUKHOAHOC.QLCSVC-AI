@@ -31,6 +31,16 @@ public class AdminHinhAnhController {
     private final HinhAnhThietBiRepository hinhAnhRepository;
     private final ThietBiRepository thietBiRepository;
 
+    @GetMapping
+    @Operation(summary = "Lấy tất cả hình ảnh", description = "Lấy danh sách tất cả hình ảnh thiết bị (phân trang)")
+    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<HinhAnhThietBi>>> getAllImages(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Page<HinhAnhThietBi> result = hinhAnhRepository.findAll(pageable);
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
     @PostMapping("/upload/{thietBiId}")
     @Operation(summary = "Upload hình ảnh", description = "Upload hình ảnh cho thiết bị")
     public ResponseEntity<ApiResponse<HinhAnhThietBi>> uploadImage(

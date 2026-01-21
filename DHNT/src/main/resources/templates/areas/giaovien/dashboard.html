@@ -1,52 +1,170 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::content})}">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/giaovien-layout}">
 
 <head>
-    <title>Giáo viên Dashboard</title>
+    <title>Dashboard - Giáo viên</title>
 </head>
 
 <body>
-    <div th:fragment="content">
-        <div class="card-grid">
-            <div class="stat-card">
-                <span class="stat-label">Thiết bị đang mượn</span>
-                <span class="stat-value">3</span>
-                <span style="color: var(--info); font-size: 13px;">Hạn trả gần nhất: 15/01</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Tổng lượt mượn</span>
-                <span class="stat-value">42</span>
-                <span style="color: var(--gray-500); font-size: 13px;">Trong học kỳ này</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">Báo hỏng đã gửi</span>
-                <span class="stat-value">1</span>
-                <span style="color: var(--success); font-size: 13px;">Đã được xử lý</span>
+    <div layout:fragment="content">
+        <!-- Welcome Section -->
+        <div class="welcome-section animate-in" style="margin-bottom: 32px;">
+            <div
+                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 20px; padding: 32px; color: white; box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <h1
+                            style="font-family: 'Outfit', sans-serif; font-size: 32px; font-weight: 800; margin: 0 0 8px 0;">
+                            Xin chào, <span sec:authentication="name">Giáo viên</span>! 👋
+                        </h1>
+                        <p style="font-size: 16px; opacity: 0.9; margin: 0;">
+                            Chào mừng bạn quay trở lại hệ thống quản lý cơ sở vật chất
+                        </p>
+                    </div>
+                    <div style="font-size: 64px; opacity: 0.2;">
+                        <i data-lucide="graduation-cap"></i>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin-top: 30px;">
-            <div class="stat-card">
-                <h4 style="font-size: 18px; font-weight: 700; margin-bottom: 20px;">Thiết bị đang sử dụng</h4>
+        <!-- Stats Grid -->
+        <div class="stats-grid animate-in" style="animation-delay: 0.1s;">
+            <div class="stat-card-modern">
+                <div class="stat-card-icon">
+                    <i data-lucide="package"></i>
+                </div>
+                <div class="stat-card-content">
+                    <h4>Đang mượn</h4>
+                    <div class="stat-number">3</div>
+                    <p style="font-size: 13px; color: #64748b; margin: 8px 0 0 0;">Thiết bị hiện tại</p>
+                </div>
+            </div>
+
+            <div class="stat-card-modern">
+                <div class="stat-card-icon"
+                    style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); box-shadow: 0 8px 16px rgba(245, 158, 11, 0.3);">
+                    <i data-lucide="history"></i>
+                </div>
+                <div class="stat-card-content">
+                    <h4>Lịch sử</h4>
+                    <div class="stat-number">42</div>
+                    <p style="font-size: 13px; color: #64748b; margin: 8px 0 0 0;">Lượt mượn trả</p>
+                </div>
+            </div>
+
+            <div class="stat-card-modern">
+                <div class="stat-card-icon"
+                    style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);">
+                    <i data-lucide="alert-triangle"></i>
+                </div>
+                <div class="stat-card-content">
+                    <h4>Báo hỏng</h4>
+                    <div class="stat-number">1</div>
+                    <p style="font-size: 13px; color: #64748b; margin: 8px 0 0 0;">Phiếu đã gửi</p>
+                </div>
+            </div>
+
+            <div class="stat-card-modern">
+                <div class="stat-card-icon"
+                    style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);">
+                    <i data-lucide="check-circle"></i>
+                </div>
+                <div class="stat-card-content">
+                    <h4>Hoàn thành</h4>
+                    <div class="stat-number">38</div>
+                    <p style="font-size: 13px; color: #64748b; margin: 8px 0 0 0;">Yêu cầu đã xử lý</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="animate-in" style="animation-delay: 0.2s; margin-bottom: 32px;">
+            <h2
+                style="font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 20px;">
+                Thao tác nhanh
+            </h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
+                <a th:href="@{/giao-vien/muon-tra}" class="action-btn">
+                    <div class="action-icon">
+                        <i data-lucide="repeat"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Mượn thiết bị</h4>
+                        <p>Đăng ký mượn thiết bị mới</p>
+                    </div>
+                </a>
+
+                <a th:href="@{/giao-vien/bao-hong}" class="action-btn">
+                    <div class="action-icon" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                        <i data-lucide="alert-triangle"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Báo hỏng</h4>
+                        <p>Gửi phiếu báo hỏng thiết bị</p>
+                    </div>
+                </a>
+
+                <a th:href="@{/giao-vien/lich-su}" class="action-btn">
+                    <div class="action-icon" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                        <i data-lucide="history"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Lịch sử</h4>
+                        <p>Xem lịch sử mượn trả</p>
+                    </div>
+                </a>
+
+                <a th:href="@{/giao-vien/thiet-bi}" class="action-btn">
+                    <div class="action-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                        <i data-lucide="monitor"></i>
+                    </div>
+                    <div class="action-content">
+                        <h4>Thiết bị</h4>
+                        <p>Danh sách thiết bị khả dụng</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Recent Activities & AI Chatbot -->
+        <div class="animate-in"
+            style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; animation-delay: 0.3s;">
+            <!-- Recent Activities -->
+            <div class="card-modern">
+                <div class="card-header-modern">
+                    <h3 class="card-title">Thiết bị đang sử dụng</h3>
+                    <a th:href="@{/giao-vien/muon-tra}"
+                        style="color: #3b82f6; font-size: 14px; font-weight: 600; text-decoration: none;">
+                        Xem tất cả →
+                    </a>
+                </div>
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>
-                            <tr style="border-bottom: 1px solid var(--gray-200); text-align: left;">
-                                <th style="padding: 12px; color: var(--gray-500); font-size: 13px;">Tên thiết bị</th>
-                                <th style="padding: 12px; color: var(--gray-500); font-size: 13px;">Ngày mượn</th>
-                                <th style="padding: 12px; color: var(--gray-500); font-size: 13px;">Hạn trả</th>
-                                <th style="padding: 12px; color: var(--gray-500); font-size: 13px;">Thao tác</th>
+                            <tr style="border-bottom: 2px solid #f1f5f9; text-align: left;">
+                                <th style="padding: 12px; color: #64748b; font-size: 13px; font-weight: 600;">Tên thiết
+                                    bị</th>
+                                <th style="padding: 12px; color: #64748b; font-size: 13px; font-weight: 600;">Ngày mượn
+                                </th>
+                                <th style="padding: 12px; color: #64748b; font-size: 13px; font-weight: 600;">Hạn trả
+                                </th>
+                                <th style="padding: 12px; color: #64748b; font-size: 13px; font-weight: 600;">Thao tác
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="i : ${#numbers.sequence(1, 2)}"
-                                style="border-bottom: 1px solid var(--gray-100);">
-                                <td style="padding: 12px; font-weight: 600;">Máy chiếu Sony #102</td>
-                                <td style="padding: 12px;">10/01/2026</td>
-                                <td style="padding: 12px;">15/01/2026</td>
+                            <tr th:each="i : ${#numbers.sequence(1, 2)}" style="border-bottom: 1px solid #f1f5f9;">
+                                <td style="padding: 12px; font-weight: 600; color: #0f172a;">Máy chiếu Sony #102</td>
+                                <td style="padding: 12px; color: #64748b;">10/01/2026</td>
+                                <td style="padding: 12px; color: #64748b;">15/01/2026</td>
                                 <td style="padding: 12px;">
-                                    <button class="btn" style="color: var(--primary); padding: 5px;"><i
-                                            data-lucide="corner-up-left" style="width: 18px;"></i></button>
+                                    <button class="btn"
+                                        style="color: #3b82f6; padding: 6px 12px; background: #eff6ff; border-radius: 8px; font-size: 13px; font-weight: 600;">
+                                        <i data-lucide="corner-up-left" style="width: 16px; height: 16px;"></i>
+                                        Trả
+                                    </button>
                                 </td>
                             </tr>
                         </tbody>
@@ -54,18 +172,48 @@
                 </div>
             </div>
 
-            <div class="stat-card"
-                style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: var(--white);">
-                <h4 style="font-size: 18px; font-weight: 700; margin-bottom: 15px;">Hỗ trợ AI Chatbot</h4>
-                <p style="font-size: 14px; opacity: 0.9; margin-bottom: 20px;">Bạn gặp khó khăn trong việc mượn thiết bị
-                    hoặc báo hỏng? Hãy hỏi trợ lý ảo AI của chúng tôi.</p>
+            <!-- AI Chatbot -->
+            <div class="card-modern"
+                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                <h4
+                    style="font-size: 20px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="sparkles"></i>
+                    Hỗ trợ AI Chatbot
+                </h4>
+                <p style="font-size: 14px; opacity: 0.9; margin-bottom: 20px; line-height: 1.6;">
+                    Bạn gặp khó khăn trong việc mượn thiết bị hoặc báo hỏng? Hãy hỏi trợ lý ảo AI của chúng tôi.
+                </p>
                 <a th:href="@{/chatbot}" class="btn"
-                    style="background: rgba(255,255,255,0.2); color: var(--white); backdrop-filter: blur(10px);">
-                    <i data-lucide="message-square"></i> Trò chuyện ngay
+                    style="background: rgba(255,255,255,0.2); color: white; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); width: 100%; justify-content: center;">
+                    <i data-lucide="message-square"></i>
+                    Trò chuyện ngay
                 </a>
             </div>
         </div>
     </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            // Animate numbers on load
+            document.addEventListener('DOMContentLoaded', function () {
+                const statNumbers = document.querySelectorAll('.stat-number');
+                statNumbers.forEach(num => {
+                    const target = parseInt(num.textContent);
+                    let current = 0;
+                    const increment = target / 30;
+                    const timer = setInterval(() => {
+                        current += increment;
+                        if (current >= target) {
+                            num.textContent = target;
+                            clearInterval(timer);
+                        } else {
+                            num.textContent = Math.floor(current);
+                        }
+                    }, 30);
+                });
+            });
+        </script>
+    </th:block>
 </body>
 
 </html>

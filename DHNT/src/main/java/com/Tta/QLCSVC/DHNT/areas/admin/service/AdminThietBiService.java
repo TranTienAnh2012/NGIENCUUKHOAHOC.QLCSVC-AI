@@ -24,13 +24,35 @@ public class AdminThietBiService {
     private final LoaiThietBiRepository loaiThietBiRepository;
     private final PhongHocRepository phongHocRepository;
 
+    @Transactional(readOnly = true)
     public Page<ThietBi> getAllThietBi(Pageable pageable) {
-        return thietBiRepository.findAll(pageable);
+        // Note: Page with JOIN FETCH requires custom implementation
+        // For now, we'll fetch and initialize relationships
+        Page<ThietBi> page = thietBiRepository.findAll(pageable);
+        // Force initialization of lazy relationships
+        page.getContent().forEach(tb -> {
+            if (tb.getLoaiThietBi() != null) {
+                tb.getLoaiThietBi().getTenLoai();
+            }
+            if (tb.getPhong() != null) {
+                tb.getPhong().getTenPhong();
+            }
+        });
+        return page;
     }
 
+    @Transactional(readOnly = true)
     public ThietBi getThietBiById(Long id) {
-        return thietBiRepository.findById(id)
+        ThietBi thietBi = thietBiRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("ThietBi", "id", id));
+        // Eagerly fetch lazy relationships to avoid LazyInitializationException
+        if (thietBi.getLoaiThietBi() != null) {
+            thietBi.getLoaiThietBi().getTenLoai(); // Force initialization
+        }
+        if (thietBi.getPhong() != null) {
+            thietBi.getPhong().getTenPhong(); // Force initialization
+        }
+        return thietBi;
     }
 
     public List<ThietBi> getThietBiByTrangThai(ThietBi.TrangThaiThietBi trangThai) {
@@ -69,6 +91,26 @@ public class AdminThietBiService {
         thietBi.setNgayMua(thietBiDetails.getNgayMua());
         thietBi.setGiaMua(thietBiDetails.getGiaMua());
         thietBi.setGhiChu(thietBiDetails.getGhiChu());
+        thietBi.setTrangThai(thietBiDetails.getTrangThai());
+
+        // Update LoaiThietBi relationship
+        if (thietBiDetails.getLoaiThietBi() != null && thietBiDetails.getLoaiThietBi().getId() != null) {
+            LoaiThietBi loaiThietBi = loaiThietBiRepository.findById(thietBiDetails.getLoaiThietBi().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("LoaiThietBi", "id",
+                            thietBiDetails.getLoaiThietBi().getId()));
+            thietBi.setLoaiThietBi(loaiThietBi);
+        }
+
+        // Update Phong relationship
+        if (thietBiDetails.getPhong() != null && thietBiDetails.getPhong().getId() != null) {
+            PhongHoc phong = phongHocRepository.findById(thietBiDetails.getPhong().getId())
+                    .orElseThrow(
+                            () -> new ResourceNotFoundException("PhongHoc", "id", thietBiDetails.getPhong().getId()));
+            thietBi.setPhong(phong);
+        } else {
+            // Allow setting phong to null if not provided
+            thietBi.setPhong(null);
+        }
 
         return thietBiRepository.save(thietBi);
     }

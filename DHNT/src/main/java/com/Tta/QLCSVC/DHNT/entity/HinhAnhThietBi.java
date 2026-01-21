@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
@@ -23,6 +25,7 @@ public class HinhAnhThietBi {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "thiet_bi_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private ThietBi thietBi;
 
     @Column(name = "url_hinh_anh", nullable = false, length = 500)

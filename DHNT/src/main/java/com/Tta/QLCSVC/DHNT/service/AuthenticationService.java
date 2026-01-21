@@ -46,16 +46,24 @@ public class AuthenticationService {
             throw new DuplicateResourceException("Email đã được sử dụng");
         }
 
+        // Security: Prevent self-registration as ADMIN
+        if ("ADMIN".equals(request.getVaiTro())) {
+            throw new IllegalArgumentException("Không thể tự đăng ký với quyền Admin");
+        }
+
         NguoiDung nguoiDung = new NguoiDung();
         nguoiDung.setHoTen(request.getHoTen());
         nguoiDung.setEmail(request.getEmail());
         nguoiDung.setMatKhau(passwordEncoder.encode(request.getPassword()));
         nguoiDung.setSoDienThoai(request.getSoDienThoai());
-        if (request.getEmail().startsWith("admin")) {
-            nguoiDung.setVaiTro(NguoiDung.VaiTro.ADMIN);
-        } else {
-            nguoiDung.setVaiTro(NguoiDung.VaiTro.GIAO_VIEN);
+
+        // Set role from request (validated by @Pattern in RegisterRequest)
+        try {
+            nguoiDung.setVaiTro(NguoiDung.VaiTro.valueOf(request.getVaiTro()));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Vai trò không hợp lệ: " + request.getVaiTro());
         }
+
         nguoiDung.setTrangThai(NguoiDung.TrangThaiNguoiDung.ACTIVE);
 
         nguoiDung = nguoiDungRepository.save(nguoiDung);

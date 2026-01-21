@@ -233,4 +233,38 @@ public class AdminViewController {
         model.addAttribute("id", id);
         return "areas/admin/bao-tri/view";
     }
+
+    // IoT Monitoring routes
+    @GetMapping("/iot")
+    public String iotList(Model model) {
+        model.addAttribute("title", "Giám sát dữ liệu cảm biến");
+        return "areas/admin/iot/list";
+    }
+
+    // AI Management routes
+    @GetMapping("/ai/training-data")
+    public String aiTrainingData(Model model) {
+        model.addAttribute("title", "Dữ liệu huấn luyện AI");
+        return "areas/admin/ai/training-data";
+    }
+
+    @GetMapping("/ai/metrics")
+    public String aiMetrics(Model model) {
+        model.addAttribute("title", "Chỉ số Model AI");
+        return "areas/admin/ai/metrics";
+    }
+
+    // Chatbot Logs routes
+    @GetMapping("/chatbot-logs")
+    public String chatbotLogs(Model model) {
+        model.addAttribute("title", "Nhật ký hội thoại Chatbot");
+        return "areas/admin/chatbot/list";
+    }
+
+    // Hình ảnh quản lý routes
+    @GetMapping("/hinh-anh")
+    public String hinhAnhGallery(Model model) {
+        model.addAttribute("title", "Quản lý hình ảnh");
+        return "areas/admin/hinh-anh/list";
+    }
 }

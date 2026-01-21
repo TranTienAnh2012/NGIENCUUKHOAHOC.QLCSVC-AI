@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<body>
+    <!-- Sidebar Fragment for Giao Vien -->
+    <aside class="giaovien-sidebar" th:fragment="sidebar">
+        <div class="sidebar-header-modern">
+            <div class="logo-container">
+                <div class="logo-icon">
+                    <i data-lucide="graduation-cap"></i>
+                </div>
+                <div class="logo-text">
+                    <h2>QLCSVC-AI</h2>
+                    <span class="role-badge giaovien-badge">Giáo viên</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav-modern">
+            <ul>
+                <li class="nav-item">
+                    <a th:href="@{/giao-vien}" class="nav-link-modern">
+                        <div class="nav-icon">
+                            <i data-lucide="layout-dashboard"></i>
+                        </div>
+                        <span>Dashboard</span>
+                        <div class="nav-indicator"></div>
+                    </a>
+                </li>
+
+                <li class="nav-divider-modern">
+                    <span>Quản lý thiết bị</span>
+                </li>
+
+                <li class="nav-item">
+                    <a th:href="@{/giao-vien/muon-tra}" class="nav-link-modern">
+                        <div class="nav-icon">
+                            <i data-lucide="repeat"></i>
+                        </div>
+                        <span>Mượn trả thiết bị</span>
+                        <div class="nav-indicator"></div>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a th:href="@{/giao-vien/lich-su}" class="nav-link-modern">
+                        <div class="nav-icon">
+                            <i data-lucide="history"></i>
+                        </div>
+                        <span>Lịch sử mượn trả</span>
+                        <div class="nav-indicator"></div>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a th:href="@{/giao-vien/bao-hong}" class="nav-link-modern">
+                        <div class="nav-icon">
+                            <i data-lucide="alert-triangle"></i>
+                        </div>
+                        <span>Báo hỏng thiết bị</span>
+                        <div class="nav-indicator"></div>
+                    </a>
+                </li>
+
+                <li class="nav-divider-modern">
+                    <span>Thông tin</span>
+                </li>
+
+                <li class="nav-item">
+                    <a th:href="@{/giao-vien/thiet-bi}" class="nav-link-modern">
+                        <div class="nav-icon">
+                            <i data-lucide="monitor"></i>
+                        </div>
+                        <span>Danh sách thiết bị</span>
+                        <div class="nav-indicator"></div>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a th:href="@{/giao-vien/profile}" class="nav-link-modern">
+                        <div class="nav-icon">
+                            <i data-lucide="user"></i>
+                        </div>
+                        <span>Thông tin cá nhân</span>
+                        <div class="nav-indicator"></div>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="sidebar-footer-modern">
+            <div class="quick-stats">
+                <div class="stat-item">
+                    <i data-lucide="package"></i>
+                    <div>
+                        <span class="stat-label">Đang mượn</span>
+                        <span class="stat-value">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+</body>
+
+</html>

@@ -6,6 +6,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "loai_phong")
@@ -23,6 +26,10 @@ public class LoaiPhong {
 
     @Column(name = "mo_ta", columnDefinition = "TEXT")
     private String moTa;
+
+    @OneToMany(mappedBy = "loaiPhong")
+    @JsonIgnore
+    private List<PhongHoc> phongHocs = new ArrayList<>();
 
     @Column(name = "so_phong")
     private Integer soPhong;

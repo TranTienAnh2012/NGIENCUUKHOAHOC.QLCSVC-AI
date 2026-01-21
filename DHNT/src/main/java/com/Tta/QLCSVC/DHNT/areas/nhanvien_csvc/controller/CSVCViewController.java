@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
 @RequestMapping("/nhanvien-csvc")
-@PreAuthorize("hasRole('NHAN_VIEN_CSVC')")
+@PreAuthorize("hasAnyRole('NHAN_VIEN_CSVC', 'ADMIN')")
 public class CSVCViewController {
 
     @GetMapping

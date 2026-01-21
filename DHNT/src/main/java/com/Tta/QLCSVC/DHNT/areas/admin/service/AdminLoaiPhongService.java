@@ -46,9 +46,13 @@ public class AdminLoaiPhongService {
 
     @Transactional
     public void deleteLoaiPhong(Long id) {
-        if (!loaiPhongRepository.existsById(id)) {
-            throw new ResourceNotFoundException("LoaiPhong", "id", id);
+        LoaiPhong loaiPhong = getLoaiPhongById(id);
+
+        // Gỡ loại phòng khỏi các phòng học liên quan (SET NULL)
+        if (loaiPhong.getPhongHocs() != null) {
+            loaiPhong.getPhongHocs().forEach(ph -> ph.setLoaiPhong(null));
         }
-        loaiPhongRepository.deleteById(id);
+
+        loaiPhongRepository.delete(loaiPhong);
     }
 }

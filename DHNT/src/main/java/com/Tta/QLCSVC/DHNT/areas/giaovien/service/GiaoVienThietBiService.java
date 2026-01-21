@@ -14,12 +14,23 @@ public class GiaoVienThietBiService {
 
     private final ThietBiRepository thietBiRepository;
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<ThietBi> getAllAvailableThietBi() {
-        return thietBiRepository.findByTrangThai(ThietBi.TrangThaiThietBi.TOT);
+        // Use JOIN FETCH query to avoid N+1 problem and LazyInitializationException
+        return thietBiRepository.findByTrangThaiWithDetails(ThietBi.TrangThaiThietBi.TOT);
     }
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public ThietBi getThietBiById(Long id) {
-        return thietBiRepository.findById(id)
+        ThietBi thietBi = thietBiRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("ThietBi", "id", id));
+        // Force initialization of lazy relationships
+        if (thietBi.getLoaiThietBi() != null) {
+            thietBi.getLoaiThietBi().getTenLoai();
+        }
+        if (thietBi.getPhong() != null) {
+            thietBi.getPhong().getTenPhong();
+        }
+        return thietBi;
     }
 }

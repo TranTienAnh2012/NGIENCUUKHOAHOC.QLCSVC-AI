@@ -56,6 +56,37 @@
                     </a>
                 </li>
 
+                <!-- Divider -->
+                <li class="nav-divider" sec:authorize="hasRole('ADMIN')">
+                    <span>Hệ thống & Giám sát</span>
+                </li>
+
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                    <a th:href="@{/admin/hinh-anh}" class="nav-link">
+                        <i data-lucide="images"></i> Hình ảnh
+                    </a>
+                </li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                    <a th:href="@{/admin/iot}" class="nav-link">
+                        <i data-lucide="activity"></i> Giám sát IoT
+                    </a>
+                </li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                    <a th:href="@{/admin/ai/training-data}" class="nav-link">
+                        <i data-lucide="brain"></i> Dữ liệu AI
+                    </a>
+                </li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                    <a th:href="@{/admin/ai/metrics}" class="nav-link">
+                        <i data-lucide="trending-up"></i> Chỉ số AI
+                    </a>
+                </li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                    <a th:href="@{/admin/chatbot-logs}" class="nav-link">
+                        <i data-lucide="message-square"></i> Nhật ký Chatbot
+                    </a>
+                </li>
+
                 <!-- Giao Vien Menu -->
                 <li class="nav-item" sec:authorize="hasRole('GIAO_VIEN')">
                     <a th:href="@{/giao-vien}" class="nav-link">

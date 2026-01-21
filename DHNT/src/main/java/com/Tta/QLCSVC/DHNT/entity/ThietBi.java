@@ -1,13 +1,19 @@
 package com.Tta.QLCSVC.DHNT.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "thiet_bi")
@@ -25,10 +31,13 @@ public class ThietBi {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "loai_thiet_bi_id", nullable = false)
+    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
     private LoaiThietBi loaiThietBi;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "phong_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler", "iotData", "thietBis", "loaiPhong" })
     private PhongHoc phong;
 
     @Column(name = "hang_san_xuat", length = 100)
@@ -58,6 +67,18 @@ public class ThietBi {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @OneToMany(mappedBy = "thietBi", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<HinhAnhThietBi> hinhAnhs = new ArrayList<>();
+
+    @OneToMany(mappedBy = "thietBi", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<BaoHong> baoHongs = new ArrayList<>();
+
+    @OneToMany(mappedBy = "thietBi", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<MuonTraThietBi> muonTras = new ArrayList<>();
 
     public ThietBi() {
     }
@@ -209,5 +230,29 @@ public class ThietBi {
         BAO_TRI,
         HONG,
         THANH_LY
+    }
+
+    public List<HinhAnhThietBi> getHinhAnhs() {
+        return hinhAnhs;
+    }
+
+    public void setHinhAnhs(List<HinhAnhThietBi> hinhAnhs) {
+        this.hinhAnhs = hinhAnhs;
+    }
+
+    public List<BaoHong> getBaoHongs() {
+        return baoHongs;
+    }
+
+    public void setBaoHongs(List<BaoHong> baoHongs) {
+        this.baoHongs = baoHongs;
+    }
+
+    public List<MuonTraThietBi> getMuonTras() {
+        return muonTras;
+    }
+
+    public void setMuonTras(List<MuonTraThietBi> muonTras) {
+        this.muonTras = muonTras;
     }
 }

@@ -1,5 +1,6 @@
 package com.Tta.QLCSVC.DHNT.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,10 +23,12 @@ public class BaoTri {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "thiet_bi_id", nullable = false)
+    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler", "hinhAnhs", "baoHongs", "muonTras", "baoTris" })
     private ThietBi thietBi;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bao_hong_id")
+    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler", "thietBi" })
     private BaoHong baoHong;
 
     @Enumerated(EnumType.STRING)

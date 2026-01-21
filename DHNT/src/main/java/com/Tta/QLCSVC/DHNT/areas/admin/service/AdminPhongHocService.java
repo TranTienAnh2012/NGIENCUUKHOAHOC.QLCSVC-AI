@@ -61,6 +61,12 @@ public class AdminPhongHocService {
     @Transactional
     public void deletePhongHoc(Long id) {
         PhongHoc phongHoc = getPhongHocById(id);
+
+        // Gỡ phòng khỏi danh sách thiết bị (SET NULL)
+        if (phongHoc.getThietBis() != null) {
+            phongHoc.getThietBis().forEach(tb -> tb.setPhong(null));
+        }
+
         phongHocRepository.delete(phongHoc);
     }
 }

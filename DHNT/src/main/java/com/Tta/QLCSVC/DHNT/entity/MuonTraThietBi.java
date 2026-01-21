@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
@@ -20,6 +22,7 @@ public class MuonTraThietBi {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "thiet_bi_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private ThietBi thietBi;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -1,7 +1,12 @@
 package com.Tta.QLCSVC.DHNT.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "phong_hoc")
@@ -28,10 +33,19 @@ public class PhongHoc {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "loai_phong_id", nullable = true)
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private LoaiPhong loaiPhong;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @OneToMany(mappedBy = "phong", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<IotDuLieuCamBien> iotData = new ArrayList<>();
+
+    @OneToMany(mappedBy = "phong")
+    @JsonIgnore
+    private List<ThietBi> thietBis = new ArrayList<>();
 
     public PhongHoc() {
     }
@@ -115,5 +129,21 @@ public class PhongHoc {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public List<IotDuLieuCamBien> getIotData() {
+        return iotData;
+    }
+
+    public void setIotData(List<IotDuLieuCamBien> iotData) {
+        this.iotData = iotData;
+    }
+
+    public List<ThietBi> getThietBis() {
+        return thietBis;
+    }
+
+    public void setThietBis(List<ThietBi> thietBis) {
+        this.thietBis = thietBis;
     }
 }

@@ -27,4 +27,8 @@ public class RegisterRequest {
 
     @Pattern(regexp = "^[0-9]{10}$", message = "Số điện thoại phải có 10 chữ số")
     private String soDienThoai;
+
+    @NotBlank(message = "Vai trò không được để trống")
+    @Pattern(regexp = "^(GIAO_VIEN|NHAN_VIEN_CSVC)$", message = "Vai trò không hợp lệ. Chỉ cho phép GIAO_VIEN hoặc NHAN_VIEN_CSVC")
+    private String vaiTro;
 }

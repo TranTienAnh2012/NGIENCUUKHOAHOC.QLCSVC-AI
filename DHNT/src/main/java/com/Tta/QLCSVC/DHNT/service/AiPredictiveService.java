@@ -36,7 +36,7 @@ public class AiPredictiveService {
 
         // Giả lập logic AI
         double probValue = 0.1 + (random.nextDouble() * 0.8);
-        BigDecimal probability = BigDecimal.valueOf(probValue * 100).setScale(2, BigDecimal.ROUND_HALF_UP);
+        BigDecimal probability = BigDecimal.valueOf(probValue * 100).setScale(2, java.math.RoundingMode.HALF_UP);
         AiDuDoanBaoTri.MucDoRuiRo risk = calculateRisk(probValue);
 
         AiDuDoanBaoTri prediction = new AiDuDoanBaoTri();
@@ -46,7 +46,8 @@ public class AiPredictiveService {
         prediction.setMucDoRuiRo(risk);
         prediction.setNgayDuKienHong(LocalDate.now().plusDays(30 + random.nextInt(180)));
         prediction.setChiPhiUocTinh(BigDecimal.valueOf(500000 + random.nextInt(5000000)));
-        prediction.setDoTinCay(BigDecimal.valueOf(70 + random.nextDouble() * 25).setScale(2, BigDecimal.ROUND_HALF_UP));
+        prediction.setDoTinCay(
+                BigDecimal.valueOf(70 + random.nextDouble() * 25).setScale(2, java.math.RoundingMode.HALF_UP));
         prediction.setPhienBanModel("qlcsvc-ai-v1.0");
 
         String suggestion = risk == AiDuDoanBaoTri.MucDoRuiRo.CAO || risk == AiDuDoanBaoTri.MucDoRuiRo.NGUY_HIEM

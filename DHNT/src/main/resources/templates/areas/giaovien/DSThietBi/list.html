@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/giaovien-layout}">
+
+<head>
+    <title>Danh sách thiết bị - Giáo viên</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="animate-in" style="margin-bottom: 32px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <div>
+                    <h2
+                        style="font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0;">
+                        Danh sách thiết bị
+                    </h2>
+                    <p style="color: #64748b; margin: 0;">
+                        Xem thông tin các thiết bị có sẵn để mượn
+                    </p>
+                </div>
+            </div>
+
+            <!-- Search and Filter -->
+            <div class="card-modern" style="margin-bottom: 24px;">
+                <div style="display: grid; grid-template-columns: 1fr auto; gap: 16px;">
+                    <div style="position: relative;">
+                        <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên, mã thiết bị..."
+                            style="width: 100%; padding: 12px 16px 12px 44px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 15px; transition: all 0.3s;">
+                        <i data-lucide="search"
+                            style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; color: #94a3b8;"></i>
+                    </div>
+                    <select id="filterStatus"
+                        style="padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 15px; cursor: pointer; min-width: 180px;">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="TOT">Tốt</option>
+                        <option value="BAO_TRI">Bảo trì</option>
+                        <option value="HONG">Hỏng</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Equipment Table -->
+        <div class="card-modern animate-in" style="animation-delay: 0.1s;">
+            <div class="card-header-modern">
+                <h3 class="card-title">
+                    <i data-lucide="monitor" style="width: 24px; height: 24px; margin-right: 8px;"></i>
+                    Thiết bị khả dụng
+                </h3>
+                <span id="totalCount" style="color: #64748b; font-size: 14px;">
+                    Tổng: <strong th:text="${#lists.size(thietBis)}">0</strong> thiết bị
+                </span>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;" id="equipmentTable">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #f1f5f9; text-align: left;">
+                            <th
+                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Mã TB
+                            </th>
+                            <th
+                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Tên thiết bị
+                            </th>
+                            <th
+                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Loại
+                            </th>
+                            <th
+                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Phòng
+                            </th>
+                            <th
+                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Hãng
+                            </th>
+                            <th
+                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Trạng thái
+                            </th>
+                            <th
+                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;">
+                                Hành động
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="tb : ${thietBis}" th:data-status="${tb.trangThai}" th:data-name="${tb.tenThietBi}"
+                            th:data-code="${tb.maThietBi}" class="equipment-row"
+                            style="border-bottom: 1px solid #f1f5f9; transition: all 0.3s;">
+                            <td style="padding: 16px 12px;">
+                                <span style="font-family: 'Courier New', monospace; font-weight: 600; color: #3b82f6;"
+                                    th:text="${tb.maThietBi}">TB001</span>
+                            </td>
+                            <td style="padding: 16px 12px;">
+                                <div style="font-weight: 600; color: #0f172a; margin-bottom: 4px;"
+                                    th:text="${tb.tenThietBi}">
+                                    Máy chiếu Epson
+                                </div>
+                                <div style="font-size: 13px; color: #94a3b8;" th:text="${tb.model}">
+                                    Model: EB-X05
+                                </div>
+                            </td>
+                            <td style="padding: 16px 12px; color: #64748b;" th:text="${tb.loaiThietBi?.tenLoai}">
+                                Máy chiếu
+                            </td>
+                            <td style="padding: 16px 12px;">
+                                <span th:if="${tb.phong != null}"
+                                    style="background: #eff6ff; color: #1e40af; padding: 4px 10px; border-radius: 8px; font-size: 13px; font-weight: 600;"
+                                    th:text="${tb.phong.tenPhong}">
+                                    A101
+                                </span>
+                                <span th:if="${tb.phong == null}" style="color: #94a3b8; font-style: italic;">
+                                    Chưa phân phòng
+                                </span>
+                            </td>
+                            <td style="padding: 16px 12px; color: #64748b;" th:text="${tb.hangSanXuat ?: 'N/A'}">
+                                Epson
+                            </td>
+                            <td style="padding: 16px 12px;">
+                                <span th:if="${tb.trangThai.name() == 'TOT'}"
+                                    style="background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span
+                                        style="width: 6px; height: 6px; background: #16a34a; border-radius: 50%;"></span>
+                                    Tốt
+                                </span>
+                                <span th:if="${tb.trangThai.name() == 'BAO_TRI'}"
+                                    style="background: #fef3c7; color: #854d0e; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span
+                                        style="width: 6px; height: 6px; background: #f59e0b; border-radius: 50%;"></span>
+                                    Bảo trì
+                                </span>
+                                <span th:if="${tb.trangThai.name() == 'HONG'}"
+                                    style="background: #fee2e2; color: #991b1b; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span
+                                        style="width: 6px; height: 6px; background: #ef4444; border-radius: 50%;"></span>
+                                    Hỏng
+                                </span>
+                            </td>
+                            <td style="padding: 16px 12px; text-align: center;">
+                                <button onclick="viewDetails(this)" th:data-id="${tb.id}"
+                                    th:data-name="${tb.tenThietBi}"
+                                    style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                                    <i data-lucide="eye" style="width: 16px; height: 16px;"></i>
+                                    Chi tiết
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Empty State -->
+                <div id="emptyState" style="display: none; text-align: center; padding: 60px 20px;">
+                    <i data-lucide="inbox" style="width: 64px; height: 64px; color: #cbd5e1; margin-bottom: 16px;"></i>
+                    <h3 style="font-size: 18px; font-weight: 600; color: #64748b; margin: 0 0 8px 0;">
+                        Không tìm thấy thiết bị
+                    </h3>
+                    <p style="color: #94a3b8; margin: 0;">
+                        Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            lucide.createIcons();
+
+            // Search and Filter functionality
+            const searchInput = document.getElementById('searchInput');
+            const filterStatus = document.getElementById('filterStatus');
+            const table = document.getElementById('equipmentTable');
+            const tbody = table.querySelector('tbody');
+            const emptyState = document.getElementById('emptyState');
+            const totalCount = document.getElementById('totalCount');
+
+            function filterTable() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const statusFilter = filterStatus.value;
+                const rows = tbody.querySelectorAll('.equipment-row');
+                let visibleCount = 0;
+
+                rows.forEach(row => {
+                    const name = row.dataset.name.toLowerCase();
+                    const code = row.dataset.code.toLowerCase();
+                    const status = row.dataset.status;
+
+                    const matchesSearch = name.includes(searchTerm) || code.includes(searchTerm);
+                    const matchesStatus = !statusFilter || status === statusFilter;
+
+                    if (matchesSearch && matchesStatus) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                // Show/hide empty state
+                if (visibleCount === 0) {
+                    table.style.display = 'none';
+                    emptyState.style.display = 'block';
+                } else {
+                    table.style.display = 'table';
+                    emptyState.style.display = 'none';
+                }
+
+                // Update count
+                totalCount.innerHTML = `Hiển thị: <strong>${visibleCount}</strong> thiết bị`;
+            }
+
+            searchInput.addEventListener('input', filterTable);
+            filterStatus.addEventListener('change', filterTable);
+
+            // Row hover effect
+            const rows = document.querySelectorAll('.equipment-row');
+            rows.forEach(row => {
+                row.addEventListener('mouseenter', function () {
+                    this.style.background = '#f8fafc';
+                    this.style.transform = 'scale(1.01)';
+                });
+                row.addEventListener('mouseleave', function () {
+                    this.style.background = '';
+                    this.style.transform = '';
+                });
+            });
+
+            // View details function
+            function viewDetails(button) {
+                const id = button.dataset.id;
+                const name = button.dataset.name;
+                alert(`Xem chi tiết thiết bị: ${name}\nID: ${id}\n\nChức năng này sẽ được phát triển sau.`);
+            }
+
+            // Search input focus effect
+            searchInput.addEventListener('focus', function () {
+                this.style.borderColor = '#3b82f6';
+                this.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+            });
+
+            searchInput.addEventListener('blur', function () {
+                this.style.borderColor = '#e5e7eb';
+                this.style.boxShadow = 'none';
+            });
+        </script>
+    </th:block>
+</body>
+
+</html>
