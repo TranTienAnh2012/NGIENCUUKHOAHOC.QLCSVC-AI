@@ -25,9 +25,17 @@ public class GiaoVienMuonTraService {
     private final ThietBiRepository thietBiRepository;
     private final NguoiDungRepository nguoiDungRepository;
 
+    @Transactional(readOnly = true)
     public List<MuonTraThietBi> getMyBorrowings() {
         NguoiDung currentUser = getCurrentUser();
-        return muonTraRepository.findByNguoiMuonId(currentUser.getId());
+        List<MuonTraThietBi> list = muonTraRepository.findByNguoiMuonId(currentUser.getId());
+        // Force initialization of lazy relationships
+        list.forEach(mt -> {
+            if (mt.getThietBi() != null) {
+                mt.getThietBi().getTenThietBi();
+            }
+        });
+        return list;
     }
 
     @Transactional

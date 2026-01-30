@@ -172,27 +172,12 @@
                 </div>
             </div>
 
-            <!-- AI Chatbot -->
-            <div class="card-modern"
-                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
-                <h4
-                    style="font-size: 20px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="sparkles"></i>
-                    Hỗ trợ AI Chatbot
-                </h4>
-                <p style="font-size: 14px; opacity: 0.9; margin-bottom: 20px; line-height: 1.6;">
-                    Bạn gặp khó khăn trong việc mượn thiết bị hoặc báo hỏng? Hãy hỏi trợ lý ảo AI của chúng tôi.
-                </p>
-                <a th:href="@{/chatbot}" class="btn"
-                    style="background: rgba(255,255,255,0.2); color: white; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); width: 100%; justify-content: center;">
-                    <i data-lucide="message-square"></i>
-                    Trò chuyện ngay
-                </a>
-            </div>
+            <!-- AI Chatbot Widget is now in layout -->
         </div>
     </div>
 
     <th:block layout:fragment="scripts">
+
         <script>
             // Animate numbers on load
             document.addEventListener('DOMContentLoaded', function () {
@@ -214,6 +199,7 @@
             });
         </script>
     </th:block>
+
 </body>
 
 </html>

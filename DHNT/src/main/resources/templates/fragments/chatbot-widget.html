@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- AI Chatbot Widget Fragment -->
+<div th:fragment="chatbot-widget" id="ai-chatbot-widget">
+    <!-- Floating Chat Button -->
+    <button id="chatbot-toggle-btn" class="chatbot-floating-btn" aria-label="Open AI Chatbot">
+        <i data-lucide="message-circle" class="chatbot-icon"></i>
+        <i data-lucide="x" class="chatbot-close-icon"></i>
+        <span class="chatbot-badge">AI</span>
+    </button>
+
+    <!-- Chat Container -->
+    <div id="chatbot-container" class="chatbot-container">
+        <!-- Chat Header -->
+        <div class="chatbot-header">
+            <div class="chatbot-header-content">
+                <div class="chatbot-avatar">
+                    <i data-lucide="sparkles"></i>
+                </div>
+                <div class="chatbot-header-text">
+                    <h3>Trợ lý AI</h3>
+                    <p class="chatbot-status">
+                        <span class="status-dot"></span>
+                        Đang hoạt động
+                    </p>
+                </div>
+            </div>
+            <button id="chatbot-minimize-btn" class="chatbot-minimize-btn" aria-label="Minimize chat">
+                <i data-lucide="chevron-down"></i>
+            </button>
+        </div>
+
+        <!-- Chat Messages -->
+        <div id="chatbot-messages" class="chatbot-messages">
+            <!-- Welcome Message -->
+            <div class="chatbot-message ai-message">
+                <div class="message-avatar">
+                    <i data-lucide="bot"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-bubble">
+                        <p>Xin chào! 👋 Tôi là trợ lý AI của hệ thống quản lý cơ sở vật chất. Tôi có thể giúp bạn:</p>
+                        <ul>
+                            <li>Hướng dẫn sử dụng hệ thống</li>
+                            <li>Trả lời câu hỏi về thiết bị</li>
+                            <li>Hỗ trợ quy trình mượn trả, báo hỏng</li>
+                        </ul>
+                        <p>Bạn cần giúp gì?</p>
+                    </div>
+                    <span class="message-time">Bây giờ</span>
+                </div>
+            </div>
+
+            <!-- Suggested Questions -->
+            <div class="chatbot-suggestions">
+                <p class="suggestions-title">Câu hỏi gợi ý:</p>
+                <div class="suggestions-chips" th:attr="data-role=${userRole}">
+                    <!-- Will be populated by JavaScript based on user role -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Typing Indicator (hidden by default) -->
+        <div id="chatbot-typing" class="chatbot-typing" style="display: none;">
+            <div class="message-avatar">
+                <i data-lucide="bot"></i>
+            </div>
+            <div class="typing-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+
+        <!-- Chat Input -->
+        <div class="chatbot-input-container">
+            <form id="chatbot-form" class="chatbot-form">
+                <input type="text" id="chatbot-input" class="chatbot-input" placeholder="Nhập câu hỏi của bạn..."
+                    autocomplete="off" required />
+                <button type="submit" class="chatbot-send-btn" aria-label="Send message">
+                    <i data-lucide="send"></i>
+                </button>
+            </form>
+            <p class="chatbot-footer-text">
+                <i data-lucide="shield-check" style="width: 12px; height: 12px;"></i>
+                Powered by Google Gemini AI
+            </p>
+        </div>
+    </div>
+</div>
+
+</html>

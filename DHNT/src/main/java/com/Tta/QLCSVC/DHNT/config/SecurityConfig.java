@@ -47,6 +47,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints & Static resources
                         .requestMatchers("/api/auth/**", "/login", "/register", "/auth/**").permitAll()
+                        .requestMatchers("/api/ai-data/**").permitAll() // Allow Flask AI to access data
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/fonts/**", "/assets/**", "/webjars/**",
                                 "/uploads/**")
                         .permitAll()

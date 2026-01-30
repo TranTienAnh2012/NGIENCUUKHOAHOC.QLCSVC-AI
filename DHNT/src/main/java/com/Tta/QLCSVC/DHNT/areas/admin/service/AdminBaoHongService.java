@@ -17,17 +17,48 @@ public class AdminBaoHongService {
 
     private final BaoHongRepository baoHongRepository;
 
+    @Transactional(readOnly = true)
     public Page<BaoHong> getAllBaoHong(Pageable pageable) {
-        return baoHongRepository.findAll(pageable);
+        Page<BaoHong> page = baoHongRepository.findAll(pageable);
+        // Force initialization of lazy relationships
+        page.getContent().forEach(bh -> {
+            if (bh.getThietBi() != null) {
+                bh.getThietBi().getTenThietBi();
+            }
+            if (bh.getNguoiBao() != null) {
+                bh.getNguoiBao().getHoTen();
+            }
+        });
+        return page;
     }
 
+    @Transactional(readOnly = true)
     public List<BaoHong> getAllBaoHong() {
-        return baoHongRepository.findAll();
+        List<BaoHong> list = baoHongRepository.findAll();
+        // Force initialization of lazy relationships
+        list.forEach(bh -> {
+            if (bh.getThietBi() != null) {
+                bh.getThietBi().getTenThietBi();
+            }
+            if (bh.getNguoiBao() != null) {
+                bh.getNguoiBao().getHoTen();
+            }
+        });
+        return list;
     }
 
+    @Transactional(readOnly = true)
     public BaoHong getBaoHongById(Long id) {
-        return baoHongRepository.findById(id)
+        BaoHong baoHong = baoHongRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("BaoHong", "id", id));
+        // Force initialization of lazy relationships
+        if (baoHong.getThietBi() != null) {
+            baoHong.getThietBi().getTenThietBi();
+        }
+        if (baoHong.getNguoiBao() != null) {
+            baoHong.getNguoiBao().getHoTen();
+        }
+        return baoHong;
     }
 
     public List<BaoHong> getBaoHongByThietBi(Long thietBiId) {

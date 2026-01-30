@@ -15,12 +15,63 @@ public class CSVCBaoHongService {
 
     private final BaoHongRepository baoHongRepository;
 
-    public List<BaoHong> getPendingReports() {
-        return baoHongRepository.findPendingReports();
+    @Transactional(readOnly = true)
+    public List<BaoHong> getAllBaoHong() {
+        List<BaoHong> list = baoHongRepository.findAll();
+        // Force initialization of lazy relationships
+        list.forEach(bh -> {
+            if (bh.getThietBi() != null) {
+                bh.getThietBi().getTenThietBi();
+            }
+            if (bh.getNguoiBao() != null) {
+                bh.getNguoiBao().getHoTen();
+            }
+        });
+        return list;
     }
 
+    @Transactional(readOnly = true)
+    public BaoHong getBaoHongById(Long id) {
+        BaoHong baoHong = baoHongRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("BaoHong", "id", id));
+        // Force initialization
+        if (baoHong.getThietBi() != null) {
+            baoHong.getThietBi().getTenThietBi();
+        }
+        if (baoHong.getNguoiBao() != null) {
+            baoHong.getNguoiBao().getHoTen();
+        }
+        return baoHong;
+    }
+
+    @Transactional(readOnly = true)
+    public List<BaoHong> getPendingReports() {
+        List<BaoHong> list = baoHongRepository.findPendingReports();
+        // Force initialization of lazy relationships
+        list.forEach(bh -> {
+            if (bh.getThietBi() != null) {
+                bh.getThietBi().getTenThietBi();
+            }
+            if (bh.getNguoiBao() != null) {
+                bh.getNguoiBao().getHoTen();
+            }
+        });
+        return list;
+    }
+
+    @Transactional(readOnly = true)
     public List<BaoHong> getUrgentReports() {
-        return baoHongRepository.findUrgentReports();
+        List<BaoHong> list = baoHongRepository.findUrgentReports();
+        // Force initialization of lazy relationships
+        list.forEach(bh -> {
+            if (bh.getThietBi() != null) {
+                bh.getThietBi().getTenThietBi();
+            }
+            if (bh.getNguoiBao() != null) {
+                bh.getNguoiBao().getHoTen();
+            }
+        });
+        return list;
     }
 
     @Transactional

@@ -18,17 +18,48 @@ public class AdminMuonTraService {
 
     private final MuonTraThietBiRepository muonTraRepository;
 
+    @Transactional(readOnly = true)
     public Page<MuonTraThietBi> getAllMuonTra(Pageable pageable) {
-        return muonTraRepository.findAll(pageable);
+        Page<MuonTraThietBi> page = muonTraRepository.findAll(pageable);
+        // Force initialization of lazy relationships
+        page.getContent().forEach(mt -> {
+            if (mt.getThietBi() != null) {
+                mt.getThietBi().getTenThietBi();
+            }
+            if (mt.getNguoiMuon() != null) {
+                mt.getNguoiMuon().getHoTen();
+            }
+        });
+        return page;
     }
 
+    @Transactional(readOnly = true)
     public List<MuonTraThietBi> getAllMuonTra() {
-        return muonTraRepository.findAll();
+        List<MuonTraThietBi> list = muonTraRepository.findAll();
+        // Force initialization of lazy relationships
+        list.forEach(mt -> {
+            if (mt.getThietBi() != null) {
+                mt.getThietBi().getTenThietBi();
+            }
+            if (mt.getNguoiMuon() != null) {
+                mt.getNguoiMuon().getHoTen();
+            }
+        });
+        return list;
     }
 
+    @Transactional(readOnly = true)
     public MuonTraThietBi getMuonTraById(Long id) {
-        return muonTraRepository.findById(id)
+        MuonTraThietBi muonTra = muonTraRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("MuonTraThietBi", "id", id));
+        // Force initialization of lazy relationships
+        if (muonTra.getThietBi() != null) {
+            muonTra.getThietBi().getTenThietBi();
+        }
+        if (muonTra.getNguoiMuon() != null) {
+            muonTra.getNguoiMuon().getHoTen();
+        }
+        return muonTra;
     }
 
     public List<MuonTraThietBi> getMuonTraByNguoiMuon(Long nguoiMuonId) {
