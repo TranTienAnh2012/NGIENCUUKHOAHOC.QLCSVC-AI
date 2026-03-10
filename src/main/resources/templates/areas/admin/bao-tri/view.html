@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${title}">Chi tiết phiếu bảo trì</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/admin}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/admin/bao-tri}">Bảo trì</a></li>
+                    <li class="breadcrumb-item active">Chi tiết</li>
+                </ol>
+            </nav>
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i data-lucide="eye"></i> Thông tin chi tiết phiếu bảo trì</h5>
+                            <div class="btn-group"><a th:href="@{/admin/bao-tri/edit/{id}(id=${id})}"
+                                    class="btn btn-sm btn-warning"><i data-lucide="edit"></i> Sửa</a><button
+                                    class="btn btn-sm btn-danger" onclick="deleteItem()"><i data-lucide="trash-2"></i>
+                                    Xóa</button></div>
+                        </div>
+                        <div class="card-body">
+                            <div id="loadingState" class="text-center py-5">
+                                <div class="spinner-border text-primary"></div>
+                                <p class="mt-2 text-muted">Đang tải...</p>
+                            </div>
+                            <div id="dataDisplay" style="display:none;">
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-4 text-muted">ID</dt>
+                                    <dd class="col-sm-8" id="display-id">-</dd>
+                                    <dt class="col-sm-4 text-muted">Thiết bị</dt>
+                                    <dd class="col-sm-8 fw-bold" id="display-thietBi">-</dd>
+                                    <dt class="col-sm-4 text-muted">Ngày bảo trì</dt>
+                                    <dd class="col-sm-8" id="display-ngayBaoTri">-</dd>
+                                    <dt class="col-sm-4 text-muted">Loại bảo trì</dt>
+                                    <dd class="col-sm-8" id="display-loaiBaoTri">-</dd>
+                                    <dt class="col-sm-4 text-muted">Người thực hiện</dt>
+                                    <dd class="col-sm-8" id="display-nguoiThucHien">-</dd>
+                                    <dt class="col-sm-4 text-muted">Chi phí</dt>
+                                    <dd class="col-sm-8" id="display-chiPhi">-</dd>
+                                    <dt class="col-sm-4 text-muted">Nội dung</dt>
+                                    <dd class="col-sm-8" id="display-noiDung">-</dd>
+                                </dl>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-light"><a th:href="@{/admin/bao-tri}" class="btn btn-secondary"><i
+                                    data-lucide="arrow-left"></i> Quay lại</a></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <th:block layout:fragment="scripts">
+        <script
+            th:inline="javascript">const id =/*[[${id}]]*/0; document.addEventListener('DOMContentLoaded', () => { loadData(); lucide.createIcons(); }); function loadData() { fetch(`/api/admin/bao-tri/${id}`).then(r => r.json()).then(data => { if (data.success) { const item = data.data; document.getElementById('display-id').textContent = item.id; document.getElementById('display-thietBi').textContent = item.thietBi?.tenThietBi || 'Chưa có'; document.getElementById('display-ngayBaoTri').textContent = new Date(item.ngayBaoTri).toLocaleDateString('vi-VN'); document.getElementById('display-loaiBaoTri').textContent = item.loaiBaoTri || 'Chưa có'; document.getElementById('display-nguoiThucHien').textContent = item.nguoiThucHien || 'Chưa có'; document.getElementById('display-chiPhi').textContent = item.chiPhi ? item.chiPhi.toLocaleString('vi-VN') + ' VNĐ' : 'Chưa có'; document.getElementById('display-noiDung').textContent = item.noiDung || 'Không có nội dung'; document.getElementById('loadingState').style.display = 'none'; document.getElementById('dataDisplay').style.display = 'block'; lucide.createIcons(); } else { alert('Không tìm thấy'); window.location.href = '/admin/bao-tri'; } }).catch(e => { console.error('Error:', e); alert('Có lỗi xảy ra'); }); } function deleteItem() { if (confirm('Bạn có chắc chắn muốn xóa?')) { fetch(`/api/admin/bao-tri/${id}`, { method: 'DELETE' }).then(r => r.json()).then(data => { if (data.success) { alert('Xóa thành công!'); window.location.href = '/admin/bao-tri'; } else { alert('Lỗi: ' + (data.message || 'Không thể xóa')); } }).catch(e => { console.error('Error:', e); alert('Có lỗi xảy ra'); }); } }</script>
+    </th:block>
+</body>
+
+</html>

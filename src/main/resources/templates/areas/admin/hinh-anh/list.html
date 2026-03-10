@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title>Quản lý hình ảnh</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h1 class="h3 mb-0">Quản lý hình ảnh</h1>
+                            <p class="text-muted mb-0">Thư viện hình ảnh thiết bị</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row" id="imageGallery">
+                        <!-- Images will be loaded via JavaScript -->
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center" id="pagination"></ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <script th:inline="javascript">
+            let currentPage = 0;
+            const pageSize = 12;
+
+            document.addEventListener('DOMContentLoaded', function () {
+                loadData(0);
+            });
+
+            function loadData(page) {
+                currentPage = page;
+                fetch(`/api/admin/hinh-anh?page=${page}&size=${pageSize}`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('token')
+                    }
+                })
+                    .then(response => response.json())
+                    .then(res => {
+                        if (res.success) {
+                            renderGallery(res.data.content);
+                            renderPagination(res.data);
+                        } else {
+                            alert('Lỗi: ' + res.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Đã xảy ra lỗi khi tải hình ảnh');
+                    });
+            }
+
+            function renderGallery(data) {
+                const gallery = document.getElementById('imageGallery');
+                gallery.innerHTML = '';
+
+                if (data.length === 0) {
+                    gallery.innerHTML = '<div class="col-12 text-center text-muted">Không có hình ảnh nào.</div>';
+                    return;
+                }
+
+                data.forEach(item => {
+                    const card = `
+                        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                            <div class="card h-100 shadow-sm">
+                                <img src="${item.urlHinhAnh}" class="card-img-top" alt="Equipment Image" 
+                                     style="height: 200px; object-fit: cover; cursor: pointer;" 
+                                     onclick="window.open('${item.urlHinhAnh}', '_blank')">
+                                <div class="card-body p-2">
+                                    <h6 class="card-title text-truncate mb-1" title="${item.thietBi ? item.thietBi.tenThietBi : 'N/A'}">
+                                        ${item.thietBi ? item.thietBi.tenThietBi : 'Không rõ thiết bị'}
+                                    </h6>
+                                    <p class="card-text small text-muted mb-2">
+                                        Loại: <span class="badge bg-secondary">${item.loaiHinhAnh || 'Chưa phân loại'}</span><br>
+                                        Ngày: ${new Date(item.ngayChup).toLocaleDateString('vi-VN')}
+                                    </p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <button class="btn btn-danger btn-sm w-100" onclick="deleteImage(${item.id})">
+                                            <i class="fas fa-trash"></i> Xóa
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    gallery.innerHTML += card;
+                });
+            }
+
+            function renderPagination(pageData) {
+                const pagination = document.getElementById('pagination');
+                pagination.innerHTML = '';
+
+                for (let i = 0; i < pageData.totalPages; i++) {
+                    pagination.innerHTML += `
+                        <li class="page-item ${i === currentPage ? 'active' : ''}">
+                            <a class="page-link" href="javascript:void(0)" onclick="loadData(${i})">${i + 1}</a>
+                        </li>
+                    `;
+                }
+            }
+
+            function deleteImage(id) {
+                if (confirm('Bạn có chắc chắn muốn xóa hình ảnh này?')) {
+                    fetch(`/api/admin/hinh-anh/${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': 'Bearer ' + localStorage.getItem('token')
+                        }
+                    })
+                        .then(response => response.json())
+                        .then(res => {
+                            if (res.success) {
+                                loadData(currentPage);
+                            } else {
+                                alert('Lỗi: ' + res.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Đã xảy ra lỗi khi xóa');
+                        });
+                }
+            }
+        </script>
+    </div>
+</body>
+
+</html>

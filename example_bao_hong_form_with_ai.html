@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Báo Hỏng Thiết Bị - Với AI Phân Tích</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .ai-analysis-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .ai-analysis-content {
+            background: white;
+            color: #333;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .loading-spinner {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h4><i class="fas fa-exclamation-triangle"></i> Báo Hỏng Thiết Bị</h4>
+            </div>
+            <div class="card-body">
+                <form id="damageReportForm">
+                    <!-- Chọn thiết bị -->
+                    <div class="mb-3">
+                        <label class="form-label">Thiết bị <span class="text-danger">*</span></label>
+                        <select class="form-select" id="equipment" name="thietBiId" required>
+                            <option value="">-- Chọn thiết bị --</option>
+                            <option value="1" data-name="Máy chiếu Epson EB-X05">Máy chiếu Epson EB-X05</option>
+                            <option value="2" data-name="Laptop Dell Latitude 5420">Laptop Dell Latitude 5420</option>
+                            <option value="3" data-name="Loa JBL EON615">Loa JBL EON615</option>
+                        </select>
+                    </div>
+
+                    <!-- Mô tả hư hỏng -->
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả hư hỏng <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="description" name="moTaLoi" rows="4"
+                            placeholder="Mô tả chi tiết tình trạng hư hỏng của thiết bị..." required></textarea>
+                        <small class="text-muted">Mô tả càng chi tiết, AI sẽ phân tích càng chính xác</small>
+                    </div>
+
+                    <!-- Mức độ nghiêm trọng -->
+                    <div class="mb-3">
+                        <label class="form-label">Mức độ nghiêm trọng <span class="text-danger">*</span></label>
+                        <select class="form-select" id="severity" name="mucDoNghiemTrong" required>
+                            <option value="THAP">Thấp - Vẫn sử dụng được</option>
+                            <option value="TRUNG_BINH" selected>Trung bình - Ảnh hưởng một phần</option>
+                            <option value="CAO">Cao - Không sử dụng được</option>
+                            <option value="KHAN_CAP">Khẩn cấp - Cần xử lý ngay</option>
+                        </select>
+                    </div>
+
+                    <!-- Nút phân tích AI -->
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-info" id="analyzeBtn" onclick="analyzeWithAI()">
+                            <i class="fas fa-robot"></i> Phân tích bằng AI
+                        </button>
+                        <span class="loading-spinner ms-2" id="loadingSpinner">
+                            <i class="fas fa-spinner fa-spin"></i> Đang phân tích...
+                        </span>
+                    </div>
+
+                    <!-- Kết quả phân tích AI -->
+                    <div class="ai-analysis-box" id="aiAnalysisBox">
+                        <h5><i class="fas fa-robot"></i> Phân Tích Từ AI</h5>
+                        <div class="ai-analysis-content" id="aiAnalysisContent"></div>
+                        <input type="hidden" id="aiAnalysisHidden" name="aiAnalysis">
+                        <input type="hidden" id="aiPriorityHidden" name="aiPriority">
+                    </div>
+
+                    <!-- Submit -->
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-paper-plane"></i> Gửi báo hỏng
+                        </button>
+                        <a href="/admin/bao-hong/list" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Hủy
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Phân tích bằng AI
+        async function analyzeWithAI() {
+            const equipmentSelect = document.getElementById('equipment');
+            const description = document.getElementById('description').value;
+            const severity = document.getElementById('severity').value;
+
+            // Validation
+            if (!equipmentSelect.value) {
+                alert('Vui lòng chọn thiết bị');
+                return;
+            }
+            if (!description.trim()) {
+                alert('Vui lòng nhập mô tả hư hỏng');
+                return;
+            }
+
+            const equipmentName = equipmentSelect.options[equipmentSelect.selectedIndex].getAttribute('data-name');
+
+            // Show loading
+            document.getElementById('loadingSpinner').style.display = 'inline';
+            document.getElementById('analyzeBtn').disabled = true;
+
+            try {
+                const response = await fetch('http://localhost:5000/api/ai/analyze-damage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        equipment_name: equipmentName,
+                        damage_description: description,
+                        severity: severity
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Hiển thị kết quả
+                    document.getElementById('aiAnalysisContent').innerHTML =
+                        data.analysis.replace(/\n/g, '<br>');
+                    document.getElementById('aiAnalysisBox').style.display = 'block';
+
+                    // Lưu vào hidden fields
+                    document.getElementById('aiAnalysisHidden').value = data.analysis;
+                    document.getElementById('aiPriorityHidden').value = data.priority;
+
+                    // Scroll to result
+                    document.getElementById('aiAnalysisBox').scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    alert('Lỗi: ' + (data.error || 'Không thể phân tích'));
+                }
+            } catch (error) {
+                alert('Lỗi kết nối đến AI server: ' + error.message);
+            } finally {
+                // Hide loading
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('analyzeBtn').disabled = false;
+            }
+        }
+
+        // Submit form
+        document.getElementById('damageReportForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            // Gửi form data đến Spring Boot backend
+            const formData = new FormData(this);
+
+            fetch('/admin/bao-hong/create', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => {
+                    if (response.ok) {
+                        alert('Đã gửi báo hỏng thành công!');
+                        window.location.href = '/admin/bao-hong/list';
+                    } else {
+                        alert('Có lỗi xảy ra!');
+                    }
+                })
+                .catch(error => {
+                    alert('Lỗi: ' + error.message);
+                });
+        });
+    </script>
+</body>
+
+</html>

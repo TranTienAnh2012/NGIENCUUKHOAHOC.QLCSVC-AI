@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${title}">Tạo báo hỏng</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/admin}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/admin/bao-hong}">Báo hỏng</a></li>
+                    <li class="breadcrumb-item active">Tạo mới</li>
+                </ol>
+            </nav>
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i data-lucide="plus-circle"></i> Tạo báo hỏng mới</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="createForm">
+                                <div class="mb-3">
+                                    <label for="thietBiId" class="form-label">Thiết bị <span
+                                            class="text-danger">*</span></label>
+                                    <select class="form-select" id="thietBiId" required>
+                                        <option value="">-- Chọn thiết bị --</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="mucDoNghiemTrong" class="form-label">Mức độ <span
+                                            class="text-danger">*</span></label>
+                                    <select class="form-select" id="mucDoNghiemTrong" required>
+                                        <option value="KHAN_CAP">Khẩn cấp</option>
+                                        <option value="CAO">Cao</option>
+                                        <option value="TRUNG_BINH" selected>Trung bình</option>
+                                        <option value="THAP">Thấp</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="moTaLoi" class="form-label">Mô tả lỗi <span
+                                            class="text-danger">*</span></label>
+                                    <textarea class="form-control" id="moTaLoi" rows="4" required
+                                        placeholder="Mô tả chi tiết lỗi thiết bị..."></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="nguoiBaoId" class="form-label">Người báo <span
+                                            class="text-danger">*</span></label>
+                                    <select class="form-select" id="nguoiBaoId" required>
+                                        <option value="">-- Chọn người báo --</option>
+                                    </select>
+                                </div>
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <a th:href="@{/admin/bao-hong}" class="btn btn-secondary">
+                                        <i data-lucide="x"></i> Hủy
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i data-lucide="save"></i> Lưu
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', () => {
+                loadThietBi();
+                loadUsers();
+                lucide.createIcons();
+            });
+
+            function loadThietBi() {
+                fetch('/api/admin/thiet-bi/all')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            const select = document.getElementById('thietBiId');
+                            data.data.forEach(item => {
+                                const option = document.createElement('option');
+                                option.value = item.id;
+                                option.textContent = item.tenThietBi;
+                                select.appendChild(option);
+                            });
+                        }
+                    });
+            }
+
+            function loadUsers() {
+                fetch('/api/admin/users/all')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            const select = document.getElementById('nguoiBaoId');
+                            data.data.forEach(item => {
+                                const option = document.createElement('option');
+                                option.value = item.id;
+                                option.textContent = item.hoTen;
+                                select.appendChild(option);
+                            });
+                        }
+                    });
+            }
+
+            document.getElementById('createForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const data = {
+                    thietBi: { id: parseInt(document.getElementById('thietBiId').value) },
+                    nguoiBao: { id: parseInt(document.getElementById('nguoiBaoId').value) },
+                    mucDoNghiemTrong: document.getElementById('mucDoNghiemTrong').value,
+                    moTaLoi: document.getElementById('moTaLoi').value,
+                    ngayBao: new Date().toISOString()
+                };
+                fetch('/api/admin/bao-hong', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Tạo báo hỏng thành công!');
+                            window.location.href = '/admin/bao-hong';
+                        } else {
+                            alert('Lỗi: ' + (data.message || 'Không thể tạo'));
+                        }
+                    })
+                    .catch(e => {
+                        console.error('Error:', e);
+                        alert('Có lỗi xảy ra');
+                    });
+            });
+        </script>
+    </th:block>
+</body>
+
+</html>

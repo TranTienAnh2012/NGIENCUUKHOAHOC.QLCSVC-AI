@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${title}">Sửa báo hỏng</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/admin}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/admin/bao-hong}">Báo hỏng</a></li>
+                    <li class="breadcrumb-item active">Sửa</li>
+                </ol>
+            </nav>
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0"><i data-lucide="edit"></i> Cập nhật báo hỏng</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="loadingState" class="text-center py-5">
+                                <div class="spinner-border text-primary"></div>
+                                <p class="mt-2 text-muted">Đang tải...</p>
+                            </div>
+                            <form id="editForm" style="display:none;">
+                                <input type="hidden" id="itemId" th:value="${id}">
+                                <div class="mb-3">
+                                    <label for="trangThai" class="form-label">Trạng thái <span
+                                            class="text-danger">*</span></label>
+                                    <select class="form-select" id="trangThai" required>
+                                        <option value="CHO_XU_LY">Chờ xử lý</option>
+                                        <option value="DANG_XU_LY">Đang xử lý</option>
+                                        <option value="HOAN_THANH">Hoàn thành</option>
+                                        <option value="HUY">Hủy</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="mucDoNghiemTrong" class="form-label">Mức độ <span
+                                            class="text-danger">*</span></label>
+                                    <select class="form-select" id="mucDoNghiemTrong" required>
+                                        <option value="KHAN_CAP">Khẩn cấp</option>
+                                        <option value="CAO">Cao</option>
+                                        <option value="TRUNG_BINH">Trung bình</option>
+                                        <option value="THAP">Thấp</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="moTaLoi" class="form-label">Mô tả lỗi <span
+                                            class="text-danger">*</span></label>
+                                    <textarea class="form-control" id="moTaLoi" rows="4" required></textarea>
+                                </div>
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <a th:href="@{/admin/bao-hong}" class="btn btn-secondary">
+                                        <i data-lucide="x"></i> Hủy
+                                    </a>
+                                    <button type="submit" class="btn btn-warning text-dark">
+                                        <i data-lucide="save"></i> Cập nhật
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            const id = /*[[${id}]]*/ 0;
+            document.addEventListener('DOMContentLoaded', () => {
+                loadData();
+                lucide.createIcons();
+            });
+
+            function loadData() {
+                fetch(`/api/admin/bao-hong/${id}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            const item = data.data;
+                            document.getElementById('trangThai').value = item.trangThai;
+                            document.getElementById('mucDoNghiemTrong').value = item.mucDoNghiemTrong;
+                            document.getElementById('moTaLoi').value = item.moTaLoi || '';
+                            // Save references
+                            window.currentThietBi = item.thietBi;
+                            window.currentNguoiBao = item.nguoiBao;
+                            window.currentNgayBao = item.ngayBao;
+
+                            document.getElementById('loadingState').style.display = 'none';
+                            document.getElementById('editForm').style.display = 'block';
+                        } else {
+                            alert('Không tìm thấy');
+                            window.location.href = '/admin/bao-hong';
+                        }
+                    })
+                    .catch(e => {
+                        console.error('Error:', e);
+                        alert('Có lỗi xảy ra');
+                    });
+            }
+
+            document.getElementById('editForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const data = {
+                    trangThai: document.getElementById('trangThai').value,
+                    mucDoNghiemTrong: document.getElementById('mucDoNghiemTrong').value,
+                    moTaLoi: document.getElementById('moTaLoi').value,
+                    thietBi: window.currentThietBi,
+                    nguoiBao: window.currentNguoiBao,
+                    ngayBao: window.currentNgayBao
+                };
+                fetch(`/api/admin/bao-hong/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Cập nhật thành công!');
+                            window.location.href = '/admin/bao-hong';
+                        } else {
+                            alert('Lỗi: ' + (data.message || 'Không thể cập nhật'));
+                        }
+                    })
+                    .catch(e => {
+                        console.error('Error:', e);
+                        alert('Có lỗi xảy ra');
+                    });
+            });
+        </script>
+    </th:block>
+</body>
+
+</html>

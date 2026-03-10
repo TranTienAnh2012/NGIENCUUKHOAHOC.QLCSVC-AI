@@ -1,0 +1,19 @@
+# Flask AI API - Python Dependencies
+# Cài đặt: pip install -r requirements.txt
+
+# Flask framework
+flask==3.0.0
+flask-cors==4.0.0
+
+# Google Gemini AI (upgraded version for compatibility)
+google-generativeai==0.8.6
+
+# Environment variables
+python-dotenv==1.0.0
+
+# HTTP requests (optional, cho testing)
+requests==2.31.0
+
+# JSON handling (built-in, không cần cài)
+# datetime (built-in, không cần cài)
+

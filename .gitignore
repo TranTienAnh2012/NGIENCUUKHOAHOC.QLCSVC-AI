@@ -1,0 +1,65 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### Sensitive Files - DO NOT COMMIT ###
+# Database credentials & config
+src/main/resources/application.properties
+
+# Uploaded files (user data)
+uploads/
+
+# Build output & compile error logs
+build_output.txt
+compile-errors.txt
+compile-errors2.txt
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Python ###
+# Environment variables (contains API keys)
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Flask
+instance/
+.pytest_cache/

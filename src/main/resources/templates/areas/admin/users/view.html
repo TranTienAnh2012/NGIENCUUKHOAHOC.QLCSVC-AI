@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${title}">Chi tiết người dùng</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/admin}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/admin/users}">Người dùng</a></li>
+                    <li class="breadcrumb-item active">Chi tiết</li>
+                </ol>
+            </nav>
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i data-lucide="eye"></i> Thông tin chi tiết</h5>
+                            <div class="btn-group"><a th:href="@{/admin/users/edit/{id}(id=${id})}"
+                                    class="btn btn-sm btn-warning"><i data-lucide="edit"></i> Sửa</a><button
+                                    class="btn btn-sm btn-danger" onclick="deleteItem()"><i data-lucide="trash-2"></i>
+                                    Xóa</button></div>
+                        </div>
+                        <div class="card-body">
+                            <div id="loadingState" class="text-center py-5">
+                                <div class="spinner-border text-primary"></div>
+                                <p class="mt-2 text-muted">Đang tải...</p>
+                            </div>
+                            <div id="dataDisplay" style="display:none;">
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-4 text-muted">ID</dt>
+                                    <dd class="col-sm-8" id="display-id">-</dd>
+                                    <dt class="col-sm-4 text-muted">Họ tên</dt>
+                                    <dd class="col-sm-8 fw-bold" id="display-hoTen">-</dd>
+                                    <dt class="col-sm-4 text-muted">Email</dt>
+                                    <dd class="col-sm-8" id="display-email">-</dd>
+                                    <dt class="col-sm-4 text-muted">Số điện thoại</dt>
+                                    <dd class="col-sm-8" id="display-soDienThoai">-</dd>
+                                    <dt class="col-sm-4 text-muted">Vai trò</dt>
+                                    <dd class="col-sm-8" id="display-vaiTro">-</dd>
+                                    <dt class="col-sm-4 text-muted">Ngày tạo</dt>
+                                    <dd class="col-sm-8 text-muted small" id="display-created">-</dd>
+                                    <dt class="col-sm-4 text-muted">Cập nhật lần cuối</dt>
+                                    <dd class="col-sm-8 text-muted small" id="display-updated">-</dd>
+                                </dl>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-light"><a th:href="@{/admin/users}" class="btn btn-secondary"><i
+                                    data-lucide="arrow-left"></i> Quay lại</a></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            const id =/*[[${id}]]*/0; document.addEventListener('DOMContentLoaded', () => { loadData(); lucide.createIcons(); });
+            function loadData() { fetch(`/api/admin/users/${id}`).then(r => r.json()).then(data => { if (data.success) { const item = data.data; document.getElementById('display-id').textContent = item.id; document.getElementById('display-hoTen').textContent = item.hoTen; document.getElementById('display-email').textContent = item.email; document.getElementById('display-soDienThoai').textContent = item.soDienThoai || 'Chưa có'; const roleBadge = item.vaiTro === 'ADMIN' ? 'bg-danger' : item.vaiTro === 'GIAO_VIEN' ? 'bg-primary' : 'bg-success'; document.getElementById('display-vaiTro').innerHTML = `<span class="badge ${roleBadge}">${item.vaiTro}</span>`; document.getElementById('display-created').textContent = new Date(item.createdAt).toLocaleString('vi-VN'); document.getElementById('display-updated').textContent = new Date(item.updatedAt).toLocaleString('vi-VN'); document.getElementById('loadingState').style.display = 'none'; document.getElementById('dataDisplay').style.display = 'block'; lucide.createIcons(); } else { alert('Không tìm thấy'); window.location.href = '/admin/users'; } }).catch(e => { console.error('Error:', e); alert('Có lỗi xảy ra'); }); }
+            function deleteItem() { if (confirm('Bạn có chắc chắn muốn xóa người dùng này?')) { fetch(`/api/admin/users/${id}`, { method: 'DELETE' }).then(r => r.json()).then(data => { if (data.success) { alert('Xóa thành công!'); window.location.href = '/admin/users'; } else { alert('Lỗi: ' + (data.message || 'Không thể xóa')); } }).catch(e => { console.error('Error:', e); alert('Có lỗi xảy ra'); }); } }
+        </script>
+    </th:block>
+</body>
+
+</html>

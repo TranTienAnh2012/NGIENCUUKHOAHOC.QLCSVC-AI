@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/nhanvien-layout}">
+
+<head>
+    <title th:text="${title}">Lịch trình bảo trì</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <!-- Header -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-1" th:text="${title}">Lịch trình bảo trì</h4>
+                            <p class="text-muted small mb-0">Quản lý lịch bảo trì thiết bị</p>
+                        </div>
+                        <a th:href="@{/nhanvien-csvc/bao-tri/create}" class="btn btn-primary">
+                            <i data-lucide="plus"></i> Tạo lịch mới
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="dataTable">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Thiết bị</th>
+                                            <th>Loại bảo trì</th>
+                                            <th>Ngày bảo trì</th>
+                                            <th>Người thực hiện</th>
+                                            <th>Chi phí</th>
+                                            <th>Kết quả</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="item : ${baoTris}">
+                                            <td th:text="${item.id}">1</td>
+                                            <td th:text="${item.thietBi?.tenThietBi}">Máy chiếu</td>
+                                            <td>
+                                                <span
+                                                    th:class="'badge ' + ${item.loaiBaoTri == T(com.Tta.QLCSVC.DHNT.entity.BaoTri.LoaiBaoTri).SUA_CHUA ? 'bg-warning' : 
+                                                    item.loaiBaoTri == T(com.Tta.QLCSVC.DHNT.entity.BaoTri.LoaiBaoTri).DINH_KY ? 'bg-info' : 'bg-success'}"
+                                                    th:text="${item.loaiBaoTri}">SUA_CHUA</span>
+                                            </td>
+                                            <td th:text="${#temporals.format(item.ngayBaoTri, 'dd/MM/yyyy')}">22/01/2026
+                                            </td>
+                                            <td th:text="${item.nguoiThucHien ?: '-'}">Nguyễn Văn A</td>
+                                            <td
+                                                th:text="${item.chiPhi != null ? #numbers.formatDecimal(item.chiPhi, 0, 'COMMA', 0, 'POINT') + ' VNĐ' : '-'}">
+                                                500,000 VNĐ</td>
+                                            <td>
+                                                <span th:if="${item.ketQua != null}"
+                                                    th:class="'badge ' + ${item.ketQua == T(com.Tta.QLCSVC.DHNT.entity.BaoTri.KetQuaBaoTri).THANH_CONG ? 'bg-success' : 
+                                                    item.ketQua == T(com.Tta.QLCSVC.DHNT.entity.BaoTri.KetQuaBaoTri).THAT_BAI ? 'bg-danger' : 'bg-warning'}"
+                                                    th:text="${item.ketQua}">THANH_CONG</span>
+                                                <span th:if="${item.ketQua == null}" class="badge bg-secondary">Chưa
+                                                    thực hiện</span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-info"
+                                                        th:onclick="'viewDetail(' + ${item.id} + ')'"
+                                                        title="Xem chi tiết">
+                                                        <i data-lucide="eye"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                lucide.createIcons();
+            });
+
+            function viewDetail(id) {
+                // TODO: Implement detail view
+                alert('Chi tiết bảo trì #' + id);
+            }
+        </script>
+    </th:block>
+</body>
+
+</html>
