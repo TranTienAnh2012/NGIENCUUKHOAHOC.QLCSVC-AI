@@ -11,6 +11,16 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime
 import json
+import base64
+import io
+
+# Thư viện xử lý ảnh (cần cài: pip install Pillow)
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+    print("Warning: Pillow not installed. Image resizing disabled. Run: pip install Pillow")
 
 # Load environment variables
 load_dotenv()
@@ -136,6 +146,31 @@ Dựa trên tên và mô tả thiết bị, hãy phân loại vào các danh m�
 - Thiết bị khác
 
 Trả về JSON format: {"category": "...", "subcategory": "...", "confidence": 0.0-1.0}
+"""
+
+# ============================================================
+# IMAGE SCAN PROMPT - Dùng cho Gemini Vision (nhận diện ảnh)
+# Gemini sẽ nhìn ảnh và trả lời theo JSON chuẩn này
+# ============================================================
+IMAGE_SCAN_PROMPT = """
+Bạn là chuyên gia nhận dạng thiết bị cơ sở vật chất trường học qua hình ảnh.
+
+Hãy phân tích kỹ ảnh được cung cấp và trả lời CHÍNH XÁC theo JSON format sau:
+{
+  "device_name": "Tên đầy đủ thiết bị (ví dụ: Máy chiếu Epson EB-X05)",
+  "brand": "Hãng sản xuất (ví dụ: Epson, Dell, JBL)",
+  "model": "Model hoặc mã thiết bị nhìn thấy trên ảnh (nếu không thấy thì để trống)",
+  "device_type": "Loại thiết bị (ví dụ: Máy chiếu, Laptop, Loa, Máy tính bàn...)",
+  "condition": "Mô tả tình trạng tổng thể nhìn thấy được (ví dụ: Bình thường, Có vết trầy xước...)",
+  "damage_signs": "Liệt kê các dấu hiệu hư hỏng nếu có (để trống nếu không phát hiện)",
+  "confidence": 0.85
+}
+
+CHÚ Ý:
+- Chỉ trả về JSON, KHÔNG giải thích thêm
+- Nếu không nhận ra thiết bị rõ ràng, confidence < 0.5
+- confidence từ 0.0 đến 1.0
+- Trả lời bằng tiếng Việt
 """
 
 
@@ -660,6 +695,222 @@ Hãy phân loại thiết bị này."""
         }), 500
 
 
+# ============================================================
+# HELPER: Match thiết bị từ DB dựa trên tên AI nhận dạng được
+# Hàm này so sánh từng từ trong tên AI trả về với tên thiết bị trong DB
+# Tính điểm similarity đơn giản: đếm số từ khớp / tổng số từ
+# Trả về thiết bị có điểm khớp cao nhất (nếu > 30%)
+# ============================================================
+def match_device_from_db(detected_name, detected_brand, db_devices):
+    """Tìm thiết bị khớp nhất trong DB dựa trên tên AI nhận dạng"""
+    if not db_devices or not detected_name:
+        return None, 0.0
+    
+    # Chuẩn hóa chuỗi tìm kiếm (lowercase, bỏ dấu câu)
+    search_terms = (detected_name + " " + detected_brand).lower().split()
+    
+    best_match = None
+    best_score = 0.0
+    
+    for device in db_devices:
+        # Lấy tên thiết bị từ DB (thử các key phổ biến)
+        db_name = device.get('name', device.get('tenThietBi', device.get('ten', ''))).lower()
+        db_code = device.get('code', device.get('maThietBi', device.get('ma', ''))).lower()
+        
+        # Tính điểm: đếm số từ search khớp trong tên DB
+        db_words = (db_name + " " + db_code).split()
+        
+        matched_words = sum(1 for term in search_terms if any(term in word or word in term for word in db_words))
+        
+        if search_terms:
+            score = matched_words / len(search_terms)
+        else:
+            score = 0.0
+        
+        if score > best_score:
+            best_score = score
+            best_match = device
+    
+    # Chỉ trả về nếu điểm khớp > 30%
+    return (best_match, best_score) if best_score > 0.3 else (None, 0.0)
+
+
+@app.route('/api/ai/scan-image', methods=['POST'])
+def scan_image():
+    """
+    [MỚI] Nhận dạng thiết bị từ ảnh và đối chiếu với DB
+    
+    Chức năng:
+    1. Nhận ảnh dưới dạng base64 từ frontend (web / Android Chrome)
+    2. Gửi ảnh lên Gemini Vision để nhận dạng thiết bị
+    3. Lấy danh sách thiết bị từ Spring Boot DB
+    4. So khớp kết quả AI với DB (fuzzy matching theo tên)
+    5. Trả về thông tin thiết bị + gợi ý điền form báo hỏng
+    
+    Request body (JSON):
+    {
+        "image_base64": "<chuỗi base64 của ảnh>",
+        "image_mime": "image/jpeg"  (tùy chọn, mặc định image/jpeg)
+    }
+    
+    Response:
+    {
+        "success": true,
+        "scan_result": { tên thiết bị AI nhận dạng, tình trạng, độ tin cậy },
+        "matched_device": { thông tin thiết bị trong DB },
+        "match_score": 0.85,
+        "ai_notes": "Ghi chú thêm của AI",
+        "form_suggestion": { gợi ý điền vào form báo hỏng }
+    }
+    """
+    try:
+        import requests as req_lib
+        
+        data = request.get_json()
+        
+        if not data or 'image_base64' not in data:
+            return jsonify({
+                "success": False,
+                "error": "Thiếu trường 'image_base64'. Vui lòng gửi ảnh dưới dạng base64."
+            }), 400
+        
+        image_base64 = data['image_base64']
+        image_mime = data.get('image_mime', 'image/jpeg')
+        
+        # Xóa prefix data URL nếu có (ví dụ: "data:image/jpeg;base64,")
+        if ',' in image_base64:
+            image_base64 = image_base64.split(',', 1)[1]
+        
+        # --- BƯỚC 1: Giải mã ảnh từ base64 ---
+        try:
+            image_bytes = base64.b64decode(image_base64)
+        except Exception:
+            return jsonify({
+                "success": False,
+                "error": "Base64 không hợp lệ. Kiểm tra lại chuỗi ảnh."
+            }), 400
+        
+        # --- BƯỚC 2: Resize ảnh nếu quá lớn (tối ưu token Gemini) ---
+        # Ảnh gốc từ camera có thể rất lớn (5-12MB), resize xuống tối đa 1024px
+        # để tiết kiệm token API và tăng tốc response
+        if PIL_AVAILABLE:
+            try:
+                img = Image.open(io.BytesIO(image_bytes))
+                max_size = 1024
+                if max(img.size) > max_size:
+                    img.thumbnail((max_size, max_size), Image.LANCZOS)
+                    buffer = io.BytesIO()
+                    img_format = 'JPEG' if 'jpeg' in image_mime else 'PNG'
+                    img.save(buffer, format=img_format, quality=85)
+                    image_bytes = buffer.getvalue()
+                    image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+            except Exception as e:
+                print(f"Warning: Không thể resize ảnh: {e}")
+        
+        # --- BƯỚC 3: Gửi ảnh lên Gemini Vision để nhận dạng ---
+        # Gemini 1.5 Flash hỗ trợ multimodal (text + image)
+        # Gửi ảnh dưới dạng inline_data với base64
+        vision_model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        image_part = {
+            "inline_data": {
+                "mime_type": image_mime,
+                "data": image_base64
+            }
+        }
+        
+        # Gọi Gemini với ảnh + prompt nhận dạng
+        gemini_response = vision_model.generate_content([IMAGE_SCAN_PROMPT, image_part])
+        raw_text = gemini_response.text.strip()
+        
+        # --- BƯỚC 4: Parse kết quả JSON từ Gemini ---
+        scan_result = {}
+        try:
+            # Gemini đôi khi bọc JSON trong ```json ... ``` → cần bóc ra
+            if '```' in raw_text:
+                start = raw_text.find('{')
+                end = raw_text.rfind('}') + 1
+                raw_text = raw_text[start:end]
+            scan_result = json.loads(raw_text)
+        except json.JSONDecodeError:
+            # Fallback: Gemini không trả JSON chuẩn → tạo result thủ công
+            scan_result = {
+                "device_name": "Không xác định",
+                "brand": "",
+                "model": "",
+                "device_type": "",
+                "condition": raw_text[:200],
+                "damage_signs": "",
+                "confidence": 0.3
+            }
+        
+        # --- BƯỚC 5: Lấy danh sách thiết bị từ Spring Boot DB ---
+        # Gọi nội bộ qua INTERNAL_API_KEY (bảo mật)
+        db_devices = []
+        db_connected = False
+        try:
+            SPRING_BOOT_API = "http://localhost:8080/api/ai-data"
+            devices_response = req_lib.get(
+                f"{SPRING_BOOT_API}/devices",
+                headers=INTERNAL_HEADERS,
+                timeout=3
+            )
+            if devices_response.status_code == 200:
+                db_devices = devices_response.json()
+                db_connected = True
+        except req_lib.exceptions.RequestException as e:
+            print(f"Warning: Không thể lấy danh sách thiết bị từ Spring Boot: {e}")
+        
+        # --- BƯỚC 6: So khớp với DB ---
+        matched_device = None
+        match_score = 0.0
+        if db_devices:
+            matched_device, match_score = match_device_from_db(
+                scan_result.get('device_name', ''),
+                scan_result.get('brand', ''),
+                db_devices
+            )
+        
+        # --- BƯỚC 7: Tạo gợi ý điền form báo hỏng ---
+        # Nếu có thiết bị match trong DB → gợi ý điền form tự động
+        form_suggestion = {}
+        if matched_device:
+            form_suggestion = {
+                "equipment_id": matched_device.get('id'),
+                "equipment_name": matched_device.get('name', matched_device.get('tenThietBi', '')),
+                "description_hint": scan_result.get('damage_signs', '') or scan_result.get('condition', ''),
+                "severity_hint": "CAO" if scan_result.get('damage_signs') else "THAP"
+            }
+        
+        return jsonify({
+            "success": True,
+            "scan_result": {
+                "detected_name": scan_result.get('device_name', 'Không xác định'),
+                "detected_brand": scan_result.get('brand', ''),
+                "detected_model": scan_result.get('model', ''),
+                "detected_type": scan_result.get('device_type', ''),
+                "condition": scan_result.get('condition', ''),
+                "damage_signs": scan_result.get('damage_signs', ''),
+                "confidence": float(scan_result.get('confidence', 0.0))
+            },
+            "matched_device": matched_device,
+            "match_score": round(match_score, 2),
+            "db_connected": db_connected,
+            "db_total_devices": len(db_devices),
+            "form_suggestion": form_suggestion,
+            "ai_notes": f"Gemini nhận dạng: {scan_result.get('device_name', '?')} "
+                        f"(Độ tin cậy: {int(float(scan_result.get('confidence', 0)) * 100)}%)",
+            "timestamp": datetime.now().isoformat()
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""
@@ -698,6 +949,7 @@ if __name__ == '__main__':
     ║  - POST /api/ai/analyze-damage                            ║
     ║  - POST /api/ai/suggest-maintenance                       ║
     ║  - POST /api/ai/categorize-equipment                      ║
+    ║  - POST /api/ai/scan-image        [MỚI - Gemini Vision]   ║
     ╚═══════════════════════════════════════════════════════════╝
     """)
     
