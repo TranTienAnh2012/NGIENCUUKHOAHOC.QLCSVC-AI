@@ -807,10 +807,10 @@ def scan_image():
             except Exception as e:
                 print(f"Warning: Không thể resize ảnh: {e}")
         
-        # --- BƯỚC 3: Gửi ảnh lên Gemini Vision để nhận dạng ---
-        # Gemini 1.5 Flash hỗ trợ multimodal (text + image)
-        # Gửi ảnh dưới dạng inline_data với base64
-        vision_model = genai.GenerativeModel('gemini-1.5-flash')
+        # --- BUOC 3: Gui anh len Gemini Vision de nhan dang ---
+        # Dung cung model voi phan con lai cua he thong (gemini-flash-latest)
+        # model la bien global da duoc khoi tao o tren va da chay on dinh
+        vision_model = model
         
         image_part = {
             "inline_data": {
@@ -932,25 +932,35 @@ def internal_error(error):
 
 
 if __name__ == '__main__':
-    # Lấy port từ environment variable hoặc dùng 5000 mặc định
+    # Fix encoding cho Windows terminal (cp1252 khong ho tro Unicode box chars)
+    import sys
+    if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
+        try:
+            sys.stdout.reconfigure(encoding='utf-8')
+        except Exception:
+            pass
+
+    # Lay port tu environment variable hoac dung 5000 mac dinh
     port = int(os.getenv('FLASK_PORT', 5000))
     debug = os.getenv('FLASK_ENV', 'development') == 'development'
-    
+
+    gemini_status = 'OK' if GEMINI_API_KEY else 'NOT CONFIGURED'
+
     print(f"""
-    ╔═══════════════════════════════════════════════════════════╗
-    ║  Flask AI API - Hệ thống Quản lý Cơ sở Vật chất          ║
-    ╠═══════════════════════════════════════════════════════════╣
-    ║  Server đang chạy tại: http://localhost:{port}            ║
-    ║  Gemini API: {'✓ Connected' if GEMINI_API_KEY else '✗ Not configured'}                                    ║
-    ║                                                           ║
-    ║  Endpoints:                                               ║
-    ║  - GET  /api/ai/health                                    ║
-    ║  - POST /api/ai/chatbot                                   ║
-    ║  - POST /api/ai/analyze-damage                            ║
-    ║  - POST /api/ai/suggest-maintenance                       ║
-    ║  - POST /api/ai/categorize-equipment                      ║
-    ║  - POST /api/ai/scan-image        [MỚI - Gemini Vision]   ║
-    ╚═══════════════════════════════════════════════════════════╝
+    +-----------------------------------------------------------+
+    |  Flask AI API - He thong Quan ly Co so Vat chat           |
+    +-----------------------------------------------------------+
+    |  Server: http://localhost:{port}                           |
+    |  Gemini API: {gemini_status:<48}|
+    |                                                           |
+    |  Endpoints:                                               |
+    |  - GET  /api/ai/health                                    |
+    |  - POST /api/ai/chatbot                                   |
+    |  - POST /api/ai/analyze-damage                            |
+    |  - POST /api/ai/suggest-maintenance                       |
+    |  - POST /api/ai/categorize-equipment                      |
+    |  - POST /api/ai/scan-image  [NEW - Gemini Vision]         |
+    +-----------------------------------------------------------+
     """)
-    
+
     app.run(host='0.0.0.0', port=port, debug=debug)
