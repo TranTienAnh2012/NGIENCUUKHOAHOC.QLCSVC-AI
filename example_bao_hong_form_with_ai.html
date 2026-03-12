@@ -124,6 +124,62 @@
         .btn-use-result:hover { transform: translateY(-1px); color: white; }
 
         /* ============================================================
+           CÁC SECTION TRONG KẾT QUẢ SCAN (mới thêm)
+           Mỗi section là 1 khối thông tin: AI / DB / Mượn / Báo hỏng
+           ============================================================ */
+        .result-section {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            padding: 12px 14px;
+        }
+        .result-section-title {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+
+        /* Grid 2 cột để hiển thị các cặp label-value */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        @media (max-width: 500px) { .info-grid { grid-template-columns: 1fr; } }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .info-label {
+            font-size: 0.7rem;
+            opacity: 0.6;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .info-value {
+            font-size: 0.88rem;
+            font-weight: 500;
+        }
+
+        /* Hàng lịch sử (báo hỏng / mượn trả) */
+        .history-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .history-row:last-child { border-bottom: none; }
+        .history-row .h-main { font-weight: 500; }
+        .history-row .h-sub  { font-size: 0.75rem; opacity: 0.65; margin-top: 1px; }
+        .history-row .h-badge { flex-shrink: 0; margin-left: 8px; }
+
+        /* ============================================================
            PHẦN FORM BÁO HỎNG - phần gốc
            ============================================================ */
         .ai-analysis-box {
@@ -243,7 +299,7 @@
 
                     <!-- Kết quả scan AI - ẩn mặc định, hiện sau khi quét -->
                     <div class="scan-result-box" id="scanResultBox">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
                             <h6 class="mb-0"><i class="fas fa-robot me-2"></i>Kết Quả Nhận Dạng AI</h6>
                             <button type="button" class="btn btn-sm btn-outline-light"
                                     onclick="clearScanResult()" title="Xóa kết quả">
@@ -251,57 +307,120 @@
                             </button>
                         </div>
 
-                        <!-- Tên thiết bị AI nhận dạng được -->
-                        <div class="mb-2">
-                            <strong>Thiết bị phát hiện:</strong>
-                            <span id="detectedName" class="ms-2"></span>
-                            <span id="confidenceBadge" class="confidence-badge ms-2"></span>
+                        <!-- PHẦN A: Kết quả AI nhận dạng từ ảnh -->
+                        <div class="result-section mb-3">
+                            <div class="result-section-title">📷 AI Nhận Dạng Từ Ảnh</div>
+                            <div class="mb-1">
+                                <strong>Thiết bị:</strong>
+                                <span id="detectedName" class="ms-2"></span>
+                                <span id="confidenceBadge" class="confidence-badge ms-2"></span>
+                            </div>
+                            <div class="small opacity-75 mb-1">
+                                <span id="detectedBrandModel"></span>
+                            </div>
+                            <div class="small mb-1">
+                                <strong>Tình trạng nhìn thấy:</strong>
+                                <span id="detectedCondition"></span>
+                            </div>
+                            <div id="damageSignsRow" class="small" style="display:none;">
+                                <strong class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Hư hỏng phát hiện:</strong>
+                                <span id="detectedDamage"></span>
+                            </div>
                         </div>
 
-                        <!-- Hãng và model -->
-                        <div class="mb-2 small opacity-75">
-                            <span id="detectedBrand"></span>
-                            <span id="detectedModel"></span>
-                        </div>
-
-                        <!-- Tình trạng nhìn thấy -->
-                        <div class="mb-2 small">
-                            <strong>Tình trạng:</strong> <span id="detectedCondition"></span>
-                        </div>
-
-                        <!-- Dấu hiệu hư hỏng (nếu có) -->
-                        <div id="damageSignsRow" class="mb-2 small" style="display:none;">
-                            <strong class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Hư hỏng phát hiện:</strong>
-                            <span id="detectedDamage"></span>
-                        </div>
-
-                        <!-- Thiết bị match trong DB -->
+                        <!-- PHẦN B: Thông tin thiết bị trong DB -->
                         <div id="matchedDeviceSection" style="display:none;">
-                            <div class="matched-device-card">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div>
-                                        <i class="fas fa-database me-2 text-success"></i>
-                                        <strong>Tìm thấy trong DB:</strong>
-                                        <div class="mt-1 ms-4">
-                                            <strong id="matchedName"></strong>
-                                            <br><small>Mã: <span id="matchedCode"></span> | Phòng: <span id="matchedRoom"></span></small>
-                                            <br><small>Trạng thái: <span id="matchedStatus" class="badge"></span></small>
+                            <div class="result-section mb-3">
+                                <div class="result-section-title">🗄️ Thông Tin Trong Hệ Thống DB</div>
+                                <div class="info-grid">
+                                    <div class="info-item">
+                                        <span class="info-label">Tên thiết bị</span>
+                                        <span class="info-value" id="dbDeviceName"></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Mã thiết bị</span>
+                                        <span class="info-value" id="dbDeviceCode"></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Phòng / Vị trí</span>
+                                        <span class="info-value" id="dbDeviceRoom"></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Loại thiết bị</span>
+                                        <span class="info-value" id="dbDeviceCategory"></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Trạng thái hiện tại</span>
+                                        <span class="info-value"><span id="dbDeviceStatus" class="badge"></span></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Độ khớp DB</span>
+                                        <span class="info-value"><span id="matchScoreBadge" class="badge bg-info"></span></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- PHẦN C: Ai đang mượn (hiện nếu có) -->
+                            <div id="currentBorrowerSection" style="display:none;">
+                                <div class="result-section mb-3" style="border-color: rgba(255,193,7,0.4); background: rgba(255,193,7,0.08);">
+                                    <div class="result-section-title" style="color:#ffc107;">⚠️ Thiết Bị Đang Được Mượn</div>
+                                    <div class="info-grid">
+                                        <div class="info-item">
+                                            <span class="info-label">Người mượn</span>
+                                            <span class="info-value fw-bold" id="borrowerName"></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Ngày mượn</span>
+                                            <span class="info-value" id="borrowDate"></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Dự kiến trả</span>
+                                            <span class="info-value" id="expectedReturn"></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Ghi chú</span>
+                                            <span class="info-value" id="borrowNote"></span>
                                         </div>
                                     </div>
-                                    <span class="badge bg-success" id="matchScoreBadge"></span>
+                                </div>
+                            </div>
+
+                            <!-- PHẦN D: Lịch sử báo hỏng -->
+                            <div id="damageHistorySection" style="display:none;">
+                                <div class="result-section mb-3">
+                                    <div class="result-section-title">🔧 Lịch Sử Báo Hỏng Gần Đây</div>
+                                    <div id="damageHistoryList" class="small"></div>
+                                </div>
+                            </div>
+
+                            <!-- PHẦN E: Lịch sử mượn trả -->
+                            <div id="borrowHistorySection" style="display:none;">
+                                <div class="result-section mb-3">
+                                    <div class="result-section-title">📋 Lịch Sử Mượn Trả Gần Đây</div>
+                                    <div id="borrowHistoryList" class="small"></div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Khi không tìm thấy trong DB -->
                         <div id="noMatchSection" style="display:none;">
-                            <div class="alert alert-warning alert-sm py-2 mb-2 mt-2">
+                            <div class="alert alert-warning py-2 mb-2 mt-2 small">
                                 <i class="fas fa-question-circle me-1"></i>
-                                Không tìm thấy thiết bị khớp trong DB. Vui lòng chọn thủ công bên dưới.
+                                AI nhận dạng được thiết bị nhưng không tìm thấy trong DB.
+                                Vui lòng chọn thủ công bên dưới hoặc chụp lại ảnh rõ hơn.
                             </div>
                         </div>
 
-                        <!-- Nút dùng kết quả này để điền form tự động -->
+                        <!-- DB không kết nối -->
+                        <div id="noDbSection" style="display:none;">
+                            <div class="alert alert-secondary py-2 mb-2 mt-2 small">
+                                <i class="fas fa-server me-1"></i>
+                                Spring Boot chưa chạy → Không thể đối chiếu DB.
+                                Kết quả chỉ từ AI nhận dạng ảnh.
+                            </div>
+                        </div>
+
+                        <!-- Nút dùng kết quả -->
                         <div class="mt-3 d-flex gap-2 flex-wrap">
                             <button type="button" class="btn-use-result btn"
                                     onclick="applyToForm()" id="applyBtn">
@@ -626,17 +745,17 @@
         }
 
         /**
-         * Hiển thị kết quả scan từ API
+         * Hiển thị kết quả scan từ API - phiên bản cải tiến
+         * 5 phần: A-AI nhận dạng | B-DB info | C-Người mượn | D-Báo hỏng | E-Mượn trả
          * @param {Object} data - Response từ Flask /api/ai/scan-image
          */
         function displayScanResult(data) {
             const sr = data.scan_result;
             const md = data.matched_device;
 
-            // Tên thiết bị nhận dạng
+            // ---- PHẦN A: AI nhận dạng từ ảnh ----
             document.getElementById('detectedName').textContent = sr.detected_name;
 
-            // Badge độ tin cậy (confidence)
             const conf = sr.confidence;
             const badge = document.getElementById('confidenceBadge');
             badge.textContent = Math.round(conf * 100) + '%';
@@ -645,16 +764,14 @@
                 conf >= 0.4 ? 'confidence-med' : 'confidence-low'
             );
 
-            // Hãng và model
             let brandModel = '';
             if (sr.detected_brand) brandModel += `Hãng: ${sr.detected_brand}`;
-            if (sr.detected_model) brandModel += ` | Model: ${sr.detected_model}`;
-            document.getElementById('detectedBrand').textContent = brandModel;
+            if (sr.detected_model) brandModel += (brandModel ? ' | ' : '') + `Model: ${sr.detected_model}`;
+            if (sr.detected_type)  brandModel += (brandModel ? ' | ' : '') + `Loại: ${sr.detected_type}`;
+            document.getElementById('detectedBrandModel').textContent = brandModel;
 
-            // Tình trạng
             document.getElementById('detectedCondition').textContent = sr.condition || 'Không xác định';
 
-            // Dấu hiệu hư hỏng
             if (sr.damage_signs) {
                 document.getElementById('detectedDamage').textContent = sr.damage_signs;
                 document.getElementById('damageSignsRow').style.display = 'block';
@@ -662,17 +779,20 @@
                 document.getElementById('damageSignsRow').style.display = 'none';
             }
 
-            // Thiết bị match trong DB
+            // ---- PHẦN B: Thông tin DB ----
             if (md) {
-                document.getElementById('matchedName').textContent =
-                    md.name || md.tenThietBi || 'Không rõ';
-                document.getElementById('matchedCode').textContent =
-                    md.code || md.maThietBi || 'N/A';
-                document.getElementById('matchedRoom').textContent =
-                    md.room || md.phong || 'Chưa xác định';
+                const devName = md.name || md.tenThietBi || 'Không rõ';
+                const devCode = md.code || md.maThietBi || 'N/A';
+                const devRoom = md.room || md.phong || '—';
+                const devCat  = md.category || md.loai || '—';
+                const status  = md.status || md.trangThai || '';
 
-                const statusEl = document.getElementById('matchedStatus');
-                const status = md.status || md.trangThai || '';
+                document.getElementById('dbDeviceName').textContent = devName;
+                document.getElementById('dbDeviceCode').textContent = devCode;
+                document.getElementById('dbDeviceRoom').textContent = devRoom;
+                document.getElementById('dbDeviceCategory').textContent = devCat;
+
+                const statusEl = document.getElementById('dbDeviceStatus');
                 statusEl.textContent = formatStatus(status);
                 statusEl.className = 'badge ' + getStatusColor(status);
 
@@ -681,14 +801,124 @@
 
                 document.getElementById('matchedDeviceSection').style.display = 'block';
                 document.getElementById('noMatchSection').style.display = 'none';
+                document.getElementById('noDbSection').style.display = 'none';
+
+                // ---- PHẦN C: Ai đang mượn ----
+                const borrower = data.current_borrower;
+                if (borrower) {
+                    document.getElementById('borrowerName').textContent =
+                        borrower.user_name || 'Không rõ';
+                    document.getElementById('borrowDate').textContent =
+                        formatDate(borrower.borrow_date);
+                    document.getElementById('expectedReturn').textContent =
+                        borrower.expected_return ? formatDate(borrower.expected_return) : '—';
+                    document.getElementById('borrowNote').textContent =
+                        borrower.ghi_chu || '—';
+                    document.getElementById('currentBorrowerSection').style.display = 'block';
+                } else {
+                    document.getElementById('currentBorrowerSection').style.display = 'none';
+                }
+
+                // ---- PHẦN D: Lịch sử báo hỏng ----
+                const dmgHistory = data.device_damage_history || [];
+                if (dmgHistory.length > 0) {
+                    const dmgHtml = dmgHistory.map(d => `
+                        <div class="history-row">
+                            <div>
+                                <div class="h-main">${d.description || 'Không có mô tả'}</div>
+                                <div class="h-sub">
+                                    ${d.reporter_name ? 'Báo bởi: ' + d.reporter_name + ' | ' : ''}
+                                    ${formatDate(d.reported_date)}
+                                </div>
+                            </div>
+                            <div class="h-badge">
+                                <span class="badge ${getSeverityColor(d.severity)}">${d.severity || '—'}</span>
+                                <br><span class="badge ${getDamageStatusColor(d.status)} mt-1">${formatDamageStatus(d.status)}</span>
+                            </div>
+                        </div>`).join('');
+                    document.getElementById('damageHistoryList').innerHTML = dmgHtml;
+                    document.getElementById('damageHistorySection').style.display = 'block';
+                } else {
+                    document.getElementById('damageHistorySection').style.display = 'none';
+                }
+
+                // ---- PHẦN E: Lịch sử mượn trả ----
+                const bHistory = data.borrow_history || [];
+                if (bHistory.length > 0) {
+                    const bHtml = bHistory.map(b => `
+                        <div class="history-row">
+                            <div>
+                                <div class="h-main">${b.user_name || 'Không rõ'}</div>
+                                <div class="h-sub">
+                                    Mượn: ${formatDate(b.borrow_date)}
+                                    ${b.actual_return ? ' | Trả: ' + formatDate(b.actual_return) : ''}
+                                </div>
+                            </div>
+                            <div class="h-badge">
+                                <span class="badge ${b.status === 'DA_TRA' ? 'bg-secondary' : 'bg-warning text-dark'}">
+                                    ${b.status === 'DA_TRA' ? 'Đã trả' : 'Đang mượn'}
+                                </span>
+                            </div>
+                        </div>`).join('');
+                    document.getElementById('borrowHistoryList').innerHTML = bHtml;
+                    document.getElementById('borrowHistorySection').style.display = 'block';
+                } else {
+                    document.getElementById('borrowHistorySection').style.display = 'none';
+                }
+
             } else {
+                // Không match DB
                 document.getElementById('matchedDeviceSection').style.display = 'none';
-                document.getElementById('noMatchSection').style.display =
-                    data.db_connected ? 'block' : 'none';
+                if (data.db_connected) {
+                    document.getElementById('noMatchSection').style.display = 'block';
+                    document.getElementById('noDbSection').style.display = 'none';
+                } else {
+                    document.getElementById('noMatchSection').style.display = 'none';
+                    document.getElementById('noDbSection').style.display = 'block';
+                }
             }
 
-            // Hiện box kết quả
             document.getElementById('scanResultBox').style.display = 'block';
+        }
+
+        /** Format ngày: 2026-03-10T... → 10/03/2026 */
+        function formatDate(dateStr) {
+            if (!dateStr) return '—';
+            try {
+                const d = new Date(dateStr);
+                return d.toLocaleDateString('vi-VN');
+            } catch { return dateStr; }
+        }
+
+        /** Màu badge mức độ nghiêm trọng */
+        function getSeverityColor(sev) {
+            if (!sev) return 'bg-secondary';
+            const s = sev.toUpperCase();
+            if (s === 'CAO' || s === 'NGHIEM_TRONG') return 'bg-danger';
+            if (s === 'TRUNG_BINH' || s === 'MEDIUM')  return 'bg-warning text-dark';
+            return 'bg-info text-dark';
+        }
+
+        /** Màu badge trạng thái báo hỏng */
+        function getDamageStatusColor(status) {
+            if (!status) return 'bg-secondary';
+            const s = status.toString().toUpperCase();
+            if (s.includes('HOAN_THANH') || s.includes('FIXED')) return 'bg-success';
+            if (s.includes('DANG'))  return 'bg-primary';
+            if (s.includes('CHO'))   return 'bg-warning text-dark';
+            return 'bg-secondary';
+        }
+
+        /** Hiển thị tên trạng thái báo hỏng bằng tiếng Việt */
+        function formatDamageStatus(status) {
+            if (!status) return '—';
+            const map = {
+                'CHO_XU_LY': 'Chờ xử lý',
+                'DANG_XU_LY': 'Đang xử lý',
+                'HOAN_THANH': 'Hoàn thành',
+                'DA_BAO_TRI': 'Đã bảo trì'
+            };
+            return map[status.toString().toUpperCase()] || status;
         }
 
         /**
