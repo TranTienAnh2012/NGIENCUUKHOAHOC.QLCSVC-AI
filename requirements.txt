@@ -22,3 +22,7 @@ requests==2.31.0
 # Giúp tiết kiệm token API và tăng tốc response
 Pillow==12.1.1
 
+# Tạo QR Code cho từng thiết bị (cố định theo device_id)
+# Dùng cho tính năng: Admin in QR → dán lên thiết bị → scan ra toàn bộ thông tin
+qrcode[pil]==8.0
+
