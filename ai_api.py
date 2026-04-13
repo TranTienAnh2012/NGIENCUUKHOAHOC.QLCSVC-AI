@@ -1281,6 +1281,24 @@ def device_info_page(device_id):
   @media (max-width: 360px) {{
     .info-grid, .borrow-grid {{ grid-template-columns: 1fr; }}
   }}
+
+  /* SCAN FLOATING BUTTON */
+  .fab-scan {{
+    position: fixed; bottom: 24px; right: 18px;
+    width: 52px; height: 52px; border-radius: 50%; z-index: 999;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white; border: none; cursor: pointer; font-size: 1.3rem;
+    box-shadow: 0 4px 18px rgba(16,185,129,.5);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .2s;
+  }}
+  .fab-scan:active {{ transform: scale(.93); }}
+  .fab-scan-label {{
+    position: fixed; bottom: 80px; right: 12px;
+    background: #10b981; color: white; font-size: 0.6rem;
+    font-weight: 700; padding: 2px 7px; border-radius: 10px;
+    letter-spacing: .04em; z-index: 999; pointer-events: none;
+  }}
 </style>
 </head>
 <body>
@@ -1390,6 +1408,9 @@ def device_info_page(device_id):
   }}
 }})();
 </script>
+<!-- Scan FAB button -->
+<span class="fab-scan-label">SCAN</span>
+<button class="fab-scan" onclick="window.location.href='{host}/api/ai/scan'" title="Scan QR thiết bị khác">📷</button>
 </body>
 </html>'''
 
@@ -2005,6 +2026,94 @@ if __name__ == '__main__':
     |  - POST /api/ai/scan-image  [NEW - Gemini Vision]         |
     +-----------------------------------------------------------+
     """)
+
+@app.route('/api/ai/scan')
+def scan_page():
+    """Trang scan QR trên mobile — mở camera và redirect đến device-info."""
+    host = request.host_url.rstrip('/')
+    html = f'''<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scan QR Thiết bị — QLCSVC</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    * {{ box-sizing:border-box; margin:0; padding:0; }}
+    body {{
+      font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;
+      background:linear-gradient(160deg,#0f172a 0%,#1e293b 100%);
+      min-height:100vh; display:flex; flex-direction:column;
+      align-items:center; padding:24px 16px; color:white;
+    }}
+    .logo {{ font-size:2.5rem; margin-bottom:8px; }}
+    h1 {{ font-size:1.3rem; font-weight:700; margin-bottom:4px; }}
+    .sub {{ font-size:0.82rem; color:#94a3b8; margin-bottom:28px; }}
+    .scanner-wrap {{
+      width:100%; max-width:360px; background:#1e293b;
+      border-radius:20px; padding:16px; border:1.5px solid #334155;
+      box-shadow:0 20px 60px rgba(0,0,0,.6);
+    }}
+    #qr-reader {{ width:100%; border-radius:12px; overflow:hidden; }}
+    #qr-reader video {{ border-radius:12px !important; }}
+    .status {{
+      margin-top:14px; text-align:center; font-size:0.82rem;
+      color:#94a3b8; min-height:24px;
+    }}
+    .hint {{
+      margin-top:20px; text-align:center; font-size:0.75rem;
+      color:#475569; max-width:300px; line-height:1.5;
+    }}
+    .btn-back {{
+      margin-top:16px; padding:12px 24px;
+      background:linear-gradient(135deg,#334155,#1e293b);
+      color:#94a3b8; border:1.5px solid #334155; border-radius:12px;
+      font-size:0.85rem; cursor:pointer; width:100%; max-width:360px;
+    }}
+  </style>
+</head>
+<body>
+  <div class="logo">📷</div>
+  <h1>Scan QR Thiết bị</h1>
+  <p class="sub">Hệ thống Quản lý Cơ sở Vật chất — QLCSVC</p>
+
+  <div class="scanner-wrap">
+    <div id="qr-reader"></div>
+    <div class="status" id="scan-status">Đang khởi động camera...</div>
+  </div>
+
+  <p class="hint">Hướng camera vào mã QR dán trên thiết bị.<br>
+  Hệ thống sẽ tự động nhận diện và hiển thị thông tin.</p>
+
+  <button class="btn-back" onclick="history.back()">← Quay lại</button>
+
+  <script>
+    const scanner = new Html5Qrcode('qr-reader');
+    scanner.start(
+      {{ facingMode: 'environment' }},
+      {{ fps:10, qrbox:{{ width:240, height:240 }} }},
+      (decoded) => {{
+        document.getElementById('scan-status').innerHTML =
+          '<span style="color:#10b981;font-weight:700;">✅ Đã scan! Đang chuyển...</span>';
+        scanner.stop().then(() => {{
+          window.location.href = decoded.startsWith('http') ? decoded
+            : '{host}/api/ai/device-info/' + decoded;
+        }});
+      }},
+      (_err) => {{}}
+    ).then(() => {{
+      document.getElementById('scan-status').textContent =
+        'Hướng camera vào mã QR trên thiết bị';
+    }}).catch(err => {{
+      document.getElementById('scan-status').innerHTML =
+        '<span style="color:#f87171;">❌ Không truy cập camera. Cho phép quyền camera rồi thử lại.</span>';
+    }});
+  </script>
+</body>
+</html>'''
+    resp = make_response(html)
+    resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+    return resp
 
     app.run(host='0.0.0.0', port=port, debug=debug)
 
