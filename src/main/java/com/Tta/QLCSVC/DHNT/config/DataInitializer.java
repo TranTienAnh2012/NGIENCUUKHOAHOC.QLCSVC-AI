@@ -31,10 +31,11 @@ public class DataInitializer {
                 admin.setTrangThai(NguoiDung.TrangThaiNguoiDung.ACTIVE);
                 nguoiDungRepository.save(admin);
             } else {
-                // Update existing user to ADMIN
+                // Chỉ đảm bảo user có vai trò ADMIN và ACTIVE
+                // KHÔNG reset matKhau — tránh ghi đè mật khẩu đã đổi
                 nguoiDungRepository.findByEmail("admin@example.com").ifPresent(user -> {
                     user.setVaiTro(NguoiDung.VaiTro.ADMIN);
-                    user.setMatKhau(passwordEncoder.encode("123456"));
+                    user.setTrangThai(NguoiDung.TrangThaiNguoiDung.ACTIVE);
                     nguoiDungRepository.save(user);
                 });
             }
