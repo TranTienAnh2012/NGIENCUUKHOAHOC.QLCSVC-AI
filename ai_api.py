@@ -1323,6 +1323,16 @@ def device_info_page(device_id):
     {borrow_html if borrow_html else '<div class="empty">Chưa có lịch sử mượn trả</div>'}
   </div>
 
+  <!-- AI Đánh giá sức khoẻ thiết bị -->
+  <div class="card" id="aiHealthCard">
+    <div class="card-label">🤖 Đánh giá AI</div>
+    <div id="aiHealthLoading" style="text-align:center;padding:16px;">
+      <div class="ai-spinner"></div>
+      <div style="font-size:0.78rem;color:#64748b;margin-top:8px;">AI đang phân tích thiết bị...</div>
+    </div>
+    <div id="aiHealthResult" style="display:none;"></div>
+  </div>
+
   <!-- Nút báo hỏng -->
   <a class="btn-report" href="{host}/api/ai/report-form?device_id={device_id}&amp;device_name={dev_name}">
     🚨 Báo hỏng thiết bị này
@@ -1334,6 +1344,46 @@ def device_info_page(device_id):
   </div>
 
 </div>
+<script>
+// Phase 2: AI Health Assessment - tự động gọi khi trang load
+(async function loadAiHealth() {{
+  const loadEl = document.getElementById('aiHealthLoading');
+  const resEl  = document.getElementById('aiHealthResult');
+  try {{
+    const r = await fetch('http://localhost:5000/api/ai/suggest-maintenance', {{
+      method: 'POST',
+      headers: {{ 'Content-Type': 'application/json' }},
+      body: JSON.stringify({{
+        device_name: '{dev_name}',
+        device_id:   {device_id},
+        status:      '{status_label}',
+        category:    '{dev_cat}',
+        room:        '{dev_room}'
+      }})
+    }});
+    const data = await r.json();
+    loadEl.style.display = 'none';
+    const msg = data.suggestion || data.response || data.message || JSON.stringify(data);
+    // Determine health color
+    const txt = msg.toLowerCase();
+    const isGood = txt.includes('tốt') || txt.includes('bình thường') || txt.includes('không cần');
+    const isWarn = txt.includes('lưu ý') || txt.includes('chú ý') || txt.includes('theo dõi');
+    const color  = isGood ? '#16a34a' : isWarn ? '#f59e0b' : '#ef4444';
+    const bg     = isGood ? '#f0fdf4' : isWarn ? '#fffbeb' : '#fef2f2';
+    const border = isGood ? '#86efac' : isWarn ? '#fde68a' : '#fca5a5';
+    const icon   = isGood ? '✅' : isWarn ? '⚠️' : '🚨';
+    resEl.innerHTML = `<div style="border:1.5px solid ${{border}};background:${{bg}};border-radius:10px;padding:14px;font-size:0.82rem;">
+      <div style="font-weight:700;color:${{color}};margin-bottom:6px;">${{icon}} Đánh giá AI</div>
+      <div style="color:#374151;white-space:pre-wrap;">${{msg}}</div>
+    </div>`;
+    resEl.style.display = 'block';
+  }} catch(e) {{
+    loadEl.style.display = 'none';
+    resEl.innerHTML = '<div style="color:#94a3b8;font-size:0.78rem;text-align:center;">AI không khả dụng — Flask chưa chạy</div>';
+    resEl.style.display = 'block';
+  }}
+}})();
+</script>
 </body>
 </html>'''
 
@@ -1713,7 +1763,18 @@ def report_form_page():
       <div class="card-label">📝 Mô tả sự cố <span class="req">*</span></div>
       <div class="field-group">
         <textarea id="moTa" name="mo_ta" rows="4" placeholder="Mô tả chi tiết sự cố, ví dụ:&#10;• Bàn phím không gõ được phím A, B&#10;• Máy không lên nguồn sau khi cắm sạc&#10;• Màn hình bị sọc ngang..." maxlength="1000" oninput="updateCount(this)"></textarea>
-        <div class="char-count"><span id="charCount">0</span>/1000</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+          <button type="button" id="aiAnalyzeBtn" onclick="aiAnalyze()"
+            style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;
+                   background:linear-gradient(135deg,#6366f1,#4f46e5);color:white;
+                   border:none;border-radius:8px;font-size:0.75rem;font-weight:700;
+                   cursor:pointer;box-shadow:0 2px 8px #6366f133;transition:opacity .15s;">
+            🤖 AI Phân tích
+          </button>
+          <div class="char-count"><span id="charCount">0</span>/1000</div>
+        </div>
+        <!-- AI Result Banner -->
+        <div id="aiResult" style="display:none;margin-top:10px;"></div>
       </div>
     </div>
 
@@ -1801,6 +1862,65 @@ def report_form_page():
 
   function resetForm() {{
     document.getElementById('resultError').style.display = 'none';
+  }}
+
+  // ===== AI ANALYZE FEATURE =====
+  async function aiAnalyze() {{
+    const moTa = document.getElementById('moTa').value.trim();
+    if (moTa.length < 10) {{
+      alert('Vui lòng mô tả sự cố trước (ít nhất 10 ký tự) để AI phân tích.');
+      return;
+    }}
+
+    const btn = document.getElementById('aiAnalyzeBtn');
+    const result = document.getElementById('aiResult');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ AI đang phân tích...';
+    result.style.display = 'none';
+
+    try {{
+      const r = await fetch('http://localhost:5000/api/ai/analyze-damage', {{
+        method: 'POST',
+        headers: {{ 'Content-Type': 'application/json' }},
+        body: JSON.stringify({{
+          description: moTa,
+          device_name: document.querySelector('[name=device_id]')?.value || ''
+        }})
+      }});
+      const data = await r.json();
+
+      if (data.success || data.analysis) {{
+        const analysis = data.analysis || data.response || JSON.stringify(data);
+        // Show result banner
+        result.innerHTML = `
+          <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:14px;font-size:0.82rem;">
+            <div style="font-weight:700;color:#16a34a;margin-bottom:6px;">✅ AI đã phân tích</div>
+            <div style="color:#374151;white-space:pre-wrap;">${{analysis}}</div>
+          </div>`;
+        result.style.display = 'block';
+
+        // Try to auto-select severity from AI response
+        const txt = analysis.toLowerCase();
+        if (txt.includes('khẩn cấp') || txt.includes('khan_cap') || txt.includes('nguy hiểm')) {{
+          document.getElementById('s4').checked = true;
+        }} else if (txt.includes('nghiêm trọng') || txt.includes('cao') || txt.includes('không dùng')) {{
+          document.getElementById('s3').checked = true;
+        }} else if (txt.includes('nhẹ') || txt.includes('thap') || txt.includes('vẫn dùng')) {{
+          document.getElementById('s1').checked = true;
+        }} else {{
+          document.getElementById('s2').checked = true;
+        }}
+      }} else {{
+        result.innerHTML = `<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:12px;font-size:0.8rem;color:#dc2626;">❌ ${{data.error || 'Không phân tích được. Thử lại sau.'}}</div>`;
+        result.style.display = 'block';
+      }}
+    }} catch(err) {{
+      result.innerHTML = `<div style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:12px;font-size:0.8rem;color:#dc2626;">❌ Không kết nối được Flask AI: ${{err.message}}</div>`;
+      result.style.display = 'block';
+    }} finally {{
+      btn.disabled = false;
+      btn.innerHTML = '🤖 AI Phân tích';
+    }}
   }}
 </script>
 </body>
