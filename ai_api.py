@@ -998,406 +998,6 @@ def scan_image():
         return jsonify({'success': False, 'error': str(e), 'timestamp': datetime.now().isoformat()}), 500
 
 
-# ============================================================
-# QR CODE ENDPOINTS
-# Moi thiet bi co 1 ma QR co dinh (deterministic tu device_id).
-# QR nay ma hoa URL /api/ai/device-info/<id> → khi scan thi hien
-# toan bo thong tin thiet bi do theo thoi gian thuc tu DB.
-#
-# Nguyen tac "co dinh": cung device_id → cung URL → cung QR.
-# Khong luu xuong dia, tao on-demand.
-# ============================================================
-
-try:
-    import qrcode
-    import qrcode.image.pil
-    QR_AVAILABLE = True
-except ImportError:
-    QR_AVAILABLE = False
-    print("Warning: qrcode chua duoc cai. Chay: pip install qrcode[pil]")
-
-
-@app.route('/api/ai/device-qr/<int:device_id>')
-def get_device_qr(device_id):
-    """
-    Tra ve anh QR (PNG) co dinh cho thiet bi co device_id tuong ung.
-    QR ma hoa URL /api/ai/device-info/<device_id> → scan ra trang thong tin.
-
-    - Deterministic: cung device_id luon cho cung QR (khong doi theo thoi gian)
-    - Khong can luu file, tao trong memory (io.BytesIO)
-    - Tra ve image/png de co the nhung vao <img src="..."> hoac in an
-
-    Vi du: GET /api/ai/device-qr/42
-    """
-    if not QR_AVAILABLE:
-        return jsonify({'error': 'qrcode chua duoc cai. pip install qrcode[pil]'}), 500
-
-    # URL ma QR se chua: trang thong tin thiet bi nay
-    # Lay host tu request de QR hoat dong ca tren mang LAN
-    host = request.host_url.rstrip('/')
-    device_info_url = f"{host}/api/ai/device-info/{device_id}"
-
-    # Tao QR code
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_M,
-        box_size=8,
-        border=3,
-    )
-    qr.add_data(device_info_url)
-    qr.make(fit=True)
-
-    img = qr.make_image(fill_color="black", back_color="white")
-
-    # Tra ve PNG trong memory (khong can luu file)
-    buf = io.BytesIO()
-    img.save(buf, format='PNG')
-    buf.seek(0)
-
-    from flask import send_file
-    return send_file(buf, mimetype='image/png',
-                     download_name=f'qr_thietbi_{device_id}.png')
-
-
-@app.route('/api/ai/device-info/<int:device_id>')
-def device_info_page(device_id):
-    """
-    Trang HTML hien thi TOAN BO thong tin thiet bi khi scan QR.
-    Du lieu lay truc tiep tu Spring Boot DB theo thoi gian thuc.
-
-    Hien thi:
-    - Thong tin co ban (ten, ma, phong, loai, hang, model, tinh trang)
-    - Ai dang muon thiet bi nay (neu co)
-    - Lich su bao hong gan day
-    - Nut "Bao hong ngay" lien ket toi form bao cao
-    """
-    import requests as req_lib
-
-    SPRING_BOOT_API = 'http://localhost:8080/api/ai-data'
-    device = None
-    damages = []
-    borrower = None
-    db_ok = False
-
-    try:
-        # Lay thong tin thiet bi
-        r = req_lib.get(f'{SPRING_BOOT_API}/devices', headers=INTERNAL_HEADERS, timeout=3)
-        if r.status_code == 200:
-            all_devices = r.json()
-            matched = [d for d in all_devices if str(d.get('id')) == str(device_id)]
-            if matched:
-                device = matched[0]
-                db_ok = True
-
-        # Lay lich su bao hong
-        dr = req_lib.get(f'{SPRING_BOOT_API}/damages/recent?limit=50', headers=INTERNAL_HEADERS, timeout=3)
-        if dr.status_code == 200 and device:
-            dev_name = (device.get('name') or '').lower()
-            damages = [d for d in dr.json()
-                       if dev_name in (d.get('device_name') or '').lower()
-                       or (d.get('device_name') or '').lower() in dev_name][:5]
-
-        # Kiem tra ai dang muon
-        br = req_lib.get(f'{SPRING_BOOT_API}/borrows/active', headers=INTERNAL_HEADERS, timeout=3)
-        if br.status_code == 200 and device:
-            dev_name = (device.get('name') or '').lower()
-            for b in br.json():
-                if dev_name in (b.get('device_name') or '').lower():
-                    borrower = b
-                    break
-    except Exception as e:
-        print(f'Warning device-info fetch: {e}')
-
-    # Lay URL goc Flask de tao link bao hong
-    host = request.host_url.rstrip('/')
-    from flask import make_response
-
-    STATUS_MAP = {
-        'TOT': ('Tốt - Đang hoạt động', '#28a745'),
-        'BAO_TRI': ('Đang bảo trì', '#ffc107'),
-        'HONG': ('Hỏng', '#dc3545'),
-        'THANH_LY': ('Đã thanh lý', '#6c757d'),
-    }
-    status_raw = (device.get('status') or 'TOT') if device else 'TOT'
-    status_label, status_color = STATUS_MAP.get(status_raw, (status_raw, '#6c757d'))
-
-    damage_rows = ''
-    for d in damages:
-        sev = d.get('severity') or '—'
-        sev_color = '#dc3545' if 'CAO' in str(sev).upper() else '#ffc107'
-        damage_rows += f"""
-        <div style="border-bottom:1px solid #eee;padding:8px 0;">
-            <div style="font-weight:500;">{d.get('description') or 'Không có mô tả'}</div>
-            <div style="font-size:0.82rem;color:#666;margin-top:3px;">
-                {('Báo bởi: ' + d['reporter_name'] + ' | ') if d.get('reporter_name') else ''}
-                <span style="background:{sev_color};color:white;padding:1px 8px;border-radius:10px;font-size:0.75rem;">{sev}</span>
-            </div>
-        </div>"""
-
-    borrower_block = ''
-    if borrower:
-        borrower_block = f"""
-        <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:14px;margin:16px 0;">
-            <div style="font-weight:700;color:#856404;">⚠️ Thiết bị đang được mượn</div>
-            <div style="margin-top:8px;">
-                <b>Người mượn:</b> {borrower.get('user_name','Không rõ')}<br>
-                <b>Ngày mượn:</b> {borrower.get('borrow_date','—')}<br>
-                <b>Dự kiến trả:</b> {borrower.get('expected_return','—')}
-            </div>
-        </div>"""
-
-    device_name = (device.get('name') or f'Thiết bị #{device_id}') if device else f'Thiết bị #{device_id}'
-    device_code = (device.get('code') or '—') if device else '—'
-    device_room = (device.get('room') or '—') if device else '—'
-    device_cat  = (device.get('category') or '—') if device else '—'
-
-    no_db_warn = '' if db_ok else '<div style="background:#f8d7da;padding:10px;border-radius:8px;margin-bottom:12px;color:#721c24;">⚠️ Không thể kết nối Spring Boot. Thông tin có thể chưa đầy đủ.</div>'
-
-    html = f"""<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Thông tin thiết bị {device_name}">
-<title>{device_name} - Thông tin thiết bị</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖥️</text></svg>">
-<style>
-  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-         background: #f0f2f5; min-height: 100vh; }}
-  .header {{ background: linear-gradient(135deg,#1a1a2e,#0f3460); color:white;
-             padding:24px 20px 20px; text-align:center; }}
-  .header h1 {{ font-size:1.4rem; font-weight:700; margin-bottom:4px; }}
-  .header .code {{ font-size:0.85rem; opacity:0.75; }}
-  .status-pill {{ display:inline-block; padding:6px 18px; border-radius:20px;
-                  font-weight:700; font-size:0.9rem; margin-top:12px;
-                  background:{status_color}22; border:2px solid {status_color}; color:{status_color}; }}
-  .card {{ background:white; border-radius:14px; padding:18px; margin:14px;
-           box-shadow:0 2px 12px rgba(0,0,0,0.07); }}
-  .card-title {{ font-size:0.72rem; font-weight:700; text-transform:uppercase;
-                 letter-spacing:0.06em; color:#888; margin-bottom:12px; }}
-  .info-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }}
-  .info-item .lbl {{ font-size:0.72rem; color:#999; margin-bottom:3px; }}
-  .info-item .val {{ font-size:0.95rem; font-weight:600; color:#1a1a2e; }}
-  .btn-report {{ display:block; background:linear-gradient(135deg,#dc3545,#c82333);
-                 color:white; text-align:center; padding:14px; border-radius:12px;
-                 text-decoration:none; font-weight:700; font-size:1rem; margin:14px;
-                 box-shadow:0 4px 15px rgba(220,53,69,0.3); }}
-  .btn-report:hover {{ opacity:0.92; }}
-  .qr-small {{ text-align:center; padding:10px 0 0; }}
-  .qr-small img {{ width:90px; height:90px; border:2px solid #eee; border-radius:8px; }}
-  .footer {{ text-align:center; font-size:0.72rem; color:#aaa; padding:20px 0 30px; }}
-</style>
-</head>
-<body>
-
-<div class="header">
-  <div class="code">Mã: {device_code}</div>
-  <h1>{device_name}</h1>
-  <div class="status-pill">{status_label}</div>
-</div>
-
-{no_db_warn and '<div style="margin:14px">' + no_db_warn + '</div>'}
-
-<div class="card">
-  <div class="card-title">📋 Thông tin thiết bị</div>
-  <div class="info-grid">
-    <div class="info-item"><div class="lbl">Mã thiết bị</div><div class="val">{device_code}</div></div>
-    <div class="info-item"><div class="lbl">Phòng / Vị trí</div><div class="val">{device_room}</div></div>
-    <div class="info-item"><div class="lbl">Loại thiết bị</div><div class="val">{device_cat}</div></div>
-    <div class="info-item"><div class="lbl">Trạng thái</div>
-      <div class="val" style="color:{status_color};">{status_label}</div></div>
-  </div>
-</div>
-
-{borrower_block and '<div style="margin:0 14px">' + borrower_block + '</div>'}
-
-{'<div class="card"><div class="card-title">🔧 Lịch sử báo hỏng gần đây</div>' + damage_rows + '</div>' if damage_rows else ''}
-
-<a class="btn-report" href="{host}/api/ai/report-form?device_id={device_id}&device_name={device_name}">
-  🚨 Báo hỏng thiết bị này
-</a>
-
-<div class="footer">{device_name} | Hệ thống QLCSVC<br>Cập nhật lúc: {datetime.now().strftime('%H:%M %d/%m/%Y')}</div>
-
-</body>
-</html>"""
-
-    resp = make_response(html)
-    resp.headers['Content-Type'] = 'text/html; charset=utf-8'
-    # No-cache: luon lay du lieu moi nhat tu DB
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    return resp
-
-
-@app.route('/api/ai/qr-print')
-def qr_print_page():
-    """
-    Trang ADMIN - In toan bo QR Code cua tat ca thiet bi trong DB.
-    Hien thi grid cac QR kem ten/ma thiet bi → in an dan len thiet bi.
-
-    Tinh nang:
-    - Load danh sach thiet bi tu Spring Boot
-    - Hien QR nho (80px) kem ten + ma + phong
-    - Nut "In trang nay" → print dialog
-    - Responsive: 4 cot tren desktop, 2 cot tren mobile
-    """
-    import requests as req_lib
-
-    devices = []
-    db_ok = False
-    try:
-        r = req_lib.get('http://localhost:8080/api/ai-data/devices',
-                        headers=INTERNAL_HEADERS, timeout=3)
-        if r.status_code == 200:
-            devices = r.json()
-            db_ok = True
-    except Exception as e:
-        print(f'Warning qr-print fetch: {e}')
-
-    host = request.host_url.rstrip('/')
-
-    if not db_ok:
-        no_db = '<div style="background:#f8d7da;padding:16px;border-radius:8px;margin:20px;color:#721c24;">⚠️ Spring Boot chưa chạy. Không thể tải danh sách thiết bị.</div>'
-        return no_db, 200, {'Content-Type': 'text/html; charset=utf-8'}
-
-    device_cards = ''
-    STATUS_MAP = {
-        'TOT': ('#28a745', 'Tốt'),
-        'BAO_TRI': ('#ffc107', 'Bảo trì'),
-        'HONG': ('#dc3545', 'Hỏng'),
-        'THANH_LY': ('#6c757d', 'Thanh lý'),
-    }
-    for d in devices:
-        did   = d.get('id', '')
-        dname = d.get('name', '—')
-        dcode = d.get('code', '—')
-        droom = d.get('room') or '—'
-        dstat = d.get('status', 'TOT')
-        s_color, s_label = STATUS_MAP.get(dstat, ('#6c757d', dstat))
-
-        qr_url = f"{host}/api/ai/device-qr/{did}"
-        info_url = f"{host}/api/ai/device-info/{did}"
-
-        device_cards += f"""
-        <div class="qr-card">
-          <a href="{info_url}" target="_blank">
-            <img src="{qr_url}" alt="QR {dname}" loading="lazy">
-          </a>
-          <div class="dev-name">{dname}</div>
-          <div class="dev-meta">Mã: <b>{dcode}</b></div>
-          <div class="dev-meta">Phòng: {droom}</div>
-          <div class="dev-status" style="color:{s_color};">{s_label}</div>
-        </div>"""
-
-    html = f"""<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>In QR Code Thiết Bị - Admin</title>
-<style>
-  body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-         background:#f5f6fa; margin:0; }}
-  .top-bar {{ background:linear-gradient(135deg,#1a1a2e,#0f3460); color:white;
-              padding:16px 24px; display:flex; justify-content:space-between;
-              align-items:center; }}
-  .top-bar h1 {{ font-size:1.2rem; margin:0; }}
-  .btn-print {{ background:#28a745; color:white; border:none; padding:9px 20px;
-                border-radius:8px; font-weight:700; cursor:pointer; font-size:0.9rem; }}
-  .stats {{ background:white; padding:12px 24px; font-size:0.88rem; color:#555;
-            border-bottom:1px solid #e9ecef; }}
-  .grid {{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px;
-           padding:20px 24px; max-width:1200px; margin:0 auto; }}
-  @media(max-width:900px){{ .grid{{grid-template-columns:repeat(3,1fr)}} }}
-  @media(max-width:600px){{ .grid{{grid-template-columns:repeat(2,1fr)}} }}
-  .qr-card {{ background:white; border-radius:12px; padding:14px;
-              box-shadow:0 2px 8px rgba(0,0,0,0.08); text-align:center; }}
-  .qr-card img {{ width:110px; height:110px; border:2px solid #f0f0f0; border-radius:6px; }}
-  .dev-name {{ font-weight:700; font-size:0.8rem; margin:8px 0 4px; color:#1a1a2e; line-height:1.3; }}
-  .dev-meta {{ font-size:0.72rem; color:#666; }}
-  .dev-status {{ font-size:0.72rem; font-weight:700; margin-top:4px; }}
-  @media print {{
-    .top-bar, .stats {{ display:none; }}
-    .grid {{ padding:0; gap:10px; }}
-    .qr-card {{ break-inside:avoid; page-break-inside:avoid; }}
-  }}
-</style>
-</head>
-<body>
-<div class="top-bar">
-  <h1>📱 In QR Code Thiết Bị - Admin</h1>
-  <button class="btn-print" onclick="window.print()">🖨️ In trang này</button>
-</div>
-<div class="stats">
-  Tổng: <b>{len(devices)}</b> thiết bị | 
-  Scan QR → xem đầy đủ thông tin + lịch sử | 
-  Click từng QR để xem thử
-</div>
-<div class="grid">
-{device_cards}
-</div>
-</body>
-</html>"""
-
-    return html, 200, {'Content-Type': 'text/html; charset=utf-8',
-                       'Cache-Control': 'no-cache'}
-
-
-@app.errorhandler(404)
-def not_found(error):
-    """Handle 404 errors"""
-    return jsonify({
-        "success": False,
-        "error": "Endpoint not found",
-        "timestamp": datetime.now().isoformat()
-    }), 404
-
-
-@app.errorhandler(500)
-def internal_error(error):
-    """Handle 500 errors"""
-    return jsonify({
-        "success": False,
-        "error": "Internal server error",
-        "timestamp": datetime.now().isoformat()
-    }), 500
-
-
-if __name__ == '__main__':
-    # Fix encoding cho Windows terminal (cp1252 khong ho tro Unicode box chars)
-    import sys
-    if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
-        try:
-            sys.stdout.reconfigure(encoding='utf-8')
-        except Exception:
-            pass
-
-    # Lay port tu environment variable hoac dung 5000 mac dinh
-    port = int(os.getenv('FLASK_PORT', 5000))
-    debug = os.getenv('FLASK_ENV', 'development') == 'development'
-
-    gemini_status = 'OK' if GEMINI_API_KEY else 'NOT CONFIGURED'
-
-    print(f"""
-    +-----------------------------------------------------------+
-    |  Flask AI API - He thong Quan ly Co so Vat chat           |
-    +-----------------------------------------------------------+
-    |  Server: http://localhost:{port}                           |
-    |  Gemini API: {gemini_status:<48}|
-    |                                                           |
-    |  Endpoints:                                               |
-    |  - GET  /api/ai/health                                    |
-    |  - POST /api/ai/chatbot                                   |
-    |  - POST /api/ai/analyze-damage                            |
-    |  - POST /api/ai/suggest-maintenance                       |
-    |  - POST /api/ai/categorize-equipment                      |
-    |  - POST /api/ai/scan-image  [NEW - Gemini Vision]         |
-    +-----------------------------------------------------------+
-    """)
-
-    app.run(host='0.0.0.0', port=port, debug=debug)
-
 
 # ==============================================================
 # QR CODE FEATURE - Tao ma QR cho tung thiet bi
@@ -2248,3 +1848,37 @@ def submit_report():
         return jsonify(data)
     except Exception as e:
         return jsonify({{'success': False, 'message': f'Lỗi kết nối Spring Boot: {{e}}'}}), 500
+if __name__ == '__main__':
+    # Fix encoding cho Windows terminal (cp1252 khong ho tro Unicode box chars)
+    import sys
+    if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
+        try:
+            sys.stdout.reconfigure(encoding='utf-8')
+        except Exception:
+            pass
+
+    # Lay port tu environment variable hoac dung 5000 mac dinh
+    port = int(os.getenv('FLASK_PORT', 5000))
+    debug = os.getenv('FLASK_ENV', 'development') == 'development'
+
+    gemini_status = 'OK' if GEMINI_API_KEY else 'NOT CONFIGURED'
+
+    print(f"""
+    +-----------------------------------------------------------+
+    |  Flask AI API - He thong Quan ly Co so Vat chat           |
+    +-----------------------------------------------------------+
+    |  Server: http://localhost:{port}                           |
+    |  Gemini API: {gemini_status:<48}|
+    |                                                           |
+    |  Endpoints:                                               |
+    |  - GET  /api/ai/health                                    |
+    |  - POST /api/ai/chatbot                                   |
+    |  - POST /api/ai/analyze-damage                            |
+    |  - POST /api/ai/suggest-maintenance                       |
+    |  - POST /api/ai/categorize-equipment                      |
+    |  - POST /api/ai/scan-image  [NEW - Gemini Vision]         |
+    +-----------------------------------------------------------+
+    """)
+
+    app.run(host='0.0.0.0', port=port, debug=debug)
+
