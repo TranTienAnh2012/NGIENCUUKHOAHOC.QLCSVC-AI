@@ -503,15 +503,21 @@ def analyze_damage():
     try:
         data = request.get_json()
         
-        if not data or 'equipment_name' not in data or 'damage_description' not in data:
-            return jsonify({
-                "error": "Missing required fields",
-                "success": False
-            }), 400
-        
-        equipment_name = data['equipment_name']
-        damage_description = data['damage_description']
+        if not data:
+            return jsonify({"error": "Missing request body", "success": False}), 400
+
+        # Accept both old format (equipment_name/damage_description)
+        # and new format (device_name/description) from QR report form
+        equipment_name     = data.get('equipment_name') or data.get('device_name') or 'Không rõ'
+        damage_description = data.get('damage_description') or data.get('description') or ''
+
+        if not damage_description.strip():
+            return jsonify({"error": "Missing required fields: description", "success": False}), 400
+
+        equipment_name = equipment_name
+        damage_description = damage_description
         severity = data.get('severity', 'TRUNG_BINH')
+
         
         # Tạo prompt phân tích
         analysis_prompt = f"""{DAMAGE_ANALYSIS_PROMPT}
