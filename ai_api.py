@@ -1397,3 +1397,527 @@ if __name__ == '__main__':
     """)
 
     app.run(host='0.0.0.0', port=port, debug=debug)
+
+
+# ==============================================================
+# QR CODE FEATURE - Tao ma QR cho tung thiet bi
+# - /api/ai/device-qr/<id>   → anh PNG ma QR (co dinh theo id)
+# - /api/ai/device-info/<id> → trang HTML dep khi scan QR
+# - /api/ai/qr-print         → trang admin in nhan dan QR
+# ==============================================================
+
+try:
+    import qrcode
+    import qrcode.constants
+    QR_AVAILABLE = True
+except ImportError:
+    QR_AVAILABLE = False
+    print("Warning: qrcode chua duoc cai. Chay: pip install qrcode[pil]")
+
+
+@app.route('/api/ai/device-qr/<int:device_id>')
+def get_device_qr(device_id):
+    """
+    Tra ve anh PNG ma QR cho thiet bi.
+    QR ma hoa URL /api/ai/device-info/<id> - co dinh vinh vien theo device_id.
+    Cach dung: <img src="/api/ai/device-qr/1"> de nhung truc tiep vao HTML.
+    """
+    if not QR_AVAILABLE:
+        return jsonify({'error': 'Cai qrcode: pip install qrcode[pil]'}), 500
+
+    # URL ben trong QR: trang thong tin thiet bi thoi gian thuc
+    host = request.host_url.rstrip('/')
+    device_info_url = f"{host}/api/ai/device-info/{device_id}"
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=2,
+    )
+    qr.add_data(device_info_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="#1a1a2e", back_color="white")
+
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+
+    from flask import send_file
+    return send_file(buf, mimetype='image/png',
+                     download_name=f'QR_ThietBi_{device_id}.png')
+
+
+@app.route('/api/ai/device-info/<int:device_id>')
+def device_info_page(device_id):
+    """
+    Trang HTML dep hien thi toan bo thong tin thiet bi khi scan QR.
+    Du lieu lay thoi gian thuc tu Spring Boot DB (no-cache).
+    Chay duoc tren moi thiet bi: dien thoai, may tinh bang, laptop.
+    """
+    import requests as req_lib
+    from flask import make_response
+
+    SPRING = 'http://localhost:8080/api/ai-data'
+    device = None
+    damages = []
+    borrower = None
+    borrow_history = []
+
+    try:
+        r = req_lib.get(f'{SPRING}/devices', headers=INTERNAL_HEADERS, timeout=4)
+        if r.status_code == 200:
+            all_dev = r.json()
+            found = [d for d in all_dev if str(d.get('id')) == str(device_id)]
+            if found:
+                device = found[0]
+
+        if device:
+            dev_name = (device.get('name') or '').lower()
+            # Lich su bao hong
+            dr = req_lib.get(f'{SPRING}/damages/recent?limit=50', headers=INTERNAL_HEADERS, timeout=4)
+            if dr.status_code == 200:
+                damages = [d for d in dr.json()
+                           if dev_name in (d.get('device_name') or '').lower()
+                           or (d.get('device_name') or '').lower() in dev_name][:5]
+            # Nguoi dang muon
+            br = req_lib.get(f'{SPRING}/borrows/active', headers=INTERNAL_HEADERS, timeout=4)
+            if br.status_code == 200:
+                for b in br.json():
+                    if dev_name in (b.get('device_name') or '').lower():
+                        borrower = b
+                        break
+            # 5 lan muon gan nhat
+            hr = req_lib.get(f'{SPRING}/borrows/all?limit=100', headers=INTERNAL_HEADERS, timeout=4)
+            if hr.status_code == 200:
+                borrow_history = [b for b in hr.json()
+                                  if dev_name in (b.get('device_name') or '').lower()][:5]
+    except Exception as e:
+        print(f'device-info error: {e}')
+
+    host = request.host_url.rstrip('/')
+    db_ok = device is not None
+
+    STATUS_MAP = {
+        'TOT':      ('Đang hoạt động tốt', '#22c55e', '✅'),
+        'BAO_TRI':  ('Đang bảo trì',       '#f59e0b', '🔧'),
+        'HONG':     ('Hỏng',               '#ef4444', '❌'),
+        'THANH_LY': ('Đã thanh lý',        '#6b7280', '🗑️'),
+    }
+    status_raw = (device.get('status') or 'TOT') if device else 'TOT'
+    status_label, status_color, status_icon = STATUS_MAP.get(status_raw, (status_raw, '#6b7280', '❓'))
+
+    dev_name  = (device.get('name') or f'Thiết bị #{device_id}') if device else f'Thiết bị #{device_id}'
+    dev_code  = (device.get('code') or '—') if device else '—'
+    dev_room  = (device.get('room') or '—') if device else '—'
+    dev_cat   = (device.get('category') or '—') if device else '—'
+
+    # Build HTML sections
+    def damage_badge(sev):
+        s = (sev or '').upper()
+        if 'CAO' in s or 'NGHIEM' in s: return '#ef4444', sev
+        if 'TRUNG' in s or 'MED' in s:  return '#f59e0b', sev
+        return '#3b82f6', sev or '—'
+
+    def status_badge_dmg(st):
+        m = {'CHO_XU_LY':'Chờ xử lý','DANG_XU_LY':'Đang xử lý','HOAN_THANH':'Hoàn thành','DA_BAO_TRI':'Đã bảo trì'}
+        return m.get((st or '').upper(), st or '—')
+
+    def fmt_date(d):
+        if not d: return '—'
+        try:
+            from datetime import datetime as dt
+            return dt.fromisoformat(str(d)[:19]).strftime('%d/%m/%Y')
+        except: return str(d)[:10]
+
+    damage_html = ''
+    for d in damages:
+        bc, bl = damage_badge(d.get('severity'))
+        damage_html += f'''
+        <div class="history-item">
+          <div class="hi-left">
+            <div class="hi-title">{d.get('description') or 'Không có mô tả'}</div>
+            <div class="hi-sub">{('👤 ' + d['reporter_name'] + '  ·  ') if d.get('reporter_name') else ''}📅 {fmt_date(d.get('reported_date'))}</div>
+          </div>
+          <div class="hi-badges">
+            <span class="badge" style="background:{bc}15;color:{bc};border-color:{bc}40;">{bl}</span>
+            <span class="badge" style="background:#6b728015;color:#6b7280;border-color:#6b728040;">{status_badge_dmg(d.get('status'))}</span>
+          </div>
+        </div>'''
+
+    borrow_html = ''
+    for b in borrow_history:
+        is_active = (b.get('status') or '') != 'DA_TRA'
+        bc = '#f59e0b' if is_active else '#6b7280'
+        bl = 'Đang mượn' if is_active else 'Đã trả'
+        borrow_html += f'''
+        <div class="history-item">
+          <div class="hi-left">
+            <div class="hi-title">👤 {b.get('user_name') or 'Không rõ'}</div>
+            <div class="hi-sub">📅 Mượn: {fmt_date(b.get('borrow_date'))}{('  ·  Trả: ' + fmt_date(b.get('actual_return'))) if b.get('actual_return') else ''}</div>
+          </div>
+          <div class="hi-badges">
+            <span class="badge" style="background:{bc}15;color:{bc};border-color:{bc}40;">{bl}</span>
+          </div>
+        </div>'''
+
+    borrower_section = ''
+    if borrower:
+        borrower_section = f'''
+    <div class="borrow-alert">
+      <div class="borrow-alert-title">⚠️ Thiết bị đang được mượn</div>
+      <div class="borrow-grid">
+        <div><span class="lbl">Người mượn</span><span class="val bold">{borrower.get('user_name','Không rõ')}</span></div>
+        <div><span class="lbl">Ngày mượn</span><span class="val">{fmt_date(borrower.get('borrow_date'))}</span></div>
+        <div><span class="lbl">Dự kiến trả</span><span class="val">{fmt_date(borrower.get('expected_return'))}</span></div>
+        <div><span class="lbl">Ghi chú</span><span class="val">{borrower.get('ghi_chu') or '—'}</span></div>
+      </div>
+    </div>'''
+
+    no_db_banner = '' if db_ok else '''
+    <div class="no-db-banner">⚠️ Không kết nối được Spring Boot — thông tin có thể chưa đầy đủ</div>'''
+
+    html = f'''<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="description" content="Thông tin thiết bị {dev_name} - Hệ thống QLCSVC">
+<title>{dev_name} — QLCSVC</title>
+<style>
+  :root {{
+    --bg: #f0f2f7;
+    --card: #ffffff;
+    --primary: #1a1a2e;
+    --accent: #0f3460;
+    --text: #1e293b;
+    --sub: #64748b;
+    --border: #e2e8f0;
+    --radius: 16px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }}
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--text); min-height: 100vh; }}
+
+  /* HEADER */
+  .hero {{ background: linear-gradient(145deg, var(--primary) 0%, var(--accent) 60%, #16213e 100%);
+           color: white; padding: 28px 20px 96px; text-align: center; position: relative; overflow: hidden; }}
+  .hero::before {{ content:''; position:absolute; top:-40px; right:-40px; width:200px; height:200px;
+                   background:rgba(255,255,255,0.04); border-radius:50%; }}
+  .hero::after  {{ content:''; position:absolute; bottom:-60px; left:-30px; width:150px; height:150px;
+                   background:rgba(255,255,255,0.03); border-radius:50%; }}
+  .hero-badge {{ display:inline-block; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2);
+                 padding:4px 14px; border-radius:20px; font-size:0.72rem; font-weight:600;
+                 letter-spacing:0.08em; text-transform:uppercase; margin-bottom:10px; }}
+  .hero h1 {{ font-size:clamp(1.2rem,4vw,1.6rem); font-weight:700; line-height:1.3; margin-bottom:6px; }}
+  .hero .code {{ font-size:0.82rem; opacity:0.65; margin-bottom:16px; }}
+  .status-pill {{ display:inline-flex; align-items:center; gap:6px; padding:8px 20px; border-radius:30px;
+                  font-weight:700; font-size:0.88rem; border:2px solid;
+                  background:rgba(255,255,255,0.1); color:white; border-color:rgba(255,255,255,0.3); }}
+
+  /* BODY */
+  .body {{ padding: 0 14px 24px; margin-top: -72px; position: relative; z-index: 2; }}
+
+  /* CARD */
+  .card {{ background: var(--card); border-radius: var(--radius); padding: 18px;
+           box-shadow: var(--shadow); margin-bottom: 14px; }}
+  .card-label {{ font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+                 letter-spacing: 0.1em; color: var(--sub); margin-bottom: 14px;
+                 display: flex; align-items: center; gap: 6px; }}
+
+  /* INFO GRID */
+  .info-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }}
+  .lbl {{ display: block; font-size: 0.68rem; color: var(--sub); margin-bottom: 3px; }}
+  .val {{ display: block; font-size: 0.92rem; font-weight: 600; color: var(--text); }}
+  .val.bold {{ font-size: 1rem; color: var(--primary); }}
+  .val.status {{ font-weight: 700; }}
+
+  /* BORROW ALERT */
+  .borrow-alert {{ background: #fffbeb; border: 1.5px solid #fcd34d; border-radius: var(--radius);
+                   padding: 16px; margin-bottom: 14px; box-shadow: 0 2px 12px #fcd34d30; }}
+  .borrow-alert-title {{ font-weight: 700; color: #92400e; font-size: 0.92rem; margin-bottom: 12px; }}
+  .borrow-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }}
+  .borrow-grid div {{ display: flex; flex-direction: column; }}
+
+  /* HISTORY */
+  .history-item {{ display: flex; justify-content: space-between; align-items: flex-start;
+                   padding: 10px 0; border-bottom: 1px solid var(--border); }}
+  .history-item:last-child {{ border-bottom: none; }}
+  .hi-title {{ font-weight: 600; font-size: 0.85rem; line-height: 1.4; color: var(--text); }}
+  .hi-sub {{ font-size: 0.72rem; color: var(--sub); margin-top: 3px; }}
+  .hi-badges {{ display: flex; flex-direction: column; gap: 4px; align-items: flex-end; flex-shrink: 0; margin-left: 10px; }}
+  .badge {{ font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; border: 1px solid; white-space: nowrap; }}
+
+  /* EMPTY STATE */
+  .empty {{ text-align: center; color: var(--sub); font-size: 0.82rem; padding: 12px 0; }}
+
+  /* QR MINI */
+  .qr-mini {{ text-align: center; margin-top: 4px; }}
+  .qr-mini img {{ width: 80px; height: 80px; border-radius: 8px; border: 2px solid var(--border); }}
+  .qr-mini p {{ font-size: 0.65rem; color: var(--sub); margin-top: 4px; }}
+
+  /* CTA BUTTON */
+  .btn-report {{ display: block; background: linear-gradient(135deg, #ef4444, #dc2626);
+                 color: white; text-align: center; padding: 16px; border-radius: 14px;
+                 text-decoration: none; font-weight: 700; font-size: 1rem; margin-bottom: 14px;
+                 box-shadow: 0 6px 20px #ef444440; letter-spacing: 0.02em;
+                 transition: transform 0.15s, box-shadow 0.15s; }}
+  .btn-report:active {{ transform: scale(0.98); }}
+
+  /* NO DB BANNER */
+  .no-db-banner {{ background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5;
+                   border-radius: 10px; padding: 10px 14px; font-size: 0.78rem;
+                   margin-bottom: 12px; font-weight: 500; }}
+
+  /* FOOTER */
+  .footer {{ text-align: center; font-size: 0.68rem; color: var(--sub); padding: 8px 0 20px; }}
+
+  @media (max-width: 360px) {{
+    .info-grid, .borrow-grid {{ grid-template-columns: 1fr; }}
+  }}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hero">
+  <div class="hero-badge">{dev_cat}</div>
+  <h1>{dev_name}</h1>
+  <div class="code">Mã: {dev_code}</div>
+  <div class="status-pill">{status_icon} {status_label}</div>
+</div>
+
+<!-- BODY -->
+<div class="body">
+
+  {no_db_banner}
+
+  <!-- Thông tin cơ bản -->
+  <div class="card">
+    <div class="card-label">📋 Thông tin thiết bị</div>
+    <div class="info-grid">
+      <div><span class="lbl">Mã thiết bị</span><span class="val">{dev_code}</span></div>
+      <div><span class="lbl">Phòng / Vị trí</span><span class="val">{dev_room}</span></div>
+      <div><span class="lbl">Loại thiết bị</span><span class="val">{dev_cat}</span></div>
+      <div><span class="lbl">Trạng thái</span><span class="val status" style="color:{status_color};">{status_icon} {status_label}</span></div>
+    </div>
+
+    <!-- QR nhỏ góc dưới -->
+    <div class="qr-mini" style="margin-top:14px;">
+      <img src="{host}/api/ai/device-qr/{device_id}" alt="QR {dev_name}">
+      <p>Scan để xem trang này</p>
+    </div>
+  </div>
+
+  {borrower_section}
+
+  <!-- Lịch sử báo hỏng -->
+  <div class="card">
+    <div class="card-label">🔧 Lịch sử báo hỏng gần đây</div>
+    {damage_html if damage_html else '<div class="empty">Chưa có báo cáo hỏng hóc ✅</div>'}
+  </div>
+
+  <!-- Lịch sử mượn trả -->
+  <div class="card">
+    <div class="card-label">📋 Lịch sử mượn trả</div>
+    {borrow_html if borrow_html else '<div class="empty">Chưa có lịch sử mượn trả</div>'}
+  </div>
+
+  <!-- Nút báo hỏng -->
+  <a class="btn-report" href="{host}/api/ai/report-form?device_id={device_id}&amp;device_name={dev_name}">
+    🚨 Báo hỏng thiết bị này
+  </a>
+
+  <div class="footer">
+    {dev_name} &nbsp;·&nbsp; Hệ thống QLCSVC<br>
+    Cập nhật: {datetime.now().strftime('%H:%M — %d/%m/%Y')}
+  </div>
+
+</div>
+</body>
+</html>'''
+
+    resp = make_response(html)
+    resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
+
+
+@app.route('/api/ai/qr-print')
+def qr_print_page():
+    """
+    Trang admin in nhan QR cho tat ca thiet bi.
+    Moi nhan in duoc: QR + ten thiet bi + ma + phong + trang thai.
+    Co nut in an va layout chuan cho may in A4.
+    """
+    import requests as req_lib
+    from flask import make_response
+
+    devices = []
+    db_ok = False
+    try:
+        r = req_lib.get('http://localhost:8080/api/ai-data/devices',
+                        headers=INTERNAL_HEADERS, timeout=4)
+        if r.status_code == 200:
+            devices = r.json()
+            db_ok = True
+    except Exception as e:
+        print(f'qr-print error: {e}')
+
+    host = request.host_url.rstrip('/')
+
+    STATUS_MAP = {
+        'TOT':      ('#22c55e', '✅ Tốt'),
+        'BAO_TRI':  ('#f59e0b', '🔧 Bảo trì'),
+        'HONG':     ('#ef4444', '❌ Hỏng'),
+        'THANH_LY': ('#6b7280', '🗑️ Thanh lý'),
+    }
+
+    cards_html = ''
+    for d in devices:
+        did   = d.get('id', '')
+        dname = d.get('name', '—')
+        dcode = d.get('code', '—')
+        droom = d.get('room') or '—'
+        dstat = d.get('status', 'TOT')
+        s_color, s_label = STATUS_MAP.get(dstat, ('#6b7280', dstat))
+        qr_url   = f"{host}/api/ai/device-qr/{did}"
+        info_url = f"{host}/api/ai/device-info/{did}"
+
+        cards_html += f'''
+        <a class="label-card" href="{info_url}" target="_blank" title="Xem thông tin {dname}">
+          <div class="label-header">
+            <div class="label-sys">QLCSVC</div>
+            <div class="label-cat">{d.get('category','—')}</div>
+          </div>
+          <div class="label-body">
+            <img class="label-qr" src="{qr_url}" alt="QR {dname}" loading="lazy">
+            <div class="label-info">
+              <div class="label-name">{dname}</div>
+              <div class="label-detail">📌 Mã: <b>{dcode}</b></div>
+              <div class="label-detail">📍 Phòng: {droom}</div>
+              <div class="label-status" style="color:{s_color};">{s_label}</div>
+            </div>
+          </div>
+          <div class="label-footer">Scan để xem thông tin đầy đủ</div>
+        </a>'''
+
+    no_db = '' if db_ok else '''
+    <div style="background:#fef2f2;color:#b91c1c;border:1px solid #fca5a5;border-radius:12px;
+                padding:16px 20px;margin:20px;font-weight:500;">
+      ⚠️ Spring Boot chưa chạy — không thể tải danh sách thiết bị.
+    </div>'''
+
+    html = f'''<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>In Nhãn QR Thiết Bị — QLCSVC Admin</title>
+<style>
+  :root {{
+    --primary: #1a1a2e;
+    --accent: #0f3460;
+    --bg: #f0f2f7;
+    --card: #ffffff;
+    --border: #e2e8f0;
+  }}
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
+
+  /* TOP NAV */
+  .topbar {{ background: linear-gradient(135deg, var(--primary), var(--accent));
+             color: white; padding: 0 24px; height: 58px;
+             display: flex; align-items: center; justify-content: space-between;
+             position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,0.2); }}
+  .topbar h1 {{ font-size: 1rem; font-weight: 700; }}
+  .topbar-right {{ display: flex; gap: 10px; align-items: center; }}
+  .btn {{ padding: 8px 18px; border-radius: 8px; font-weight: 700; font-size: 0.82rem;
+          cursor: pointer; border: none; transition: transform 0.15s; }}
+  .btn:active {{ transform: scale(0.97); }}
+  .btn-print {{ background: #22c55e; color: white; }}
+  .btn-outline {{ background: transparent; color: white; border: 1.5px solid rgba(255,255,255,0.4); }}
+
+  /* STATS BAR */
+  .statsbar {{ background: white; border-bottom: 1px solid var(--border);
+               padding: 10px 24px; font-size: 0.82rem; color: #64748b;
+               display: flex; align-items: center; gap: 20px; }}
+  .stat-item {{ display: flex; align-items: center; gap: 5px; }}
+  .stat-dot {{ width: 8px; height: 8px; border-radius: 50%; }}
+
+  /* GRID NHAN */
+  .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr));
+           gap: 16px; padding: 20px 24px; max-width: 1400px; margin: 0 auto; }}
+
+  /* NHAN DAN */
+  .label-card {{ background: white; border-radius: 12px; overflow: hidden; text-decoration: none;
+                 color: inherit; border: 1.5px solid var(--border);
+                 box-shadow: 0 2px 10px rgba(0,0,0,0.06); transition: transform 0.15s, box-shadow 0.15s;
+                 display: flex; flex-direction: column; }}
+  .label-card:hover {{ transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }}
+
+  .label-header {{ background: linear-gradient(135deg, var(--primary), var(--accent));
+                   color: white; padding: 8px 12px;
+                   display: flex; justify-content: space-between; align-items: center; }}
+  .label-sys {{ font-weight: 800; font-size: 0.8rem; letter-spacing: 0.1em; }}
+  .label-cat {{ font-size: 0.68rem; opacity: 0.75; background: rgba(255,255,255,0.15);
+                padding: 2px 8px; border-radius: 10px; }}
+
+  .label-body {{ display: flex; gap: 10px; padding: 12px; flex: 1; }}
+  .label-qr {{ width: 90px; height: 90px; flex-shrink: 0; border-radius: 8px;
+               border: 2px solid var(--border); object-fit: contain; }}
+  .label-info {{ flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; }}
+  .label-name {{ font-weight: 700; font-size: 0.85rem; color: var(--primary); line-height: 1.3;
+                 display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }}
+  .label-detail {{ font-size: 0.72rem; color: #64748b; }}
+  .label-status {{ font-size: 0.72rem; font-weight: 700; margin-top: 2px; }}
+
+  .label-footer {{ background: #f8fafc; border-top: 1px solid var(--border);
+                   padding: 6px 12px; font-size: 0.62rem; color: #94a3b8;
+                   text-align: center; }}
+
+  /* PRINT */
+  @media print {{
+    .topbar, .statsbar {{ display: none !important; }}
+    body {{ background: white; }}
+    .grid {{ padding: 0; gap: 10px; grid-template-columns: repeat(4, 1fr); }}
+    .label-card {{ break-inside: avoid; page-break-inside: avoid; box-shadow: none;
+                   border: 1px solid #ccc; }}
+    .label-card:hover {{ transform: none; box-shadow: none; }}
+  }}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🖨️ In Nhãn QR Thiết Bị — QLCSVC</h1>
+  <div class="topbar-right">
+    <span style="font-size:0.78rem;opacity:0.7;">{len(devices)} thiết bị</span>
+    <button class="btn btn-outline" onclick="location.reload()">🔄 Làm mới</button>
+    <button class="btn btn-print" onclick="window.print()">🖨️ In trang này</button>
+  </div>
+</div>
+
+<div class="statsbar">
+  <div class="stat-item"><div class="stat-dot" style="background:#22c55e;"></div>
+    Tốt: {sum(1 for d in devices if d.get('status') == 'TOT')}</div>
+  <div class="stat-item"><div class="stat-dot" style="background:#f59e0b;"></div>
+    Bảo trì: {sum(1 for d in devices if d.get('status') == 'BAO_TRI')}</div>
+  <div class="stat-item"><div class="stat-dot" style="background:#ef4444;"></div>
+    Hỏng: {sum(1 for d in devices if d.get('status') == 'HONG')}</div>
+  <span style="margin-left:auto;font-size:0.72rem;">Click nhãn → xem chi tiết &nbsp;|&nbsp; Ctrl+P / Nút In → in ấn</span>
+</div>
+
+{no_db}
+
+<div class="grid">
+{cards_html}
+</div>
+
+</body>
+</html>'''
+
+    resp = make_response(html)
+    resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+    resp.headers['Cache-Control'] = 'no-cache, no-store'
+    return resp
