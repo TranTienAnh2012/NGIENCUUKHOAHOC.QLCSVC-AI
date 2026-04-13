@@ -1921,3 +1921,330 @@ def qr_print_page():
     resp.headers['Content-Type'] = 'text/html; charset=utf-8'
     resp.headers['Cache-Control'] = 'no-cache, no-store'
     return resp
+
+
+@app.route('/api/ai/report-form')
+def report_form_page():
+    """
+    Trang form bao hong dep - mo ra khi nhan nut 'Bao hong thiet bi nay' tren device-info.
+    Pre-fill san thong tin thiet bi tu device_id.
+    Nguoi dung chi can:
+      1. Chon muc do nghiem trong
+      2. Mo ta loi (bat buoc >= 10 ky tu)
+      3. Nhap ten + SDT (khong bat buoc - de xac nhan lai)
+      4. Bam Gui
+    """
+    import requests as req_lib
+    from flask import make_response
+
+    device_id   = request.args.get('device_id', '')
+    device_name = request.args.get('device_name', '')
+
+    # Lay thong tin thiet bi neu chua co ten
+    device_code = ''
+    device_room = ''
+    if device_id and not device_name:
+        try:
+            r = req_lib.get('http://localhost:8080/api/ai-data/devices',
+                            headers=INTERNAL_HEADERS, timeout=3)
+            if r.status_code == 200:
+                found = [d for d in r.json() if str(d.get('id')) == str(device_id)]
+                if found:
+                    device_name = found[0].get('name', '')
+                    device_code = found[0].get('code', '')
+                    device_room = found[0].get('room', '')
+        except Exception:
+            pass
+
+    host = request.host_url.rstrip('/')
+    submit_url = f"{host}/api/ai/submit-report"
+    back_url   = f"{host}/api/ai/device-info/{device_id}" if device_id else f"{host}/api/ai/qr-print"
+
+    html = f'''<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Báo hỏng — {device_name or 'Thiết bị'}</title>
+<style>
+  :root {{
+    --primary: #1a1a2e;
+    --accent:  #0f3460;
+    --danger:  #ef4444;
+    --bg:      #f0f2f7;
+    --card:    #ffffff;
+    --border:  #e2e8f0;
+    --text:    #1e293b;
+    --sub:     #64748b;
+    --radius:  14px;
+  }}
+  * {{ box-sizing:border-box; margin:0; padding:0; }}
+  body {{ background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+         color:var(--text); min-height:100vh; }}
+
+  /* HEADER */
+  .hero {{ background:linear-gradient(145deg,#ef4444,#dc2626,#b91c1c);
+           color:white; padding:22px 20px 84px; text-align:center; position:relative; overflow:hidden; }}
+  .hero::before {{ content:''; position:absolute; top:-30px; right:-30px; width:160px; height:160px;
+                   background:rgba(255,255,255,0.06); border-radius:50%; }}
+  .hero .back {{ position:absolute; top:16px; left:16px; background:rgba(255,255,255,0.15);
+                 border:1px solid rgba(255,255,255,0.25); color:white; padding:6px 12px;
+                 border-radius:8px; font-size:0.78rem; font-weight:600; text-decoration:none; }}
+  .hero-icon {{ font-size:2.4rem; margin-bottom:6px; }}
+  .hero h1   {{ font-size:1.2rem; font-weight:700; margin-bottom:4px; }}
+  .hero .sub {{ font-size:0.78rem; opacity:0.8; }}
+
+  /* DEVICE CHIP */
+  .device-chip {{ display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,0.15);
+                  border:1px solid rgba(255,255,255,0.25); padding:6px 14px; border-radius:20px;
+                  font-size:0.8rem; font-weight:600; margin-top:10px; }}
+
+  /* BODY */
+  .body {{ padding:0 14px 32px; margin-top:-68px; position:relative; z-index:2; }}
+
+  /* CARD */
+  .card {{ background:var(--card); border-radius:var(--radius); padding:18px;
+           box-shadow:0 4px 20px rgba(0,0,0,0.08); margin-bottom:14px; }}
+  .card-label {{ font-size:0.68rem; font-weight:700; text-transform:uppercase;
+                 letter-spacing:0.1em; color:var(--sub); margin-bottom:14px; }}
+
+  /* SEVERITY SELECTOR */
+  .severity-grid {{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }}
+  .sev-option {{ position:relative; }}
+  .sev-option input {{ position:absolute; opacity:0; width:0; height:0; }}
+  .sev-label {{ display:flex; flex-direction:column; align-items:center; gap:4px; padding:12px 8px;
+                border:2px solid var(--border); border-radius:10px; cursor:pointer; transition:all .15s; }}
+  .sev-icon  {{ font-size:1.5rem; }}
+  .sev-text  {{ font-size:0.72rem; font-weight:700; text-align:center; }}
+  .sev-option input:checked + .sev-label {{ border-color:currentColor; background:currentColor; }}
+  .sev-option input:checked + .sev-label * {{ color:white !important; }}
+  .sev-thap   .sev-label {{ color:#22c55e; }}
+  .sev-trung  .sev-label {{ color:#f59e0b; }}
+  .sev-cao    .sev-label {{ color:#ef4444; }}
+  .sev-khan   .sev-label {{ color:#7c3aed; }}
+
+  /* FORM FIELDS */
+  label.field {{ display:block; font-size:0.72rem; font-weight:700; color:var(--sub);
+                 text-transform:uppercase; letter-spacing:0.06em; margin-bottom:5px; }}
+  .field-group {{ margin-bottom:14px; }}
+  textarea, input[type=text], input[type=tel] {{
+    width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px;
+    font-size:0.9rem; font-family:inherit; color:var(--text); background:white;
+    resize:vertical; transition:border-color .15s; outline:none; }}
+  textarea:focus, input:focus {{ border-color:#ef4444; box-shadow:0 0 0 3px #ef444415; }}
+  .char-count {{ font-size:0.68rem; color:var(--sub); text-align:right; margin-top:3px; }}
+
+  /* SUBMIT */
+  .btn-submit {{ width:100%; padding:15px; background:linear-gradient(135deg,#ef4444,#dc2626);
+                 color:white; border:none; border-radius:var(--radius); font-size:1rem;
+                 font-weight:700; cursor:pointer; box-shadow:0 6px 20px #ef444440;
+                 transition:transform .15s, opacity .15s; }}
+  .btn-submit:active {{ transform:scale(0.98); }}
+  .btn-submit:disabled {{ opacity:0.6; cursor:not-allowed; }}
+
+  /* SUCCESS / ERROR STATE */
+  .result-box {{ display:none; border-radius:var(--radius); padding:20px; text-align:center; margin-top:14px; }}
+  .result-box.success {{ background:#f0fdf4; border:1.5px solid #86efac; }}
+  .result-box.error   {{ background:#fef2f2; border:1.5px solid #fca5a5; }}
+  .result-icon  {{ font-size:2.4rem; margin-bottom:8px; }}
+  .result-title {{ font-size:1.1rem; font-weight:700; margin-bottom:6px; }}
+  .result-msg   {{ font-size:0.82rem; color:var(--sub); }}
+  .btn-back {{ display:inline-block; margin-top:14px; padding:10px 24px; background:var(--primary);
+               color:white; border-radius:10px; text-decoration:none; font-weight:700; font-size:0.88rem; }}
+
+  /* REQUIRED STAR */
+  .req {{ color:#ef4444; }}
+
+  @media(max-width:360px) {{ .severity-grid {{ grid-template-columns:repeat(2,1fr); }} }}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <a class="back" href="{back_url}">← Quay lại</a>
+  <div class="hero-icon">🚨</div>
+  <h1>Báo hỏng thiết bị</h1>
+  <div class="sub">Phản ánh sự cố để nhân viên kỹ thuật xử lý nhanh nhất</div>
+  {f'<div class="device-chip">🖥️ {device_name}{(" — " + device_code) if device_code else ""}{(" · " + device_room) if device_room else ""}</div>' if device_name else ''}
+</div>
+
+<div class="body">
+
+  <form id="reportForm" onsubmit="submitReport(event)">
+    <input type="hidden" name="device_id" value="{device_id}">
+
+    <!-- Mức độ nghiêm trọng -->
+    <div class="card">
+      <div class="card-label">⚡ Mức độ nghiêm trọng <span class="req">*</span></div>
+      <div class="severity-grid">
+        <div class="sev-option sev-thap">
+          <input type="radio" name="muc_do" id="s1" value="THAP">
+          <label class="sev-label" for="s1">
+            <span class="sev-icon">🟢</span>
+            <span class="sev-text" style="color:#22c55e;">Nhẹ<br><small>Vẫn dùng được</small></span>
+          </label>
+        </div>
+        <div class="sev-option sev-trung">
+          <input type="radio" name="muc_do" id="s2" value="TRUNG_BINH" checked>
+          <label class="sev-label" for="s2">
+            <span class="sev-icon">🟡</span>
+            <span class="sev-text" style="color:#f59e0b;">Trung bình<br><small>Hạn chế sử dụng</small></span>
+          </label>
+        </div>
+        <div class="sev-option sev-cao">
+          <input type="radio" name="muc_do" id="s3" value="CAO">
+          <label class="sev-label" for="s3">
+            <span class="sev-icon">🔴</span>
+            <span class="sev-text" style="color:#ef4444;">Nghiêm trọng<br><small>Không dùng được</small></span>
+          </label>
+        </div>
+        <div class="sev-option sev-khan">
+          <input type="radio" name="muc_do" id="s4" value="KHAN_CAP">
+          <label class="sev-label" for="s4">
+            <span class="sev-icon">🆘</span>
+            <span class="sev-text" style="color:#7c3aed;">Khẩn cấp<br><small>Nguy hiểm/mất DL</small></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mô tả lỗi -->
+    <div class="card">
+      <div class="card-label">📝 Mô tả sự cố <span class="req">*</span></div>
+      <div class="field-group">
+        <textarea id="moTa" name="mo_ta" rows="4" placeholder="Mô tả chi tiết sự cố, ví dụ:&#10;• Bàn phím không gõ được phím A, B&#10;• Máy không lên nguồn sau khi cắm sạc&#10;• Màn hình bị sọc ngang..." maxlength="1000" oninput="updateCount(this)"></textarea>
+        <div class="char-count"><span id="charCount">0</span>/1000</div>
+      </div>
+    </div>
+
+    <!-- Thông tin người báo -->
+    <div class="card">
+      <div class="card-label">👤 Thông tin người báo <span style="font-weight:400;text-transform:none;letter-spacing:0;">(tùy chọn)</span></div>
+      <div class="field-group">
+        <label class="field" for="tenNguoiBao">Họ tên</label>
+        <input type="text" id="tenNguoiBao" name="ten_nguoi_bao" placeholder="Nguyễn Văn A" maxlength="100">
+      </div>
+      <div class="field-group" style="margin-bottom:0;">
+        <label class="field" for="sdtNguoiBao">Số điện thoại</label>
+        <input type="tel" id="sdtNguoiBao" name="so_dien_thoai" placeholder="0901234567" maxlength="15">
+      </div>
+    </div>
+
+    <button type="submit" class="btn-submit" id="submitBtn">
+      🚨 Gửi báo cáo hỏng
+    </button>
+  </form>
+
+  <!-- Kết quả -->
+  <div class="result-box success" id="resultSuccess">
+    <div class="result-icon">✅</div>
+    <div class="result-title">Đã gửi báo cáo!</div>
+    <div class="result-msg" id="successMsg">Nhân viên kỹ thuật sẽ xử lý sớm nhất có thể.</div>
+    <a href="{back_url}" class="btn-back">← Quay lại thiết bị</a>
+  </div>
+
+  <div class="result-box error" id="resultError">
+    <div class="result-icon">❌</div>
+    <div class="result-title">Gửi thất bại</div>
+    <div class="result-msg" id="errorMsg">Vui lòng thử lại hoặc liên hệ trực tiếp nhân viên kỹ thuật.</div>
+    <a href="javascript:void(0)" onclick="resetForm()" class="btn-back" style="background:#ef4444;">Thử lại</a>
+  </div>
+
+</div>
+
+<script>
+  function updateCount(el) {{
+    document.getElementById('charCount').textContent = el.value.length;
+  }}
+
+  async function submitReport(e) {{
+    e.preventDefault();
+    const moTa = document.getElementById('moTa').value.trim();
+    if (moTa.length < 10) {{
+      alert('Vui lòng mô tả chi tiết hơn (ít nhất 10 ký tự).');
+      return;
+    }}
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Đang gửi...';
+
+    const fd = new FormData(document.getElementById('reportForm'));
+    const params = new URLSearchParams();
+    for (const [k,v] of fd.entries()) params.append(k, v);
+
+    try {{
+      const r = await fetch('{submit_url}', {{
+        method: 'POST',
+        headers: {{ 'Content-Type': 'application/x-www-form-urlencoded' }},
+        body: params.toString()
+      }});
+      const data = await r.json();
+      if (data.success) {{
+        document.getElementById('reportForm').style.display = 'none';
+        document.getElementById('successMsg').textContent =
+          data.message + (data.bao_hong_id ? ' (Mã phiếu: #' + data.bao_hong_id + ')' : '');
+        document.getElementById('resultSuccess').style.display = 'block';
+      }} else {{
+        document.getElementById('errorMsg').textContent = data.message || 'Lỗi không xác định.';
+        document.getElementById('resultError').style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = '🚨 Gửi báo cáo hỏng';
+      }}
+    }} catch(err) {{
+      document.getElementById('errorMsg').textContent = 'Không kết nối được server. Lỗi: ' + err.message;
+      document.getElementById('resultError').style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = '🚨 Gửi báo cáo hỏng';
+    }}
+  }}
+
+  function resetForm() {{
+    document.getElementById('resultError').style.display = 'none';
+  }}
+</script>
+</body>
+</html>'''
+
+    resp = make_response(html)
+    resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+    resp.headers['Cache-Control'] = 'no-cache'
+    return resp
+
+
+@app.route('/api/ai/submit-report', methods=['POST'])
+def submit_report():
+    """
+    Nhan form bao hong tu /api/ai/report-form va forward sang Spring Boot.
+    Tra ve JSON { success, message, bao_hong_id }.
+    """
+    import requests as req_lib
+
+    device_id     = request.form.get('device_id', '').strip()
+    mo_ta         = request.form.get('mo_ta', '').strip()
+    muc_do        = request.form.get('muc_do', 'TRUNG_BINH').strip()
+    ten_nguoi_bao = request.form.get('ten_nguoi_bao', '').strip() or 'Khách/Người dùng'
+    so_dien_thoai = request.form.get('so_dien_thoai', '').strip()
+
+    if not device_id:
+        return jsonify({'success': False, 'message': 'Thiếu thông tin thiết bị.'}), 400
+    if not mo_ta or len(mo_ta) < 5:
+        return jsonify({'success': False, 'message': 'Mô tả quá ngắn.'}), 400
+
+    try:
+        r = req_lib.post(
+            'http://localhost:8080/api/ai-data/report-damage',
+            params={{
+                'thiet_bi_id':   device_id,
+                'mo_ta':         mo_ta,
+                'muc_do':        muc_do,
+                'ten_nguoi_bao': ten_nguoi_bao,
+                'so_dien_thoai': so_dien_thoai,
+            }},
+            headers=INTERNAL_HEADERS,
+            timeout=5
+        )
+        data = r.json()
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({{'success': False, 'message': f'Lỗi kết nối Spring Boot: {{e}}'}}), 500

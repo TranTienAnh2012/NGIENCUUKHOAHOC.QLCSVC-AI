@@ -4,7 +4,6 @@ import com.Tta.QLCSVC.DHNT.entity.*;
 import com.Tta.QLCSVC.DHNT.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -189,6 +188,65 @@ public class AiDataController {
                 .map(this::mapBorrowToSimple)
                 .collect(Collectors.toList());
 
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * POST /api/ai-data/report-damage
+     * Tiep nhan bao cao hong tu Flask QR form (khong can JWT - dung InternalApiKey).
+     * Reporter la nguoi dung khong co tai khoan (khach, hoc sinh, GV chua dang nhap).
+     *
+     * Body params:
+     *   thiet_bi_id   : Long   - ID thiet bi (bat buoc)
+     *   mo_ta         : String - Mo ta loi (bat buoc)
+     *   muc_do        : String - THAP | TRUNG_BINH | CAO | KHAN_CAP (mac dinh: TRUNG_BINH)
+     *   ten_nguoi_bao : String - Ten nguoi bao (tuy chon)
+     *   so_dien_thoai : String - SDT nguoi bao (tuy chon)
+     */
+    @PostMapping("/report-damage")
+    public ResponseEntity<Map<String, Object>> reportDamageFromQR(
+            @RequestParam Long thiet_bi_id,
+            @RequestParam String mo_ta,
+            @RequestParam(required = false, defaultValue = "TRUNG_BINH") String muc_do,
+            @RequestParam(required = false, defaultValue = "Khách/Người dùng") String ten_nguoi_bao,
+            @RequestParam(required = false, defaultValue = "") String so_dien_thoai) {
+
+        Map<String, Object> result = new HashMap<>();
+
+        // Tim thiet bi
+        Optional<ThietBi> thietBiOpt = thietBiRepository.findById(thiet_bi_id);
+        if (thietBiOpt.isEmpty()) {
+            result.put("success", false);
+            result.put("message", "Không tìm thấy thiết bị ID=" + thiet_bi_id);
+            return ResponseEntity.badRequest().body(result);
+        }
+
+        BaoHong baoHong = new BaoHong();
+        baoHong.setThietBi(thietBiOpt.get());
+        baoHong.setMoTaLoi(mo_ta);
+        baoHong.setTrangThai(BaoHong.TrangThaiBaoHong.CHO_XU_LY);
+
+        try {
+            BaoHong.MucDoNghiemTrong mucDoEnum = BaoHong.MucDoNghiemTrong.valueOf(muc_do.toUpperCase());
+            baoHong.setMucDoNghiemTrong(mucDoEnum);
+        } catch (IllegalArgumentException e) {
+            baoHong.setMucDoNghiemTrong(BaoHong.MucDoNghiemTrong.TRUNG_BINH);
+        }
+
+        // Luu ghi chu nguoi bao (khong co tai khoan)
+        String ghiChu = "Báo qua QR Code";
+        if (!ten_nguoi_bao.equals("Khách/Người dùng"))
+            ghiChu += " | Người báo: " + ten_nguoi_bao;
+        if (!so_dien_thoai.isEmpty())
+            ghiChu += " | SDT: " + so_dien_thoai;
+        baoHong.setGhiChu(ghiChu);
+
+        BaoHong saved = baoHongRepository.save(baoHong);
+
+        result.put("success", true);
+        result.put("message", "Báo hỏng thành công! Nhân viên kỹ thuật sẽ xử lý sớm.");
+        result.put("bao_hong_id", saved.getId());
+        result.put("thiet_bi", thietBiOpt.get().getTenThietBi());
         return ResponseEntity.ok(result);
     }
 
