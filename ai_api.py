@@ -810,6 +810,139 @@ def match_device_from_db(detected_name, detected_brand, detected_type, db_device
     return (best_match, min(best_score, 0.95)) if best_score > 0.2 else (None, 0.0)
 
 
+# ============================================================
+# XÁC MINH THIẾT BỊ BẰNG AI (Gemini Vision)
+# Chup anh thiet bi thuc → Gemini Vision so sanh voi thong tin DB
+# ============================================================
+VERIFY_DEVICE_PROMPT = """
+Bạn là hệ thống AI xác minh thiết bị trong hệ thống quản lý cơ sở vật chất.
+
+THÔNG TIN THIẾT BỊ TRONG DATABASE:
+- Tên: {device_name}
+- Hãng sản xuất: {manufacturer}  
+- Model: {model}
+- Loại: {category}
+- Mã: {code}
+
+NHIỆM VỤ: Nhìn ảnh chụp thiết bị thật và so sánh với thông tin trên.
+
+Trả lời CHÍNH XÁC bằng JSON (không markdown):
+{{
+  "match": true/false,
+  "confidence": 0.0-1.0,
+  "detected_device": "Tên thiết bị bạn nhìn thấy trong ảnh",
+  "detected_brand": "Hãng sản xuất bạn nhìn thấy",
+  "detected_model": "Model bạn nhìn thấy (nếu thấy)",
+  "detected_type": "Loại thiết bị (máy chiếu/laptop/loa/micro/etc)",
+  "reason": "Giải thích ngắn gọn bằng tiếng Việt vì sao khớp hoặc không khớp",
+  "details": "Chi tiết quan sát: màu sắc, logo, nhãn, tình trạng bên ngoài"
+}}
+
+LƯU Ý:
+- match=true nếu thiết bị trong ảnh CHẮC CHẮN khớp với thông tin DB (cùng hãng, cùng loại)
+- match=false nếu thiết bị khác loại hoặc khác hãng rõ ràng
+- Nếu ảnh mờ/không rõ, confidence thấp nhưng đừng đoán bừa
+- Ưu tiên kiểm tra: logo hãng, loại thiết bị, model number trên nhãn
+"""
+
+@app.route('/api/ai/verify-device', methods=['POST'])
+def verify_device():
+    """
+    AI xác minh thiết bị: chụp ảnh thực → Gemini Vision so sánh với DB.
+    Input: { image_base64: "...", device_id: 1 }
+    Output: { match: true/false, confidence: 0.8, reason: "...", ... }
+    """
+    import requests as req_lib
+
+    try:
+        data = request.get_json()
+        if not data or 'image_base64' not in data or 'device_id' not in data:
+            return jsonify({'success': False, 'error': 'Thiếu image_base64 hoặc device_id'}), 400
+
+        image_base64 = data['image_base64']
+        device_id = data['device_id']
+        image_mime = data.get('image_mime', 'image/jpeg')
+
+        # Strip data URL prefix
+        if ',' in image_base64:
+            image_base64 = image_base64.split(',', 1)[1]
+
+        # Decode + resize ảnh
+        image_bytes = base64.b64decode(image_base64)
+        if PIL_AVAILABLE:
+            try:
+                img = Image.open(io.BytesIO(image_bytes))
+                max_size = 1024
+                if max(img.size) > max_size:
+                    img.thumbnail((max_size, max_size), Image.LANCZOS)
+                    buffer = io.BytesIO()
+                    img.save(buffer, format='JPEG', quality=85)
+                    image_bytes = buffer.getvalue()
+                    image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+            except Exception:
+                pass
+
+        # Lấy thông tin thiết bị từ DB
+        SPRING = 'http://localhost:8080/api/ai-data'
+        device = None
+        try:
+            r = req_lib.get(f'{SPRING}/devices', headers=INTERNAL_HEADERS, timeout=4)
+            if r.status_code == 200:
+                found = [d for d in r.json() if str(d.get('id')) == str(device_id)]
+                if found:
+                    device = found[0]
+        except Exception as e:
+            print(f'verify-device DB error: {e}')
+
+        if not device:
+            return jsonify({'success': False, 'error': f'Không tìm thấy thiết bị ID={device_id}'}), 404
+
+        # Tạo prompt với thông tin thiết bị
+        prompt = VERIFY_DEVICE_PROMPT.format(
+            device_name=device.get('name', ''),
+            manufacturer=device.get('manufacturer', ''),
+            model=device.get('model', ''),
+            category=device.get('category', ''),
+            code=device.get('code', '')
+        )
+
+        # Gọi Gemini Vision
+        image_part = {'inline_data': {'mime_type': image_mime, 'data': image_base64}}
+        gemini_response = model.generate_content([prompt, image_part])
+        raw_text = gemini_response.text.strip()
+
+        # Parse JSON
+        result = {}
+        try:
+            clean = raw_text
+            if '```' in clean:
+                start = clean.find('{')
+                end = clean.rfind('}') + 1
+                clean = clean[start:end]
+            result = json.loads(clean)
+        except json.JSONDecodeError:
+            result = {
+                'match': False,
+                'confidence': 0.0,
+                'reason': 'Không thể phân tích kết quả từ AI',
+                'details': raw_text[:300]
+            }
+
+        result['success'] = True
+        result['device_db'] = {
+            'name': device.get('name'),
+            'manufacturer': device.get('manufacturer'),
+            'model': device.get('model'),
+            'category': device.get('category'),
+            'code': device.get('code')
+        }
+        return jsonify(result)
+
+    except Exception as e:
+        print(f'verify-device error: {e}')
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/ai/scan-image', methods=['POST'])
 def scan_image():
     """
@@ -1102,7 +1235,99 @@ def device_info_page(device_id):
         print(f'device-info error: {e}')
 
     host = request.host_url.rstrip('/')
-    db_ok = device is not None
+
+    # === THIẾT BỊ KHÔNG TỒN TẠI ===
+    # Nếu kết nối Spring Boot thành công nhưng không tìm thấy device → trang lỗi
+    if device is None:
+        not_found_html = f'''<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Thiết bị không tồn tại — QLCSVC</title>
+<style>
+  * {{ box-sizing:border-box; margin:0; padding:0; }}
+  body {{
+    font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
+    background:linear-gradient(160deg,#0f172a 0%,#1e293b 100%);
+    min-height:100vh; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; padding:24px 16px; color:white;
+  }}
+  .card {{
+    background:rgba(30,41,59,0.8); border:1.5px solid #334155;
+    border-radius:24px; padding:48px 32px; text-align:center;
+    max-width:420px; width:100%; backdrop-filter:blur(20px);
+    box-shadow:0 20px 60px rgba(0,0,0,.5);
+  }}
+  .icon {{ font-size:4rem; margin-bottom:16px; }}
+  h1 {{ font-size:1.5rem; font-weight:700; margin-bottom:8px; color:#f87171; }}
+  .msg {{ font-size:0.9rem; color:#94a3b8; line-height:1.6; margin-bottom:24px; }}
+  .device-id {{ 
+    display:inline-block; background:#1e293b; border:1px solid #475569;
+    padding:6px 16px; border-radius:8px; font-family:monospace;
+    font-size:0.85rem; color:#f59e0b; margin:8px 0 16px;
+  }}
+  .info-box {{
+    background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2);
+    border-radius:12px; padding:16px; margin-bottom:24px; text-align:left;
+  }}
+  .info-box h3 {{ font-size:0.85rem; color:#60a5fa; margin-bottom:8px; }}
+  .info-box ul {{ list-style:none; padding:0; }}
+  .info-box li {{ 
+    font-size:0.8rem; color:#94a3b8; padding:4px 0;
+    padding-left:20px; position:relative;
+  }}
+  .info-box li::before {{ content:'•'; position:absolute; left:6px; color:#3b82f6; }}
+  .btn-group {{ display:flex; flex-direction:column; gap:10px; }}
+  .btn {{
+    display:block; padding:14px 24px; border-radius:12px;
+    font-size:0.9rem; font-weight:600; text-decoration:none;
+    text-align:center; cursor:pointer; border:none;
+    transition:all .2s ease;
+  }}
+  .btn-primary {{
+    background:linear-gradient(135deg,#3b82f6,#2563eb);
+    color:white; box-shadow:0 4px 15px rgba(59,130,246,.3);
+  }}
+  .btn-primary:hover {{ transform:translateY(-2px); box-shadow:0 6px 20px rgba(59,130,246,.4); }}
+  .btn-secondary {{
+    background:rgba(51,65,85,0.6); color:#94a3b8;
+    border:1.5px solid #334155;
+  }}
+  .btn-secondary:hover {{ background:rgba(51,65,85,0.9); color:white; }}
+  .footer {{ margin-top:24px; font-size:0.7rem; color:#475569; }}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🔍</div>
+    <h1>Thiết bị không tồn tại</h1>
+    <div class="device-id">ID: {device_id}</div>
+    <p class="msg">
+      Mã QR này trỏ đến thiết bị <strong>không có trong hệ thống</strong>.<br>
+      Có thể thiết bị đã bị xóa hoặc mã QR không đúng.
+    </p>
+    <div class="info-box">
+      <h3>💡 Bạn nên làm gì?</h3>
+      <ul>
+        <li>Kiểm tra lại mã QR có đúng là của hệ thống QLCSVC không</li>
+        <li>Liên hệ quản trị viên để đăng ký thiết bị mới</li>
+        <li>Thử quét lại mã QR khác trên thiết bị</li>
+      </ul>
+    </div>
+    <div class="btn-group">
+      <a href="{host}/api/ai/scan" class="btn btn-primary">📷 Quét mã QR khác</a>
+      <a href="javascript:history.back()" class="btn btn-secondary">← Quay lại</a>
+    </div>
+  </div>
+  <p class="footer">QLCSVC-AI · Hệ thống Quản lý Cơ sở Vật chất</p>
+</body>
+</html>'''
+        resp = make_response(not_found_html, 404)
+        resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+        return resp
+
+    db_ok = True
 
     STATUS_MAP = {
         'TOT':      ('Đang hoạt động tốt', '#22c55e', '✅'),
@@ -1117,6 +1342,9 @@ def device_info_page(device_id):
     dev_code  = (device.get('code') or '—') if device else '—'
     dev_room  = (device.get('room') or '—') if device else '—'
     dev_cat   = (device.get('category') or '—') if device else '—'
+    dev_mfr   = (device.get('manufacturer') or '—') if device else '—'
+    dev_model = (device.get('model') or '—') if device else '—'
+    dev_year  = str(device.get('year') or '—') if device else '—'
 
     # Build HTML sections
     def damage_badge(sev):
@@ -1333,6 +1561,65 @@ def device_info_page(device_id):
     </div>
   </div>
 
+  <!-- Khung XÁC MINH THIẾT BỊ BẰNG AI - Gemini Vision -->
+  <div class="card" style="border:1.5px solid #f59e0b30; background:linear-gradient(135deg,#fefce810,#ffffff);">
+    <div class="card-label" style="color:#d97706;">🔐 Xác minh thiết bị</div>
+    <p style="font-size:0.75rem;color:#92400e;margin-bottom:12px;line-height:1.5;">
+      ⚠️ <strong>Đối chiếu thông tin dưới đây với thiết bị thật</strong> trước khi thao tác.
+      Nếu không khớp, QR có thể đã bị dán nhầm hoặc tráo đổi.
+    </p>
+    <div class="info-grid">
+      <div><span class="lbl">🏭 Hãng sản xuất</span><span class="val" style="font-weight:700;">{dev_mfr}</span></div>
+      <div><span class="lbl">📦 Model</span><span class="val" style="font-weight:700;">{dev_model}</span></div>
+      <div><span class="lbl">📅 Năm sản xuất</span><span class="val" style="font-weight:700;">{dev_year}</span></div>
+      <div><span class="lbl">🏷️ Mã hệ thống</span><span class="val" style="font-weight:700;color:#0f3460;">{dev_code}</span></div>
+    </div>
+
+    <!-- NÚT AI XÁC MINH BẰNG CAMERA -->
+    <div style="margin-top:16px;text-align:center;">
+      <button id="aiVerifyBtn" onclick="openAIVerify()" style="
+        padding:12px 28px; border-radius:12px; border:none;
+        background:linear-gradient(135deg,#7c3aed,#6d28d9); color:white;
+        font-size:0.88rem; font-weight:700; cursor:pointer;
+        box-shadow:0 4px 15px rgba(124,58,237,0.4);
+        transition:all .3s; display:inline-flex; align-items:center; gap:8px;
+      ">
+        📸 AI Xác minh bằng Camera
+      </button>
+      <p style="font-size:0.68rem;color:#78716c;margin-top:6px;">
+        Chụp ảnh thiết bị thật → AI Gemini Vision so sánh tự động
+      </p>
+    </div>
+
+    <!-- Camera preview + result (ẩn ban đầu) -->
+    <div id="verifyPanel" style="display:none;margin-top:16px;">
+      <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;">
+        <video id="verifyVideo" autoplay playsinline muted style="width:100%;border-radius:12px;display:block;"></video>
+        <canvas id="verifyCanvas" style="display:none;"></canvas>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
+        <button id="captureBtn" onclick="captureAndVerify()" style="
+          padding:10px 24px; border-radius:10px; border:none;
+          background:linear-gradient(135deg,#059669,#10b981); color:white;
+          font-weight:700; font-size:0.85rem; cursor:pointer;
+        ">📸 Chụp & Xác minh</button>
+        <button onclick="closeVerify()" style="
+          padding:10px 20px; border-radius:10px; border:1.5px solid #e5e7eb;
+          background:white; color:#6b7280; font-weight:600; font-size:0.82rem; cursor:pointer;
+        ">✕ Đóng</button>
+      </div>
+      <div id="verifyStatus" style="font-size:0.78rem;color:#6b7280;text-align:center;margin-top:8px;min-height:20px;"></div>
+    </div>
+
+    <!-- Kết quả AI (ẩn ban đầu) -->
+    <div id="verifyResult" style="display:none;margin-top:16px;"></div>
+
+    <p style="font-size:0.7rem;color:#78716c;margin-top:10px;text-align:center;">
+      Nếu thông tin <strong>không khớp</strong> → 
+      <a href="{host}/api/ai/device-lookup" style="color:#2563eb;font-weight:600;text-decoration:underline;">tra cứu thiết bị đúng</a>
+    </p>
+  </div>
+
   {borrower_section}
 
   <!-- Lịch sử báo hỏng -->
@@ -1411,6 +1698,157 @@ def device_info_page(device_id):
 <!-- Scan FAB button -->
 <span class="fab-scan-label">SCAN</span>
 <button class="fab-scan" onclick="window.location.href='{host}/api/ai/scan'" title="Scan QR thiết bị khác">📷</button>
+
+<script>
+// === AI CAMERA VERIFICATION ===
+let verifyStream = null;
+
+function openAIVerify() {{
+  const panel = document.getElementById('verifyPanel');
+  const video = document.getElementById('verifyVideo');
+  const status = document.getElementById('verifyStatus');
+  const resultDiv = document.getElementById('verifyResult');
+  
+  panel.style.display = 'block';
+  resultDiv.style.display = 'none';
+  status.innerHTML = '<span style="color:#f59e0b;">📷 Đang khởi động camera...</span>';
+
+  navigator.mediaDevices.getUserMedia({{ 
+    video: {{ facingMode: 'environment', width: {{ ideal: 1280 }}, height: {{ ideal: 720 }} }}
+  }}).then(stream => {{
+    verifyStream = stream;
+    video.srcObject = stream;
+    status.innerHTML = '<span style="color:#22c55e;">✅ Camera sẵn sàng — Hướng vào thiết bị rồi nhấn "Chụp & Xác minh"</span>';
+  }}).catch(err => {{
+    status.innerHTML = '<span style="color:#ef4444;">❌ Không truy cập được camera: ' + err.message + '</span>';
+  }});
+}}
+
+function closeVerify() {{
+  const panel = document.getElementById('verifyPanel');
+  const video = document.getElementById('verifyVideo');
+  
+  if (verifyStream) {{
+    verifyStream.getTracks().forEach(t => t.stop());
+    verifyStream = null;
+  }}
+  video.srcObject = null;
+  panel.style.display = 'none';
+}}
+
+async function captureAndVerify() {{
+  const video = document.getElementById('verifyVideo');
+  const canvas = document.getElementById('verifyCanvas');
+  const status = document.getElementById('verifyStatus');
+  const resultDiv = document.getElementById('verifyResult');
+  const captureBtn = document.getElementById('captureBtn');
+
+  // Chụp ảnh từ video
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const imageBase64 = canvas.toDataURL('image/jpeg', 0.85);
+
+  // Đóng camera
+  closeVerify();
+
+  // Hiển thị loading
+  captureBtn.disabled = true;
+  status.innerHTML = '';
+  resultDiv.style.display = 'block';
+  resultDiv.innerHTML = `
+    <div style="text-align:center;padding:20px;background:#f5f3ff;border-radius:12px;border:1.5px solid #c4b5fd;">
+      <div style="font-size:2rem;margin-bottom:8px;">🤖</div>
+      <div style="font-weight:700;color:#7c3aed;font-size:0.9rem;">AI Gemini Vision đang phân tích...</div>
+      <div style="font-size:0.75rem;color:#8b5cf6;margin-top:4px;">So sánh ảnh chụp với thông tin trong hệ thống</div>
+      <div style="margin-top:12px;">
+        <div style="width:60px;height:4px;background:#e9d5ff;border-radius:2px;margin:0 auto;overflow:hidden;">
+          <div style="width:100%;height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa);animation:loading 1.2s ease-in-out infinite;"></div>
+        </div>
+      </div>
+    </div>
+    <style>@keyframes loading {{ 0%{{transform:translateX(-100%)}} 100%{{transform:translateX(100%)}} }}</style>
+  `;
+
+  try {{
+    const resp = await fetch('{host}/api/ai/verify-device', {{
+      method: 'POST',
+      headers: {{ 'Content-Type': 'application/json' }},
+      body: JSON.stringify({{
+        image_base64: imageBase64,
+        device_id: {device_id},
+        image_mime: 'image/jpeg'
+      }})
+    }});
+
+    const data = await resp.json();
+
+    if (!data.success) {{
+      resultDiv.innerHTML = `
+        <div style="padding:16px;background:#fef2f2;border-radius:12px;border:1.5px solid #fca5a5;">
+          <div style="font-weight:700;color:#ef4444;">❌ Lỗi: ${{data.error || 'Không xác định'}}</div>
+        </div>`;
+      return;
+    }}
+
+    const isMatch = data.match === true;
+    const confidence = Math.round((data.confidence || 0) * 100);
+    const bg = isMatch ? '#f0fdf4' : '#fef2f2';
+    const border = isMatch ? '#86efac' : '#fca5a5';
+    const color = isMatch ? '#16a34a' : '#dc2626';
+    const icon = isMatch ? '✅' : '❌';
+    const title = isMatch ? 'THIẾT BỊ KHỚP' : 'KHÔNG KHỚP — CÓ THỂ QR ĐÃ BỊ TRÁO';
+
+    resultDiv.innerHTML = `
+      <div style="padding:16px;background:${{bg}};border-radius:12px;border:2px solid ${{border}};
+        animation:fadeIn .4s ease;">
+        <div style="text-align:center;margin-bottom:12px;">
+          <div style="font-size:2.5rem;margin-bottom:4px;">${{icon}}</div>
+          <div style="font-weight:800;color:${{color}};font-size:1rem;">${{title}}</div>
+          <div style="font-size:0.78rem;color:#6b7280;margin-top:2px;">Độ tin cậy: <strong style="color:${{color}};">${{confidence}}%</strong></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.78rem;">
+          <div style="background:white;padding:8px;border-radius:8px;">
+            <div style="color:#6b7280;font-size:0.68rem;">AI nhận diện:</div>
+            <div style="font-weight:700;">${{data.detected_device || '—'}}</div>
+          </div>
+          <div style="background:white;padding:8px;border-radius:8px;">
+            <div style="color:#6b7280;font-size:0.68rem;">Hãng phát hiện:</div>
+            <div style="font-weight:700;">${{data.detected_brand || '—'}}</div>
+          </div>
+          <div style="background:white;padding:8px;border-radius:8px;">
+            <div style="color:#6b7280;font-size:0.68rem;">Model phát hiện:</div>
+            <div style="font-weight:700;">${{data.detected_model || '—'}}</div>
+          </div>
+          <div style="background:white;padding:8px;border-radius:8px;">
+            <div style="color:#6b7280;font-size:0.68rem;">Loại:</div>
+            <div style="font-weight:700;">${{data.detected_type || '—'}}</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding:10px;background:white;border-radius:8px;font-size:0.78rem;">
+          <div style="color:#6b7280;font-size:0.68rem;margin-bottom:4px;">💬 Nhận xét AI:</div>
+          <div style="color:#374151;line-height:1.5;">${{data.reason || ''}}</div>
+        </div>
+        ${{data.details ? `<div style="margin-top:6px;padding:8px;background:white;border-radius:8px;font-size:0.72rem;color:#6b7280;">📋 ${{data.details}}</div>` : ''}}
+        <div style="text-align:center;margin-top:12px;">
+          <button onclick="openAIVerify()" style="padding:8px 20px;border-radius:8px;border:none;
+            background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;font-weight:600;
+            font-size:0.8rem;cursor:pointer;">🔄 Xác minh lại</button>
+        </div>
+      </div>
+      <style>@keyframes fadeIn {{ from{{opacity:0;transform:translateY(10px)}} to{{opacity:1;transform:translateY(0)}} }}</style>
+    `;
+  }} catch(err) {{
+    resultDiv.innerHTML = `
+      <div style="padding:16px;background:#fef2f2;border-radius:12px;border:1.5px solid #fca5a5;">
+        <div style="font-weight:700;color:#ef4444;">❌ Lỗi kết nối: ${{err.message}}</div>
+        <div style="font-size:0.75rem;color:#6b7280;margin-top:4px;">Kiểm tra Flask API đang chạy tại port 5000</div>
+      </div>`;
+  }}
+
+  captureBtn.disabled = false;
+}}
+</script>
 </body>
 </html>'''
 
@@ -2027,9 +2465,269 @@ if __name__ == '__main__':
     +-----------------------------------------------------------+
     """)
 
+@app.route('/api/ai/device-lookup')
+def device_lookup_page():
+    """Trang tra cứu thiết bị — khi mất QR, nhân viên tìm theo tên/mã/phòng và in lại QR."""
+    import requests as req_lib
+    from flask import make_response
+
+    SPRING = 'http://localhost:8080/api/ai-data'
+    devices = []
+    try:
+        r = req_lib.get(f'{SPRING}/devices', headers=INTERNAL_HEADERS, timeout=5)
+        if r.status_code == 200:
+            devices = r.json()
+    except Exception as e:
+        print(f'device-lookup error: {e}')
+
+    host = request.host_url.rstrip('/')
+
+    # Build device rows JSON for search
+    device_rows = ''
+    for d in devices:
+        did = d.get('id','')
+        name = (d.get('name') or '').replace("'","\\'")
+        code = (d.get('code') or '').replace("'","\\'")
+        room = (d.get('room') or '—').replace("'","\\'")
+        cat = (d.get('category') or '—').replace("'","\\'")
+        mfr = (d.get('manufacturer') or '—').replace("'","\\'")
+        model = (d.get('model') or '—').replace("'","\\'")
+        status = d.get('status','')
+        status_labels = {'TOT':'Tốt','BAO_TRI':'Bảo trì','HONG':'Hỏng','THANH_LY':'Thanh lý'}
+        status_label = status_labels.get(status, status)
+        status_colors = {'TOT':'#22c55e','BAO_TRI':'#f59e0b','HONG':'#ef4444','THANH_LY':'#6b7280'}
+        scolor = status_colors.get(status,'#6b7280')
+        device_rows += f"""
+        <tr class="dev-row" data-search="{name.lower()} {code.lower()} {room.lower()} {cat.lower()} {mfr.lower()} {model.lower()}">
+          <td style="font-weight:600;">{did}</td>
+          <td>{name}</td>
+          <td style="font-family:monospace;color:#2563eb;">{code}</td>
+          <td>{room}</td>
+          <td>{cat}</td>
+          <td>{mfr}</td>
+          <td>{model}</td>
+          <td><span style="color:{scolor};font-weight:600;">{status_label}</span></td>
+          <td style="white-space:nowrap;">
+            <a href="{host}/api/ai/device-info/{did}" style="color:#2563eb;text-decoration:none;font-weight:600;margin-right:8px;">📋 Xem</a>
+            <a href="{host}/api/ai/device-qr/{did}" target="_blank" style="color:#059669;text-decoration:none;font-weight:600;">🖨️ In QR</a>
+          </td>
+        </tr>"""
+
+    html = f'''<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tra cứu thiết bị — QLCSVC</title>
+<style>
+  * {{ box-sizing:border-box; margin:0; padding:0; }}
+  body {{
+    font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
+    background:linear-gradient(160deg,#0f172a 0%,#1e293b 100%);
+    min-height:100vh; padding:24px 16px; color:white;
+  }}
+  .container {{ max-width:1100px; margin:0 auto; }}
+  .header {{ text-align:center; margin-bottom:28px; }}
+  .header h1 {{ font-size:1.6rem; font-weight:800; margin-bottom:4px; }}
+  .header p {{ font-size:0.85rem; color:#94a3b8; }}
+  .search-box {{
+    width:100%; padding:14px 20px; border-radius:14px;
+    border:1.5px solid #334155; background:#1e293b; color:white;
+    font-size:0.95rem; margin-bottom:20px; outline:none;
+    transition:border-color .2s;
+  }}
+  .search-box:focus {{ border-color:#3b82f6; }}
+  .search-box::placeholder {{ color:#64748b; }}
+  .card {{
+    background:rgba(30,41,59,0.8); border:1.5px solid #334155;
+    border-radius:16px; overflow:hidden; backdrop-filter:blur(20px);
+  }}
+  table {{ width:100%; border-collapse:collapse; font-size:0.8rem; }}
+  th {{
+    background:#0f172a; color:#94a3b8; padding:12px 10px;
+    text-align:left; font-weight:600; font-size:0.72rem;
+    text-transform:uppercase; letter-spacing:.05em;
+    position:sticky; top:0; z-index:2;
+  }}
+  td {{ padding:10px; border-top:1px solid #1e293b; color:#cbd5e1; }}
+  tr:hover td {{ background:#1e293b80; }}
+  .no-result {{
+    text-align:center; padding:40px; color:#64748b; font-size:0.9rem;
+    display:none;
+  }}
+  .info-banner {{
+    background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2);
+    border-radius:12px; padding:14px 18px; margin-bottom:20px;
+    font-size:0.82rem; color:#93c5fd; line-height:1.6;
+  }}
+  .info-banner strong {{ color:#60a5fa; }}
+  .btn-group {{ display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }}
+  .btn {{
+    padding:10px 20px; border-radius:10px; font-size:0.82rem;
+    font-weight:600; text-decoration:none; border:1.5px solid #334155;
+    color:#94a3b8; background:#1e293b; cursor:pointer; transition:all .2s;
+  }}
+  .btn:hover {{ background:#334155; color:white; }}
+  .btn-primary {{ background:#2563eb; color:white; border-color:#2563eb; }}
+  .btn-primary:hover {{ background:#1d4ed8; }}
+  .count {{ font-size:0.75rem; color:#64748b; margin-bottom:10px; padding:0 10px; }}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🔍 Tra cứu thiết bị</h1>
+    <p>Tìm thiết bị theo tên, mã, phòng, hãng SX — In lại QR khi mất nhãn</p>
+  </div>
+
+  <div class="info-banner">
+    <strong>💡 Khi nào dùng trang này?</strong><br>
+    • Mã QR trên thiết bị bị mất, hỏng, hoặc không quét được<br>
+    • Cần xác minh thiết bị nào ứng với mã QR nào<br>
+    • Nhân viên bảo trì cần tìm nhanh thiết bị theo phòng/loại
+  </div>
+
+  <div class="btn-group">
+    <a href="{host}/api/ai/scan" class="btn btn-primary">📷 Quét QR</a>
+    <a href="{host}/api/ai/qr-print" class="btn">🖨️ In tất cả QR</a>
+    <a href="javascript:history.back()" class="btn">← Quay lại</a>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-bottom:20px;">
+    <input type="text" class="search-box" id="searchInput" style="margin-bottom:0;flex:1;"
+      placeholder="🔍 Tìm theo tên thiết bị, mã, phòng, hãng sản xuất...">
+    <button id="voiceBtn" onclick="startVoice()" title="Tìm bằng giọng nói" style="
+      min-width:52px; height:52px; border-radius:14px; border:1.5px solid #334155;
+      background:linear-gradient(135deg,#1e293b,#0f172a); color:#94a3b8;
+      font-size:1.4rem; cursor:pointer; transition:all .3s; display:flex;
+      align-items:center; justify-content:center;
+    ">🎤</button>
+  </div>
+  <div id="voiceStatus" style="font-size:0.75rem;color:#64748b;margin:-12px 0 12px 4px;min-height:18px;"></div>
+
+  <div class="count" id="resultCount">Tìm thấy {len(devices)} thiết bị</div>
+
+  <div class="card">
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Tên thiết bị</th><th>Mã</th><th>Phòng</th>
+            <th>Loại</th><th>Hãng SX</th><th>Model</th><th>Trạng thái</th><th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="deviceTable">
+          {device_rows}
+        </tbody>
+      </table>
+    </div>
+    <div class="no-result" id="noResult">
+      😔 Không tìm thấy thiết bị nào khớp
+    </div>
+  </div>
+</div>
+
+<script>
+  const input = document.getElementById('searchInput');
+  const rows = document.querySelectorAll('.dev-row');
+  const noResult = document.getElementById('noResult');
+  const countEl = document.getElementById('resultCount');
+
+  input.addEventListener('input', function() {{
+    const q = this.value.toLowerCase().trim();
+    let visible = 0;
+    rows.forEach(row => {{
+      const match = !q || row.dataset.search.includes(q);
+      row.style.display = match ? '' : 'none';
+      if (match) visible++;
+    }});
+    noResult.style.display = visible === 0 ? 'block' : 'none';
+    countEl.textContent = `Tìm thấy ${{visible}} thiết bị`;
+  }});
+
+  input.focus();
+
+  // === VOICE SEARCH (Web Speech API) ===
+  let recognition = null;
+  let isListening = false;
+
+  function startVoice() {{
+    const btn = document.getElementById('voiceBtn');
+    const status = document.getElementById('voiceStatus');
+
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {{
+      status.innerHTML = '<span style="color:#f87171;">❌ Trình duyệt không hỗ trợ giọng nói. Dùng Chrome/Edge.</span>';
+      return;
+    }}
+
+    if (isListening && recognition) {{
+      recognition.stop();
+      return;
+    }}
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.lang = 'vi-VN';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {{
+      isListening = true;
+      btn.style.background = 'linear-gradient(135deg,#dc2626,#b91c1c)';
+      btn.style.color = 'white';
+      btn.style.borderColor = '#dc2626';
+      btn.innerHTML = '🔴';
+      status.innerHTML = '<span style="color:#f59e0b;">🎙️ Đang nghe... Nói tên thiết bị, phòng, hoặc hãng sản xuất</span>';
+    }};
+
+    recognition.onresult = (e) => {{
+      let transcript = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {{
+        transcript += e.results[i][0].transcript;
+      }}
+      input.value = transcript;
+      input.dispatchEvent(new Event('input'));
+      if (e.results[e.results.length - 1].isFinal) {{
+        status.innerHTML = `<span style="color:#22c55e;">✅ Đã nhận: "${{transcript}}"</span>`;
+      }}
+    }};
+
+    recognition.onerror = (e) => {{
+      isListening = false;
+      btn.style.background = 'linear-gradient(135deg,#1e293b,#0f172a)';
+      btn.style.color = '#94a3b8';
+      btn.style.borderColor = '#334155';
+      btn.innerHTML = '🎤';
+      if (e.error === 'no-speech') {{
+        status.innerHTML = '<span style="color:#f59e0b;">⚠️ Không nghe thấy gì. Nhấn 🎤 và nói lại.</span>';
+      }} else if (e.error === 'not-allowed') {{
+        status.innerHTML = '<span style="color:#f87171;">❌ Cho phép quyền microphone rồi thử lại.</span>';
+      }} else {{
+        status.innerHTML = `<span style="color:#f87171;">❌ Lỗi: ${{e.error}}</span>`;
+      }}
+    }};
+
+    recognition.onend = () => {{
+      isListening = false;
+      btn.style.background = 'linear-gradient(135deg,#1e293b,#0f172a)';
+      btn.style.color = '#94a3b8';
+      btn.style.borderColor = '#334155';
+      btn.innerHTML = '🎤';
+    }};
+
+    recognition.start();
+  }}
+</script>
+</body>
+</html>'''
+    resp = make_response(html)
+    resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+    return resp
+
 @app.route('/api/ai/scan')
 def scan_page():
     """Trang scan QR trên mobile — mở camera và redirect đến device-info."""
+    from flask import make_response
     host = request.host_url.rstrip('/')
     html = f'''<!DOCTYPE html>
 <html lang="vi">
@@ -2115,5 +2813,5 @@ def scan_page():
     resp.headers['Content-Type'] = 'text/html; charset=utf-8'
     return resp
 
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=port, debug=debug)
-

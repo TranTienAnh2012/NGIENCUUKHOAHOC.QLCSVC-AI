@@ -260,6 +260,9 @@ public class AiDataController {
         map.put("status", device.getTrangThai().toString());
         map.put("room", device.getPhong() != null ? device.getPhong().getTenPhong() : null);
         map.put("category", device.getLoaiThietBi() != null ? device.getLoaiThietBi().getTenLoai() : null);
+        map.put("manufacturer", device.getHangSanXuat());
+        map.put("model", device.getModel());
+        map.put("year", device.getNamSanXuat());
         return map;
     }
 

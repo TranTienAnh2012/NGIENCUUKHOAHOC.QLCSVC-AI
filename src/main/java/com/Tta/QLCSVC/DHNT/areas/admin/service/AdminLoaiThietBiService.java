@@ -17,17 +17,27 @@ public class AdminLoaiThietBiService {
 
     private final LoaiThietBiRepository loaiThietBiRepository;
 
+    @Transactional(readOnly = true)
     public Page<LoaiThietBi> getAllLoaiThietBi(Pageable pageable) {
-        return loaiThietBiRepository.findAll(pageable);
+        Page<LoaiThietBi> page = loaiThietBiRepository.findAll(pageable);
+        // Force initialize thietBis so getSoThietBi() works after transaction
+        page.getContent().forEach(ltb -> org.hibernate.Hibernate.initialize(ltb.getThietBis()));
+        return page;
     }
 
+    @Transactional(readOnly = true)
     public List<LoaiThietBi> getAllLoaiThietBi() {
-        return loaiThietBiRepository.findAll();
+        List<LoaiThietBi> list = loaiThietBiRepository.findAll();
+        list.forEach(ltb -> org.hibernate.Hibernate.initialize(ltb.getThietBis()));
+        return list;
     }
 
+    @Transactional(readOnly = true)
     public LoaiThietBi getLoaiThietBiById(Long id) {
-        return loaiThietBiRepository.findById(id)
+        LoaiThietBi ltb = loaiThietBiRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("LoaiThietBi", "id", id));
+        org.hibernate.Hibernate.initialize(ltb.getThietBis());
+        return ltb;
     }
 
     @Transactional
