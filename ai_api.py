@@ -1575,44 +1575,22 @@ def device_info_page(device_id):
       <div><span class="lbl">🏷️ Mã hệ thống</span><span class="val" style="font-weight:700;color:#0f3460;">{dev_code}</span></div>
     </div>
 
-    <!-- NÚT AI XÁC MINH BẰNG CAMERA -->
+    <!-- NÚT AI XÁC MINH — redirect sang trang scan thống nhất -->
     <div style="margin-top:16px;text-align:center;">
-      <button id="aiVerifyBtn" onclick="openAIVerify()" style="
+      <a href="{host}/api/ai/scan?verify={device_id}" style="
         padding:12px 28px; border-radius:12px; border:none;
         background:linear-gradient(135deg,#7c3aed,#6d28d9); color:white;
         font-size:0.88rem; font-weight:700; cursor:pointer;
         box-shadow:0 4px 15px rgba(124,58,237,0.4);
         transition:all .3s; display:inline-flex; align-items:center; gap:8px;
+        text-decoration:none;
       ">
         📸 AI Xác minh bằng Camera
-      </button>
+      </a>
       <p style="font-size:0.68rem;color:#78716c;margin-top:6px;">
         Chụp ảnh thiết bị thật → AI Gemini Vision so sánh tự động
       </p>
     </div>
-
-    <!-- Camera preview + result (ẩn ban đầu) -->
-    <div id="verifyPanel" style="display:none;margin-top:16px;">
-      <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;">
-        <video id="verifyVideo" autoplay playsinline muted style="width:100%;border-radius:12px;display:block;"></video>
-        <canvas id="verifyCanvas" style="display:none;"></canvas>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:10px;justify-content:center;">
-        <button id="captureBtn" onclick="captureAndVerify()" style="
-          padding:10px 24px; border-radius:10px; border:none;
-          background:linear-gradient(135deg,#059669,#10b981); color:white;
-          font-weight:700; font-size:0.85rem; cursor:pointer;
-        ">📸 Chụp & Xác minh</button>
-        <button onclick="closeVerify()" style="
-          padding:10px 20px; border-radius:10px; border:1.5px solid #e5e7eb;
-          background:white; color:#6b7280; font-weight:600; font-size:0.82rem; cursor:pointer;
-        ">✕ Đóng</button>
-      </div>
-      <div id="verifyStatus" style="font-size:0.78rem;color:#6b7280;text-align:center;margin-top:8px;min-height:20px;"></div>
-    </div>
-
-    <!-- Kết quả AI (ẩn ban đầu) -->
-    <div id="verifyResult" style="display:none;margin-top:16px;"></div>
 
     <p style="font-size:0.7rem;color:#78716c;margin-top:10px;text-align:center;">
       Nếu thông tin <strong>không khớp</strong> → 
@@ -2726,15 +2704,31 @@ def device_lookup_page():
 
 @app.route('/api/ai/scan')
 def scan_page():
-    """Trang scan QR trên mobile — mở camera và redirect đến device-info."""
+    """Trang SCAN THỐNG NHẤT: Tab QR + Tab AI Camera (nhận diện / xác minh)."""
     from flask import make_response
     host = request.host_url.rstrip('/')
+    verify_id = request.args.get('verify', '0')
+    default_tab = 'ai' if verify_id != '0' else 'qr'
+
+    # Banner xác minh nếu đang ở mode verify
+    verify_banner = ''
+    if verify_id != '0':
+        verify_banner = f'''<div class="verify-banner">
+          🔐 Đang xác minh thiết bị <strong>ID #{verify_id}</strong><br>
+          Chụp ảnh thiết bị thật → AI so sánh với dữ liệu hệ thống
+        </div>'''
+
+    tab_qr_active = 'active' if default_tab == 'qr' else ''
+    tab_ai_active = 'active' if default_tab == 'ai' else ''
+    qr_hidden = '' if default_tab == 'qr' else 'hidden'
+    ai_hidden = '' if default_tab == 'ai' else 'hidden'
+
     html = f'''<!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scan QR Thiết bị — QLCSVC</title>
+  <title>Scan & AI — QLCSVC</title>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
     * {{ box-sizing:border-box; margin:0; padding:0; }}
@@ -2742,71 +2736,299 @@ def scan_page():
       font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;
       background:linear-gradient(160deg,#0f172a 0%,#1e293b 100%);
       min-height:100vh; display:flex; flex-direction:column;
-      align-items:center; padding:24px 16px; color:white;
+      align-items:center; padding:20px 16px; color:white;
     }}
-    .logo {{ font-size:2.5rem; margin-bottom:8px; }}
-    h1 {{ font-size:1.3rem; font-weight:700; margin-bottom:4px; }}
-    .sub {{ font-size:0.82rem; color:#94a3b8; margin-bottom:28px; }}
-    .scanner-wrap {{
-      width:100%; max-width:360px; background:#1e293b;
+    h1 {{ font-size:1.4rem; font-weight:800; margin:8px 0 4px; }}
+    .sub {{ font-size:0.78rem; color:#94a3b8; margin-bottom:20px; text-align:center; }}
+    .tabs {{
+      display:flex; gap:4px; width:100%; max-width:420px;
+      background:#1e293b; border-radius:14px; padding:4px;
+      border:1.5px solid #334155; margin-bottom:16px;
+    }}
+    .tab {{
+      flex:1; padding:12px 8px; border-radius:11px; border:none;
+      font-size:0.82rem; font-weight:700; cursor:pointer;
+      background:transparent; color:#64748b; transition:all .3s;
+      display:flex; align-items:center; justify-content:center; gap:6px;
+    }}
+    .tab.active {{
+      background:linear-gradient(135deg,#7c3aed,#6d28d9);
+      color:white; box-shadow:0 4px 15px rgba(124,58,237,.4);
+    }}
+    .tab:not(.active):hover {{ color:#cbd5e1; }}
+    .panel {{
+      width:100%; max-width:420px; background:#1e293b;
       border-radius:20px; padding:16px; border:1.5px solid #334155;
-      box-shadow:0 20px 60px rgba(0,0,0,.6);
+      box-shadow:0 20px 60px rgba(0,0,0,.5);
     }}
+    .hidden {{ display:none !important; }}
     #qr-reader {{ width:100%; border-radius:12px; overflow:hidden; }}
     #qr-reader video {{ border-radius:12px !important; }}
-    .status {{
-      margin-top:14px; text-align:center; font-size:0.82rem;
-      color:#94a3b8; min-height:24px;
+    .camera-wrap {{
+      position:relative; border-radius:12px; overflow:hidden;
+      background:#000; min-height:240px;
     }}
-    .hint {{
-      margin-top:20px; text-align:center; font-size:0.75rem;
-      color:#475569; max-width:300px; line-height:1.5;
+    .camera-wrap video {{ width:100%; display:block; border-radius:12px; }}
+    .status {{ margin-top:12px; text-align:center; font-size:0.78rem; color:#94a3b8; min-height:22px; }}
+    .btn-capture {{
+      width:100%; padding:14px; border-radius:12px; border:none;
+      background:linear-gradient(135deg,#7c3aed,#6d28d9); color:white;
+      font-size:0.9rem; font-weight:700; cursor:pointer; margin-top:12px;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      box-shadow:0 4px 15px rgba(124,58,237,.4); transition:all .3s;
     }}
-    .btn-back {{
-      margin-top:16px; padding:12px 24px;
-      background:linear-gradient(135deg,#334155,#1e293b);
-      color:#94a3b8; border:1.5px solid #334155; border-radius:12px;
-      font-size:0.85rem; cursor:pointer; width:100%; max-width:360px;
+    .btn-capture:hover {{ transform:translateY(-1px); }}
+    .btn-capture:disabled {{ opacity:.5; cursor:not-allowed; transform:none; }}
+    .result-card {{ margin-top:16px; border-radius:14px; padding:16px; animation:fadeIn .4s ease; }}
+    .result-match {{ background:#f0fdf4; border:2px solid #86efac; }}
+    .result-mismatch {{ background:#fef2f2; border:2px solid #fca5a5; }}
+    .result-info {{ background:#eff6ff; border:2px solid #93c5fd; }}
+    .result-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:0.75rem; margin-top:10px; }}
+    .result-grid > div {{ background:white; padding:8px; border-radius:8px; }}
+    .result-grid .lbl {{ color:#6b7280; font-size:0.65rem; display:block; }}
+    .result-grid .val {{ font-weight:700; color:#1e293b; }}
+    .action-btns {{ display:flex; gap:8px; margin-top:12px; }}
+    .action-btns a, .action-btns button {{
+      flex:1; padding:10px; border-radius:10px; border:none;
+      font-size:0.8rem; font-weight:600; cursor:pointer;
+      text-decoration:none; text-align:center;
     }}
+    .btn-view {{ background:#2563eb; color:white; }}
+    .btn-report {{ background:#dc2626; color:white; }}
+    .btn-retry {{ background:#334155; color:#94a3b8; border:1.5px solid #475569 !important; }}
+    .bottom-links {{ display:flex; gap:8px; margin-top:16px; width:100%; max-width:420px; }}
+    .bottom-links a {{
+      flex:1; padding:12px; border-radius:12px; font-size:0.82rem;
+      text-decoration:none; text-align:center; font-weight:600;
+      border:1.5px solid #334155; color:#94a3b8;
+    }}
+    .bottom-links a:hover {{ border-color:#7c3aed; color:#c4b5fd; }}
+    .verify-banner {{
+      width:100%; max-width:420px; padding:10px 14px; border-radius:12px;
+      background:linear-gradient(135deg,#7c3aed20,#6d28d920);
+      border:1.5px solid #7c3aed50; margin-bottom:12px;
+      font-size:0.75rem; color:#c4b5fd; text-align:center;
+    }}
+    .verify-banner strong {{ color:#a78bfa; }}
+    .loading-bar {{ width:60px; height:4px; background:#e9d5ff; border-radius:2px; margin:8px auto 0; overflow:hidden; }}
+    .loading-bar > div {{ width:100%; height:100%; background:linear-gradient(90deg,#7c3aed,#a78bfa); animation:slide 1.2s ease-in-out infinite; }}
+    @keyframes slide {{ 0%{{transform:translateX(-100%)}} 100%{{transform:translateX(100%)}} }}
+    @keyframes fadeIn {{ from{{opacity:0;transform:translateY(8px)}} to{{opacity:1;transform:translateY(0)}} }}
   </style>
 </head>
 <body>
-  <div class="logo">📷</div>
-  <h1>Scan QR Thiết bị</h1>
-  <p class="sub">Hệ thống Quản lý Cơ sở Vật chất — QLCSVC</p>
+  <h1>📷 Scan & AI Hỗ trợ</h1>
+  <p class="sub">Quét mã QR hoặc chụp ảnh thiết bị — AI nhận diện tự động</p>
 
-  <div class="scanner-wrap">
-    <div id="qr-reader"></div>
-    <div class="status" id="scan-status">Đang khởi động camera...</div>
+  {verify_banner}
+
+  <div class="tabs">
+    <button class="tab {tab_qr_active}" onclick="switchTab('qr')" id="tabQR">🔲 Quét QR</button>
+    <button class="tab {tab_ai_active}" onclick="switchTab('ai')" id="tabAI">🤖 Chụp ảnh AI</button>
   </div>
 
-  <p class="hint">Hướng camera vào mã QR dán trên thiết bị.<br>
-  Hệ thống sẽ tự động nhận diện và hiển thị thông tin.</p>
+  <div class="panel {qr_hidden}" id="panelQR">
+    <div id="qr-reader"></div>
+    <div class="status" id="qr-status">Đang khởi động camera...</div>
+  </div>
 
-  <button class="btn-back" onclick="history.back()">← Quay lại</button>
+  <div class="panel {ai_hidden}" id="panelAI">
+    <div class="camera-wrap">
+      <video id="aiVideo" autoplay playsinline muted></video>
+      <canvas id="aiCanvas" style="display:none;"></canvas>
+    </div>
+    <div class="status" id="ai-status">Nhấn nút bên dưới để mở camera</div>
+    <button class="btn-capture" id="captureBtn" onclick="handleCapture()">
+      📸 Chụp & AI Phân tích
+    </button>
+    <div id="aiResult"></div>
+  </div>
 
-  <script>
-    const scanner = new Html5Qrcode('qr-reader');
-    scanner.start(
+  <div class="bottom-links">
+    <a href="{host}/api/ai/device-lookup">🔍 Tra cứu</a>
+    <a href="javascript:history.back()">← Quay lại</a>
+  </div>
+
+<script>
+const HOST = '{host}';
+const VERIFY_ID = {verify_id};
+let currentTab = '{default_tab}';
+let qrScanner = null;
+let aiStream = null;
+let cameraStarted = false;
+
+function switchTab(tab) {{
+  currentTab = tab;
+  document.getElementById('panelQR').classList.toggle('hidden', tab !== 'qr');
+  document.getElementById('panelAI').classList.toggle('hidden', tab !== 'ai');
+  document.getElementById('tabQR').classList.toggle('active', tab === 'qr');
+  document.getElementById('tabAI').classList.toggle('active', tab === 'ai');
+  if (tab === 'qr') {{ stopAICamera(); startQR(); }}
+  if (tab === 'ai') {{ stopQR(); startAICamera(); }}
+}}
+
+function startQR() {{
+  if (qrScanner) return;
+  try {{
+    qrScanner = new Html5Qrcode('qr-reader');
+    qrScanner.start(
       {{ facingMode: 'environment' }},
-      {{ fps:10, qrbox:{{ width:240, height:240 }} }},
+      {{ fps:10, qrbox:{{ width:220, height:220 }} }},
       (decoded) => {{
-        document.getElementById('scan-status').innerHTML =
+        document.getElementById('qr-status').innerHTML =
           '<span style="color:#10b981;font-weight:700;">✅ Đã scan! Đang chuyển...</span>';
-        scanner.stop().then(() => {{
+        qrScanner.stop().then(() => {{
+          qrScanner = null;
           window.location.href = decoded.startsWith('http') ? decoded
-            : '{host}/api/ai/device-info/' + decoded;
+            : HOST + '/api/ai/device-info/' + decoded;
         }});
       }},
-      (_err) => {{}}
+      () => {{}}
     ).then(() => {{
-      document.getElementById('scan-status').textContent =
-        'Hướng camera vào mã QR trên thiết bị';
-    }}).catch(err => {{
-      document.getElementById('scan-status').innerHTML =
-        '<span style="color:#f87171;">❌ Không truy cập camera. Cho phép quyền camera rồi thử lại.</span>';
+      document.getElementById('qr-status').textContent = 'Hướng camera vào mã QR trên thiết bị';
+    }}).catch(() => {{
+      document.getElementById('qr-status').innerHTML =
+        '<span style="color:#f87171;">❌ Không truy cập camera</span>';
     }});
-  </script>
+  }} catch(e) {{ console.error(e); }}
+}}
+
+function stopQR() {{
+  if (qrScanner) {{ qrScanner.stop().catch(() => {{}}); qrScanner = null; }}
+}}
+
+function startAICamera() {{
+  if (cameraStarted) return;
+  const video = document.getElementById('aiVideo');
+  const status = document.getElementById('ai-status');
+  status.innerHTML = '<span style="color:#f59e0b;">📷 Đang mở camera...</span>';
+  navigator.mediaDevices.getUserMedia({{
+    video: {{ facingMode: 'environment', width: {{ ideal:1280 }}, height: {{ ideal:720 }} }}
+  }}).then(stream => {{
+    aiStream = stream; video.srcObject = stream; cameraStarted = true;
+    status.innerHTML = '<span style="color:#22c55e;">✅ Sẵn sàng — Hướng vào thiết bị rồi nhấn Chụp</span>';
+  }}).catch(err => {{
+    status.innerHTML = '<span style="color:#f87171;">❌ ' + err.message + '</span>';
+  }});
+}}
+
+function stopAICamera() {{
+  if (aiStream) {{
+    aiStream.getTracks().forEach(t => t.stop());
+    aiStream = null; cameraStarted = false;
+    document.getElementById('aiVideo').srcObject = null;
+  }}
+}}
+
+async function handleCapture() {{
+  const video = document.getElementById('aiVideo');
+  const canvas = document.getElementById('aiCanvas');
+  const btn = document.getElementById('captureBtn');
+  const result = document.getElementById('aiResult');
+
+  if (!cameraStarted) {{ startAICamera(); return; }}
+
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const base64 = canvas.toDataURL('image/jpeg', 0.85);
+
+  btn.disabled = true;
+  btn.innerHTML = '🤖 AI đang phân tích...';
+  result.innerHTML = `<div style="text-align:center;padding:20px;margin-top:12px;background:#1e1b4b;border-radius:14px;border:1.5px solid #4c1d95;">
+    <div style="font-size:1.8rem;">🤖</div>
+    <div style="color:#a78bfa;font-weight:700;font-size:0.85rem;margin-top:4px;">
+      ${{VERIFY_ID ? 'AI đang xác minh thiết bị...' : 'AI Gemini Vision đang nhận diện...'}}
+    </div><div class="loading-bar"><div></div></div></div>`;
+
+  try {{
+    let data;
+    if (VERIFY_ID) {{
+      const r = await fetch(HOST + '/api/ai/verify-device', {{
+        method:'POST', headers:{{'Content-Type':'application/json'}},
+        body: JSON.stringify({{ image_base64:base64, device_id:VERIFY_ID, image_mime:'image/jpeg' }})
+      }});
+      data = await r.json();
+      showVerifyResult(data);
+    }} else {{
+      const r = await fetch(HOST + '/api/ai/scan-image', {{
+        method:'POST', headers:{{'Content-Type':'application/json'}},
+        body: JSON.stringify({{ image_base64:base64, image_mime:'image/jpeg' }})
+      }});
+      data = await r.json();
+      showScanResult(data);
+    }}
+  }} catch(err) {{
+    result.innerHTML = '<div class="result-card result-mismatch"><div style="font-weight:700;color:#dc2626;">❌ ' + err.message + '</div></div>';
+  }}
+  btn.disabled = false;
+  btn.innerHTML = '📸 Chụp & AI Phân tích';
+}}
+
+function showVerifyResult(data) {{
+  const result = document.getElementById('aiResult');
+  if (!data.success) {{ result.innerHTML = '<div class="result-card result-mismatch"><div style="font-weight:700;color:#dc2626;">❌ '+data.error+'</div></div>'; return; }}
+  const ok = data.match === true;
+  const pct = Math.round((data.confidence||0)*100);
+  result.innerHTML = `
+    <div class="result-card ${{ok?'result-match':'result-mismatch'}}">
+      <div style="text-align:center;">
+        <div style="font-size:2.2rem;">${{ok?'✅':'❌'}}</div>
+        <div style="font-weight:800;color:${{ok?'#16a34a':'#dc2626'}};font-size:0.95rem;">${{ok?'THIẾT BỊ KHỚP':'KHÔNG KHỚP — QR CÓ THỂ BỊ TRÁO'}}</div>
+        <div style="font-size:0.75rem;color:#6b7280;">Độ tin cậy: <strong style="color:${{ok?'#16a34a':'#dc2626'}}">${{pct}}%</strong></div>
+      </div>
+      <div class="result-grid">
+        <div><span class="lbl">AI nhận diện</span><span class="val">${{data.detected_device||'—'}}</span></div>
+        <div><span class="lbl">Hãng</span><span class="val">${{data.detected_brand||'—'}}</span></div>
+        <div><span class="lbl">Model</span><span class="val">${{data.detected_model||'—'}}</span></div>
+        <div><span class="lbl">Loại</span><span class="val">${{data.detected_type||'—'}}</span></div>
+      </div>
+      <div style="margin-top:8px;padding:10px;background:white;border-radius:8px;font-size:0.76rem;">
+        <div style="color:#6b7280;font-size:0.65rem;">💬 AI nhận xét:</div>
+        <div style="color:#374151;line-height:1.5;">${{data.reason||''}}</div>
+      </div>
+      <div class="action-btns">
+        <a href="${{HOST}}/api/ai/device-info/${{VERIFY_ID}}" class="btn-view">📋 Xem thiết bị</a>
+        <button onclick="handleCapture()" class="btn-retry">🔄 Chụp lại</button>
+      </div>
+    </div>`;
+}}
+
+function showScanResult(data) {{
+  const result = document.getElementById('aiResult');
+  if (!data.success) {{ result.innerHTML = '<div class="result-card result-mismatch"><div style="font-weight:700;color:#dc2626;">❌ '+(data.error||'Không nhận diện được')+'</div></div>'; return; }}
+  const scan = data.scan_result || {{}};
+  const m = data.matched_device;
+  const conf = Math.round((data.match_confidence||scan.confidence||0)*100);
+  let acts = '';
+  if (m) {{
+    acts = `<div class="action-btns">
+      <a href="${{HOST}}/api/ai/device-info/${{m.id}}" class="btn-view">📋 Xem</a>
+      <a href="${{HOST}}/api/ai/report-form?device_id=${{m.id}}&device_name=${{encodeURIComponent(m.name||'')}}" class="btn-report">🚨 Báo hỏng</a>
+    </div>`;
+  }}
+  result.innerHTML = `
+    <div class="result-card result-info">
+      <div style="text-align:center;">
+        <div style="font-size:2rem;">🤖</div>
+        <div style="font-weight:800;color:#1d4ed8;font-size:0.95rem;">${{m ? m.name : (scan.device_name||'Không xác định')}}</div>
+        <div style="font-size:0.75rem;color:#6b7280;">Confidence: <strong>${{conf}}%</strong></div>
+      </div>
+      <div class="result-grid">
+        <div><span class="lbl">Hãng SX</span><span class="val">${{scan.brand||'—'}}</span></div>
+        <div><span class="lbl">Model</span><span class="val">${{scan.model||'—'}}</span></div>
+        <div><span class="lbl">Loại</span><span class="val">${{scan.device_type||'—'}}</span></div>
+        <div><span class="lbl">Tình trạng</span><span class="val">${{scan.condition||'—'}}</span></div>
+      </div>
+      ${{m ? '<div style="margin-top:6px;padding:8px;background:#f0fdf4;border-radius:8px;font-size:0.72rem;color:#16a34a;">✅ Khớp DB: '+m.name+' ('+m.code+') — '+m.room+'</div>' : '<div style="margin-top:6px;padding:8px;background:#fffbeb;border-radius:8px;font-size:0.72rem;color:#d97706;">⚠️ Không tìm thấy thiết bị khớp trong hệ thống</div>'}}
+      ${{acts}}
+      <div class="action-btns" style="margin-top:4px;">
+        <button onclick="handleCapture()" class="btn-retry">🔄 Chụp lại</button>
+      </div>
+    </div>`;
+}}
+
+switchTab(currentTab);
+</script>
 </body>
 </html>'''
     resp = make_response(html)
