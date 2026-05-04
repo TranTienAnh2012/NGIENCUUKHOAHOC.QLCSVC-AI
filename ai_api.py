@@ -1161,12 +1161,17 @@ def get_device_qr(device_id):
     QR ma hoa URL /api/ai/device-info/<id> - co dinh vinh vien theo device_id.
     Cach dung: <img src="/api/ai/device-qr/1"> de nhung truc tiep vao HTML.
     """
-    if not QR_AVAILABLE:
-        return jsonify({'error': 'Cai qrcode: pip install qrcode[pil]'}), 500
-
-    # URL ben trong QR: trang thong tin thiet bi thoi gian thuc
+    # URL ben trong QR
     host = request.host_url.rstrip('/')
     device_info_url = f"{host}/api/ai/device-info/{device_id}"
+
+    if not QR_AVAILABLE:
+        # Fallback: dùng API online tạo QR nếu chưa cài thư viện
+        from flask import redirect
+        import urllib.parse
+        return redirect(f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={urllib.parse.quote(device_info_url)}")
+
+
 
     qr = qrcode.QRCode(
         version=1,
