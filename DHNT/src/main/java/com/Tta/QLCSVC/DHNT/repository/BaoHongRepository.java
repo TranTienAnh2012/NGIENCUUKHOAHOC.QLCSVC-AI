@@ -12,7 +12,8 @@ public interface BaoHongRepository extends JpaRepository<BaoHong, Long> {
 
     List<BaoHong> findByThietBiId(Long thietBiId);
 
-    List<BaoHong> findByNguoiBaoId(Long nguoiBaoId);
+    @Query("SELECT b FROM BaoHong b LEFT JOIN FETCH b.thietBi WHERE b.nguoiBao.id = :nguoiBaoId")
+    List<BaoHong> findByNguoiBaoId(@org.springframework.data.repository.query.Param("nguoiBaoId") Long nguoiBaoId);
 
     List<BaoHong> findByTrangThai(BaoHong.TrangThaiBaoHong trangThai);
 

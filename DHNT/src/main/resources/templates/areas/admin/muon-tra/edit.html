@@ -51,8 +51,67 @@
         </div>
     </div>
     <th:block layout:fragment="scripts">
-        <script
-            th:inline="javascript">const id =/*[[${id}]]*/0; document.addEventListener('DOMContentLoaded', () => { loadData(); lucide.createIcons(); }); function loadData() { fetch(`/api/admin/muon-tra/${id}`).then(r => r.json()).then(data => { if (data.success) { const item = data.data; document.getElementById('trangThai').value = item.trangThai; document.getElementById('ngayTra').value = item.ngayTra || ''; document.getElementById('ghiChu').value = item.ghiChu || ''; document.getElementById('loadingState').style.display = 'none'; document.getElementById('editForm').style.display = 'block'; } else { alert('Không tìm thấy'); window.location.href = '/admin/muon-tra'; } }).catch(e => { console.error('Error:', e); alert('Có lỗi xảy ra'); }); } document.getElementById('editForm').addEventListener('submit', function (e) { e.preventDefault(); const data = { trangThai: document.getElementById('trangThai').value, ngayTra: document.getElementById('ngayTra').value || null, ghiChu: document.getElementById('ghiChu').value }; fetch(`/api/admin/muon-tra/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()).then(data => { if (data.success) { alert('Cập nhật thành công!'); window.location.href = '/admin/muon-tra'; } else { alert('Lỗi: ' + (data.message || 'Không thể cập nhật')); } }).catch(e => { console.error('Error:', e); alert('Có lỗi xảy ra'); }); });</script>
+        <script th:inline="javascript">
+            const id = /*[[${id}]]*/ 0;
+            document.addEventListener('DOMContentLoaded', () => {
+                loadData();
+                lucide.createIcons();
+            });
+
+            function loadData() {
+                fetch(`/api/admin/muon-tra/${id}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            const item = data.data;
+                            document.getElementById('trangThai').value = item.trangThai;
+                            // ngayTraThucTe: có thể là ISO string "2026-01-29T..." hoặc array [y,m,d,...]
+                            if (item.ngayTraThucTe) {
+                                const dt = item.ngayTraThucTe;
+                                if (typeof dt === 'string') {
+                                    document.getElementById('ngayTra').value = dt.substring(0, 10);
+                                } else if (Array.isArray(dt)) {
+                                    document.getElementById('ngayTra').value = `${dt[0]}-${String(dt[1]).padStart(2, '0')}-${String(dt[2]).padStart(2, '0')}`;
+                                }
+                            }
+                            document.getElementById('ghiChu').value = item.ghiChu || '';
+                            document.getElementById('loadingState').style.display = 'none';
+                            document.getElementById('editForm').style.display = 'block';
+                        } else {
+                            alert('Không tìm thấy');
+                            window.location.href = '/admin/muon-tra';
+                        }
+                    })
+                    .catch(e => { console.error('Error:', e); alert('Có lỗi xảy ra'); });
+            }
+
+            document.getElementById('editForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const trangThai = document.getElementById('trangThai').value;
+                const ngayTraStr = document.getElementById('ngayTra').value;
+                // Gửi ngayTraThucTe theo đúng field name của entity
+                const data = {
+                    trangThai: trangThai,
+                    ngayTraThucTe: ngayTraStr ? ngayTraStr + 'T00:00:00' : null,
+                    ghiChu: document.getElementById('ghiChu').value
+                };
+                fetch(`/api/admin/muon-tra/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Cập nhật thành công!');
+                            window.location.href = '/admin/muon-tra';
+                        } else {
+                            alert('Lỗi: ' + (data.message || 'Không thể cập nhật'));
+                        }
+                    })
+                    .catch(e => { console.error('Error:', e); alert('Có lỗi xảy ra'); });
+            });
+        </script>
     </th:block>
 </body>
 

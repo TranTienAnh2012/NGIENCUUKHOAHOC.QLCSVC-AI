@@ -26,51 +26,147 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" th:href="@{/css/index.css}">
-    <link rel="stylesheet" th:href="@{/css/giaovien.css}">
+    <link rel="stylesheet" th:href="@{/css/index.css(v=2)}">
+    <link rel="stylesheet" th:href="@{/css/giaovien.css(v=2)}">
     <!-- AI Chatbot Widget CSS -->
     <link rel="stylesheet" th:href="@{/css/chatbot-widget.css}">
 </head>
 
 
 <body class="giaovien-theme">
-    <div class="dashboard-container-modern">
-        <!-- Sidebar - Using Fragment -->
-        <div th:replace="~{layout/giaovien-sidebar :: sidebar}"></div>
-
-        <!-- Main Content -->
-        <main class="main-content-modern">
-            <!-- Topbar -->
-            <header class="topbar-modern giaovien-topbar">
-                <div class="page-info-modern">
-                    <h3 th:text="${title}">Dashboard</h3>
-                    <p class="page-subtitle" th:if="${subtitle != null}" th:text="${subtitle}"></p>
+    <!-- Top Navigation Bar -->
+    <nav class="lms-topbar">
+        <div class="lms-topbar-container">
+            <!-- Logo -->
+            <div class="lms-logo">
+                <div class="logo-icon">
+                    <i data-lucide="graduation-cap"></i>
                 </div>
-                <div class="user-menu-modern">
-                    <div class="user-info">
-                        <div class="user-avatar giaovien-avatar">
-                            <i data-lucide="user"></i>
+                <span class="logo-text">QLCSVC-AI</span>
+            </div>
+
+            <!-- Navigation Menu -->
+            <div class="lms-nav-menu">
+                <a href="/giao-vien" class="lms-nav-link">
+                    <i data-lucide="home"></i>
+                    <span>Trang chủ</span>
+                </a>
+                <a href="/giao-vien/thiet-bi" class="lms-nav-link">
+                    <i data-lucide="monitor"></i>
+                    <span>Thiết bị</span>
+                </a>
+                <a href="/giao-vien/muon-tra" class="lms-nav-link">
+                    <i data-lucide="package"></i>
+                    <span>Mượn học</span>
+                </a>
+                <a href="/giao-vien/bao-hong" class="lms-nav-link">
+                    <i data-lucide="alert-circle"></i>
+                    <span>Báo hỏng</span>
+                </a>
+            </div>
+
+            <!-- Right Side Actions -->
+            <div class="lms-topbar-actions">
+                <!-- Language Selector -->
+                <div class="lms-dropdown">
+                    <button class="lms-action-btn" title="Ngôn ngữ">
+                        Gần đây
+                        <i data-lucide="chevron-down"></i>
+                    </button>
+                </div>
+
+                <!-- Notifications -->
+                <div class="lms-notification-menu position-relative">
+                    <button class="lms-action-btn lms-icon-btn" title="Thông báo" id="notificationBtn">
+                        <i data-lucide="bell"></i>
+                        <span id="notif-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.6rem;">
+                            0
+                        </span>
+                    </button>
+                    <div class="lms-notification-dropdown" id="notificationDropdown" style="display: none;">
+                        <div class="notif-header">
+                            <span>Thông báo</span>
+                            <a href="#" id="markAllRead">Đánh dấu đã đọc</a>
                         </div>
-                        <div class="user-details">
-                            <span class="user-name" sec:authentication="name">Username</span>
-                            <span class="user-role">Giáo viên</span>
+                        <div class="notif-list" id="notif-list">
+                            <div class="notif-empty">Không có thông báo mới</div>
+                        </div>
+                        <div class="notif-footer">
+                            <a href="/giao-vien/thong-bao">Xem tất cả</a>
                         </div>
                     </div>
-                    <form th:action="@{/logout}" method="post" style="margin: 0;">
-                        <button type="submit" class="btn-logout" title="Đăng xuất">
-                            <i data-lucide="log-out"></i>
-                        </button>
-                    </form>
                 </div>
-            </header>
 
-            <div class="content-wrapper-modern">
-                <!-- Content from child pages will be inserted here -->
-                <div layout:fragment="content">
-                    <!-- Default content if no child page -->
+                <!-- Messages -->
+                <button class="lms-action-btn lms-icon-btn" title="Tin nhắn">
+                    <i data-lucide="message-square"></i>
+                </button>
+
+                <!-- User Menu -->
+                <div class="lms-user-menu">
+                    <input type="hidden" id="currentUserId" th:value="${#authentication.principal != 'anonymousUser' ? #authentication.principal.id : ''}">
+                    <a href="/giao-vien/profile" class="lms-user-avatar"
+                        style="text-decoration: none; cursor: pointer;">
+                        <i data-lucide="user"></i>
+                    </a>
+                    <div class="lms-user-dropdown">
+                        <button class="lms-dropdown-toggle">
+                            <i data-lucide="chevron-down"></i>
+                        </button>
+                        <div class="lms-dropdown-menu">
+                            <a href="/giao-vien/profile" class="lms-dropdown-item">
+                                <i data-lucide="user"></i>
+                                Hồ sơ
+                            </a>
+                            <a href="/giao-vien/settings" class="lms-dropdown-item">
+                                <i data-lucide="settings"></i>
+                                Cài đặt
+                            </a>
+                            <div class="lms-dropdown-divider"></div>
+                            <form th:action="@{/logout}" method="post" style="margin: 0;">
+                                <button type="submit" class="lms-dropdown-item">
+                                    <i data-lucide="log-out"></i>
+                                    Đăng xuất
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Debug User ID (Hidden) -->
+                <span id="debugUserId" style="display:none;" th:text="${#authentication.principal.getClass().name == 'com.Tta.QLCSVC.DHNT.security.CustomUserDetails' ? 'ID:' + #authentication.principal.user.id : 'ID:Unknown'}"></span>
+
+                <!-- Settings -->
+                <button class="lms-action-btn lms-icon-btn" title="Cài đặt">
+                    <i data-lucide="settings"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="lms-main-container">
+        <div class="lms-content-wrapper">
+            <!-- Content from child pages will be inserted here -->
+            <div layout:fragment="content">
+                <!-- Default content if no child page -->
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="lms-footer">
+            <div class="lms-footer-container">
+                <div class="lms-footer-left">
+                    <p>Copyright 2021. All rights reserved.</p>
+                </div>
+                <div class="lms-footer-right">
+                    <a href="#" class="lms-footer-link">Quick links</a>
+                    <a href="#" class="lms-footer-link">Site map</a>
+                    <a href="#" class="lms-footer-link">Contact</a>
+                    <a href="#" class="lms-footer-link">Help</a>
                 </div>
             </div>
-        </main>
+        </footer>
     </div>
 
     <!-- AI Chatbot Widget -->
@@ -83,21 +179,127 @@
     <script>
         lucide.createIcons();
 
-        // Active link highlighting
+        // Active link highlighting for LMS navigation
         document.addEventListener('DOMContentLoaded', function () {
             const currentPath = window.location.pathname;
-            const navLinks = document.querySelectorAll('.nav-link-modern');
+            const navLinks = document.querySelectorAll('.lms-nav-link');
 
             navLinks.forEach(link => {
-                if (link.getAttribute('href') === currentPath) {
+                const href = link.getAttribute('href');
+                if (href === currentPath || currentPath.startsWith(href + '/')) {
                     link.classList.add('active');
                 }
             });
+
+            // Reinitialize icons after DOM is ready
+            setTimeout(() => {
+                lucide.createIcons();
+            }, 100);
+
+            // Notification Logic
+            const notificationBtn = document.getElementById('notificationBtn');
+            const notificationDropdown = document.getElementById('notificationDropdown');
+            const notifBadge = document.getElementById('notif-badge');
+            const notifList = document.getElementById('notif-list');
+
+            // Giả định user_id có sẵn từ hidden input
+            const userId = document.getElementById('currentUserId')?.value;
+            console.log("Logged in User ID:", userId);
+            const debugEl = document.getElementById('debugUserId');
+            if (debugEl && userId) {
+                debugEl.innerText = "User ID: " + userId;
+                debugEl.style.display = 'inline-block';
+                debugEl.style.color = '#94a3b8';
+                debugEl.style.fontSize = '12px';
+                debugEl.style.marginRight = '10px';
+            }
+
+            function updateUnreadCount() {
+                if (!userId) {
+                    console.warn("No User ID found for notifications");
+                    return;
+                }
+                fetch(`/api/ai-data/notifications/${userId}/unread-count`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.count > 0) {
+                            notifBadge.innerText = data.count > 9 ? '9+' : data.count;
+                            notifBadge.style.display = 'block';
+                        } else {
+                            notifBadge.style.display = 'none';
+                        }
+                    });
+            }
+
+            function loadNotifications() {
+                if (!userId) return;
+                fetch(`/api/ai-data/notifications/${userId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && data.length > 0) {
+                            notifList.innerHTML = '';
+                            data.forEach(n => {
+                                const date = new Date(n.created_at).toLocaleString('vi-VN');
+                                const isUnread = !n.is_read;
+                                const item = document.createElement('div');
+                                item.className = `notif-item ${isUnread ? 'unread' : ''}`;
+                                item.innerHTML = `
+                                    <div class="notif-icon ${n.type === 'OVERDUE' ? 'overdue' : ''}">
+                                        <i data-lucide="${n.type === 'OVERDUE' ? 'alert-triangle' : 'bell'}"></i>
+                                    </div>
+                                    <div class="notif-content">
+                                        <div class="notif-title">${n.title}</div>
+                                        <div class="notif-body">${n.content}</div>
+                                        <div class="notif-time">${date}</div>
+                                    </div>
+                                `;
+                                notifList.appendChild(item);
+                            });
+                            lucide.createIcons();
+                        } else {
+                            notifList.innerHTML = '<div class="notif-empty">Không có thông báo mới</div>';
+                        }
+                    });
+            }
+
+            notificationBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isVisible = notificationDropdown.style.display === 'block';
+                notificationDropdown.style.display = isVisible ? 'none' : 'block';
+                if (!isVisible) loadNotifications();
+            });
+
+            document.addEventListener('click', () => {
+                notificationDropdown.style.display = 'none';
+            });
+
+            notificationDropdown.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            document.getElementById('markAllRead').addEventListener('click', (e) => {
+                e.preventDefault();
+                if (!userId) return;
+                fetch(`/api/ai-data/notifications/${userId}/mark-read`, { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            updateUnreadCount();
+                            loadNotifications();
+                        }
+                    });
+            });
+
+            // Initial load
+            updateUnreadCount();
+            // Polling every 5 minutes
+            setInterval(updateUnreadCount, 300000);
         });
     </script>
 
     <!-- AI Chatbot Widget JS -->
-    <script th:src="@{/js/chatbot-widget.js}"></script>
+    <script>window.CHATBOT_USER_ROLE = 'GIAO_VIEN';</script>
+    <script th:src="@{/js/chatbot-widget.js(v=3)}"></script>
 
     <!-- Page specific scripts -->
     <th:block layout:fragment="scripts">

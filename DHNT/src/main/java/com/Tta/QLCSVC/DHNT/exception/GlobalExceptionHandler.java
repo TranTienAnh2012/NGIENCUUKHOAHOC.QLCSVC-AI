@@ -9,6 +9,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -66,8 +67,20 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("Validation failed"));
     }
 
+    /**
+     * Không bắt NoResourceFoundException ở đây.
+     * Ném lại để Spring chuyển về /error → CustomErrorController render trang 404
+     * HTML.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public void handleNoResourceFoundException(NoResourceFoundException ex)
+            throws NoResourceFoundException {
+        throw ex; // Delegate to CustomErrorController for HTML 404 page
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGlobalException(Exception ex) {
+        // Không xử lý NoResourceFoundException (đã có handler riêng ở trên)
         ex.printStackTrace();
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)

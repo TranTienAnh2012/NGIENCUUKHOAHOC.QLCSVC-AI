@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,9 +25,34 @@ public class GiaoVienBaoHongService {
     private final ThietBiRepository thietBiRepository;
     private final NguoiDungRepository nguoiDungRepository;
 
+    @Transactional(readOnly = true)
     public List<BaoHong> getMyReports() {
         NguoiDung currentUser = getCurrentUser();
         return baoHongRepository.findByNguoiBaoId(currentUser.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public long getMyReportCount() {
+        NguoiDung currentUser = getCurrentUser();
+        return baoHongRepository.findByNguoiBaoId(currentUser.getId()).size();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BaoHong> getMyRecentReports(int limit) {
+        NguoiDung currentUser = getCurrentUser();
+        List<BaoHong> all = baoHongRepository.findByNguoiBaoId(currentUser.getId());
+        all.forEach(bh -> {
+            if (bh.getThietBi() != null)
+                bh.getThietBi().getTenThietBi();
+        });
+        return all.stream()
+                .sorted((a, b) -> {
+                    LocalDateTime aTime = a.getCreatedAt() != null ? a.getCreatedAt() : a.getNgayBao();
+                    LocalDateTime bTime = b.getCreatedAt() != null ? b.getCreatedAt() : b.getNgayBao();
+                    return bTime.compareTo(aTime);
+                })
+                .limit(limit)
+                .collect(Collectors.toList());
     }
 
     @Transactional

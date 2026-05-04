@@ -79,7 +79,8 @@
     </script>
 
     <!-- AI Chatbot Widget JS -->
-    <script th:src="@{/js/chatbot-widget.js}"></script>
+    <script>window.CHATBOT_USER_ROLE = 'ADMIN';</script>
+    <script th:src="@{/js/chatbot-widget.js(v=3)}"></script>
 
     <!-- Page specific scripts -->
     <th:block layout:fragment="scripts">

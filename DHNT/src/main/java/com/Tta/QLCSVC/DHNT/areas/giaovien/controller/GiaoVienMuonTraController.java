@@ -36,8 +36,9 @@ public class GiaoVienMuonTraController {
     @Operation(summary = "Mượn thiết bị", description = "Tạo phiếu mượn thiết bị")
     public ResponseEntity<ApiResponse<MuonTraThietBi>> borrowEquipment(
             @RequestParam Long thietBiId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime ngayTraDuKien) {
-        MuonTraThietBi muonTra = giaoVienMuonTraService.borrowEquipment(thietBiId, ngayTraDuKien);
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime ngayTraDuKien,
+            @RequestParam(required = false) String ghiChu) {
+        MuonTraThietBi muonTra = giaoVienMuonTraService.borrowEquipment(thietBiId, ngayTraDuKien, ghiChu);
         return ResponseEntity.ok(ApiResponse.success("Mượn thiết bị thành công", muonTra));
     }
 

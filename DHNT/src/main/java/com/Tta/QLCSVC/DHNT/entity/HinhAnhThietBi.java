@@ -1,16 +1,14 @@
 package com.Tta.QLCSVC.DHNT.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 
 @Entity
 @Table(name = "hinh_anh_thiet_bi")
@@ -26,21 +24,22 @@ public class HinhAnhThietBi {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "thiet_bi_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler", "hinhAnhs", "baoHongs", "muonTras" })
     private ThietBi thietBi;
 
     @Column(name = "url_hinh_anh", nullable = false, length = 500)
     private String urlHinhAnh;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "loai_hinh_anh")
+    @Column(name = "loai_hinh_anh", columnDefinition = "VARCHAR(50)")
     private LoaiHinhAnh loaiHinhAnh;
 
-    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "danh_gia_ai", columnDefinition = "JSON")
-    private Map<String, Object> danhGiaAi;
+    private String danhGiaAi;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "nguoi_chup_id")
+    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler", "password" })
     private NguoiDung nguoiChup;
 
     @Column(name = "ngay_chup")
@@ -54,9 +53,8 @@ public class HinhAnhThietBi {
     }
 
     public enum LoaiHinhAnh {
-        QR_CODE,
-        KIEM_TRA_TINH_TRANG,
-        BAO_HONG,
-        MUON_TRA
+        QR_CODE, // Mã QR để nhận diện thiết bị
+        HINH_ANH_CHINH, // Hình ảnh đại diện chính của thiết bị
+        KIEM_TRA_TINH_TRANG // Hình ảnh kiểm tra tình trạng thiết bị
     }
 }

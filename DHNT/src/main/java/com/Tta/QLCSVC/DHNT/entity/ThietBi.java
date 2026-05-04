@@ -62,6 +62,9 @@ public class ThietBi {
     @Column(name = "ghi_chu", columnDefinition = "TEXT")
     private String ghiChu;
 
+    @Column(name = "hinh_anh_chinh", length = 500)
+    private String hinhAnhChinh;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -207,6 +210,14 @@ public class ThietBi {
 
     public void setGhiChu(String ghiChu) {
         this.ghiChu = ghiChu;
+    }
+
+    public String getHinhAnhChinh() {
+        return hinhAnhChinh;
+    }
+
+    public void setHinhAnhChinh(String hinhAnhChinh) {
+        this.hinhAnhChinh = hinhAnhChinh;
     }
 
     public LocalDateTime getCreatedAt() {

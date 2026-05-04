@@ -35,7 +35,11 @@
     // State
     let isOpen = false;
     let conversationHistory = [];
-    let userRole = 'ADMIN'; // Default, will be set from HTML
+    let userRole = 'ADMIN';
+    let userId = 'anonymous';
+    let userName = '';
+    let userEmail = '';
+    let sessionId = '';
 
     /**
      * Initialize chatbot
@@ -56,10 +60,36 @@
             return;
         }
 
-        // Get user role from data attribute
-        const roleAttr = suggestionsContainer?.getAttribute('data-role');
-        if (roleAttr) {
-            userRole = roleAttr;
+        // Get user role: ưu tiên window.CHATBOT_USER_ROLE (inject từ layout server-side)
+        // Fallback về data-role attribute của suggestions-chips
+        if (window.CHATBOT_USER_ROLE) {
+            userRole = window.CHATBOT_USER_ROLE;
+        } else {
+            const roleAttr = suggestionsContainer?.getAttribute('data-role');
+            if (roleAttr) {
+                userRole = roleAttr;
+            }
+        }
+
+        // Get userId and userName from widget data attributes (injected by Thymeleaf)
+        const widgetEl = document.getElementById('ai-chatbot-widget');
+        if (widgetEl) {
+            if (widgetEl.getAttribute('data-user-id')) {
+                userId = widgetEl.getAttribute('data-user-id');
+            }
+            if (widgetEl.getAttribute('data-user-name')) {
+                userName = widgetEl.getAttribute('data-user-name');
+            }
+            if (widgetEl.getAttribute('data-user-email')) {
+                userEmail = widgetEl.getAttribute('data-user-email');
+            }
+        }
+
+        // Generate or restore sessionId (unique per browser tab session)
+        sessionId = sessionStorage.getItem('chatbot_session_id');
+        if (!sessionId) {
+            sessionId = 'sess-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            sessionStorage.setItem('chatbot_session_id', sessionId);
         }
 
         // Setup event listeners
@@ -196,9 +226,13 @@
             },
             body: JSON.stringify({
                 message: message,
+                user_id: userId,
+                session_id: sessionId,
                 context: {
                     user_role: userRole,
-                    conversation_history: conversationHistory.slice(-6) // Last 3 exchanges
+                    user_name: userName,
+                    user_email: userEmail,
+                    conversation_history: conversationHistory.slice(-6)
                 }
             })
         });
@@ -257,19 +291,28 @@
      * Format message content (convert line breaks, etc.)
      */
     function formatMessage(content) {
-        // Convert line breaks to <br>
+        // 1. Convert Markdown Images: ![alt](url) -> <img src="url" alt="alt" class="chatbot-image">
+        content = content.replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" class="chatbot-image" onerror="this.style.display=\'none\'">');
+
+        // 2. Convert Markdown Links: [text](url) -> <a href="url" class="chatbot-link" target="_self">$1</a>
+        // Note: target="_self" because these are internal app links
+        content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="chatbot-link">$1</a>');
+
+        // 3. Convert line breaks to <br>
         content = content.replace(/\n/g, '<br>');
 
-        // Convert **bold** to <strong>
+        // 4. Convert **bold** to <strong>
         content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-        // Convert bullet points
+        // 5. Convert bullet points
         content = content.replace(/^- (.+)$/gm, '<li>$1</li>');
         if (content.includes('<li>')) {
-            content = content.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+            // Wrap contiguous <li> in <ul>
+            // A bit simplified but works for standard bullet lists
+            content = content.replace(/(<li>.*?<\/li>)+/s, (match) => `<ul>${match}</ul>`);
         }
 
-        return `<p>${content}</p>`;
+        return `<div class="message-text">${content}</div>`;
     }
 
     /**

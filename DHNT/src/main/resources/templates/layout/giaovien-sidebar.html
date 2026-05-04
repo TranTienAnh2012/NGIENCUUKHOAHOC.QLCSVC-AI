@@ -16,8 +16,22 @@
             </div>
         </div>
 
+        <!-- User Profile Section -->
+        <div class="sidebar-user-profile">
+            <div class="user-profile-card">
+                <div class="user-profile-avatar">
+                    <i data-lucide="user"></i>
+                </div>
+                <div class="user-profile-info">
+                    <h4 class="user-profile-name" sec:authentication="name">Giáo viên</h4>
+                    <p class="user-profile-greeting">Chào buổi sáng! 👋</p>
+                </div>
+            </div>
+        </div>
+
         <nav class="sidebar-nav-modern">
             <ul>
+                <!-- Dashboard -->
                 <li class="nav-item">
                     <a th:href="@{/giao-vien}" class="nav-link-modern">
                         <div class="nav-icon">
@@ -28,8 +42,9 @@
                     </a>
                 </li>
 
+                <!-- My Tasks Section -->
                 <li class="nav-divider-modern">
-                    <span>Quản lý thiết bị</span>
+                    <span>Công việc của tôi</span>
                 </li>
 
                 <li class="nav-item">
@@ -58,12 +73,14 @@
                             <i data-lucide="alert-triangle"></i>
                         </div>
                         <span>Báo hỏng thiết bị</span>
+                        <span class="badge-count" style="display: none;">2</span>
                         <div class="nav-indicator"></div>
                     </a>
                 </li>
 
+                <!-- Equipment Section -->
                 <li class="nav-divider-modern">
-                    <span>Thông tin</span>
+                    <span>Thiết bị</span>
                 </li>
 
                 <li class="nav-item">
@@ -76,10 +93,15 @@
                     </a>
                 </li>
 
+                <!-- Settings Section -->
+                <li class="nav-divider-modern">
+                    <span>Cài đặt</span>
+                </li>
+
                 <li class="nav-item">
                     <a th:href="@{/giao-vien/profile}" class="nav-link-modern">
                         <div class="nav-icon">
-                            <i data-lucide="user"></i>
+                            <i data-lucide="user-circle"></i>
                         </div>
                         <span>Thông tin cá nhân</span>
                         <div class="nav-indicator"></div>
@@ -97,6 +119,14 @@
                         <span class="stat-value">0</span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Quick Help -->
+            <div class="sidebar-help" style="margin-top: 12px;">
+                <a href="#" class="help-link">
+                    <i data-lucide="help-circle"></i>
+                    <span>Trợ giúp</span>
+                </a>
             </div>
         </div>
     </aside>

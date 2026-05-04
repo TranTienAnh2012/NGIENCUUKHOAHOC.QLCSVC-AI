@@ -19,6 +19,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.http.ResponseEntity;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 
 @Controller
@@ -34,8 +40,29 @@ public class GiaoVienViewController {
 
     @GetMapping
     public String dashboard(Model model) {
-        model.addAttribute("title", "Giáo viên Dashboard");
-        return "areas/giaovien/dashboard";
+        model.addAttribute("title", "Trang chủ");
+
+        // Thống kê thật từ DB
+        long dangMuon = giaoVienMuonTraService.getMyActiveBorrowingsCount();
+        long lichSu = giaoVienMuonTraService.getMyTotalBorrowingsCount();
+        long baoHong = giaoVienBaoHongService.getMyReportCount();
+        long hoanThanh = giaoVienMuonTraService.getMyCompletedBorrowingsCount();
+
+        model.addAttribute("dangMuonCount", dangMuon);
+        model.addAttribute("lichSuCount", lichSu);
+        model.addAttribute("baoHongCount", baoHong);
+        model.addAttribute("hoanThanhCount", hoanThanh);
+
+        // Danh sách thiết bị đang mượn (tối đa 3)
+        model.addAttribute("activeBorrowings", giaoVienMuonTraService.getMyActiveBorrowings());
+
+        // Hoạt động gần đây (tối đa 5 lần mượn/trả gần nhất)
+        model.addAttribute("recentBorrowings", giaoVienMuonTraService.getMyRecentBorrowings(5));
+
+        // Báo hỏng gần đây (tối đa 3)
+        model.addAttribute("recentReports", giaoVienBaoHongService.getMyRecentReports(3));
+
+        return "areas/giaovien/TrangChu";
     }
 
     @GetMapping("/thiet-bi")
@@ -44,6 +71,14 @@ public class GiaoVienViewController {
         List<ThietBi> thietBis = giaoVienThietBiService.getAllAvailableThietBi();
         model.addAttribute("thietBis", thietBis);
         return "areas/giaovien/DSThietBi/list";
+    }
+
+    @GetMapping("/thiet-bi/{id}")
+    public String getThietBiDetail(@PathVariable Long id, Model model) {
+        ThietBi thietBi = giaoVienThietBiService.getThietBiById(id);
+        model.addAttribute("title", "Chi tiết thiết bị: " + thietBi.getTenThietBi());
+        model.addAttribute("tb", thietBi);
+        return "areas/giaovien/DSThietBi/detail";
     }
 
     @GetMapping("/profile")
@@ -110,16 +145,35 @@ public class GiaoVienViewController {
             RedirectAttributes redirectAttributes) {
         try {
             java.time.LocalDateTime ngayTra = java.time.LocalDate.parse(ngayTraDuKien).atStartOfDay();
-            MuonTraThietBi muonTra = giaoVienMuonTraService.borrowEquipment(thietBiId, ngayTra);
-            if (ghiChu != null && !ghiChu.trim().isEmpty()) {
-                muonTra.setGhiChu(ghiChu);
-            }
+            giaoVienMuonTraService.borrowEquipment(thietBiId, ngayTra, ghiChu);
             redirectAttributes.addFlashAttribute("success", "Mượn thiết bị thành công!");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
             return "redirect:/giao-vien/muon-tra/create";
         }
         return "redirect:/giao-vien/muon-tra";
+    }
+
+    @PostMapping("/api/muon-tra/create")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> createMuonTraApi(@RequestBody Map<String, Object> payload) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Long thietBiId = Long.valueOf(payload.get("thietBiId").toString());
+            String ngayTraDuKien = payload.get("ngayTraDuKien").toString();
+            String ghiChu = payload.get("ghiChu") != null ? payload.get("ghiChu").toString() : "";
+
+            java.time.LocalDateTime ngayTra = java.time.LocalDate.parse(ngayTraDuKien).atStartOfDay();
+            giaoVienMuonTraService.borrowEquipment(thietBiId, ngayTra, ghiChu);
+
+            response.put("success", true);
+            response.put("message", "Mượn thiết bị thành công!");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Có lỗi xảy ra: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 
     @PostMapping("/muon-tra/return/{id}")

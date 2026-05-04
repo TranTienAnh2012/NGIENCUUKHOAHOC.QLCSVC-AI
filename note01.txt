@@ -1,0 +1,8 @@
+note 1: bảng hình ảnh thiết bị và hình ảnh thiêys bị báo hỏng
+Phương án 1: Tách hoàn toàn ⭐ (Khuyến nghị)
+Cấu trúc:
+
+HinhAnhThietBi
+: Chỉ lưu hình ảnh THÔNG TIN thiết bị (QR_CODE, KIEM_TRA_TINH_TRANG)
+BaoHong.hinhAnhUrl: Giữ nguyên để lưu 1 hình báo hỏng đơn giản
+Hoặc tạo HinhAnhBaoHong: Nếu cần nhiều hình cho mỗi báo hỏng

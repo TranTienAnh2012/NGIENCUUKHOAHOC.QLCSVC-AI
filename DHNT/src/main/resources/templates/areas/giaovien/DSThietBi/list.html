@@ -42,130 +42,252 @@
             </div>
         </div>
 
-        <!-- Equipment Table -->
-        <div class="card-modern animate-in" style="animation-delay: 0.1s;">
-            <div class="card-header-modern">
-                <h3 class="card-title">
-                    <i data-lucide="monitor" style="width: 24px; height: 24px; margin-right: 8px;"></i>
-                    Thiết bị khả dụng
+        <!-- Equipment Cards Grid -->
+        <div class="animate-in" style="animation-delay: 0.1s;">
+            <!-- Header with count -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+                <h3
+                    style="font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 700; color: #0f172a; margin: 0;">
+                    Các thiết bị hiện tại
                 </h3>
                 <span id="totalCount" style="color: #64748b; font-size: 14px;">
                     Tổng: <strong th:text="${#lists.size(thietBis)}">0</strong> thiết bị
                 </span>
             </div>
 
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse;" id="equipmentTable">
-                    <thead>
-                        <tr style="border-bottom: 2px solid #f1f5f9; text-align: left;">
-                            <th
-                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                                Mã TB
-                            </th>
-                            <th
-                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                                Tên thiết bị
-                            </th>
-                            <th
-                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                                Loại
-                            </th>
-                            <th
-                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                                Phòng
-                            </th>
-                            <th
-                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                                Hãng
-                            </th>
-                            <th
-                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                                Trạng thái
-                            </th>
-                            <th
-                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;">
-                                Hành động
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="tb : ${thietBis}" th:data-status="${tb.trangThai}" th:data-name="${tb.tenThietBi}"
-                            th:data-code="${tb.maThietBi}" class="equipment-row"
-                            style="border-bottom: 1px solid #f1f5f9; transition: all 0.3s;">
-                            <td style="padding: 16px 12px;">
-                                <span style="font-family: 'Courier New', monospace; font-weight: 600; color: #3b82f6;"
-                                    th:text="${tb.maThietBi}">TB001</span>
-                            </td>
-                            <td style="padding: 16px 12px;">
-                                <div style="font-weight: 600; color: #0f172a; margin-bottom: 4px;"
-                                    th:text="${tb.tenThietBi}">
-                                    Máy chiếu Epson
-                                </div>
-                                <div style="font-size: 13px; color: #94a3b8;" th:text="${tb.model}">
-                                    Model: EB-X05
-                                </div>
-                            </td>
-                            <td style="padding: 16px 12px; color: #64748b;" th:text="${tb.loaiThietBi?.tenLoai}">
-                                Máy chiếu
-                            </td>
-                            <td style="padding: 16px 12px;">
-                                <span th:if="${tb.phong != null}"
-                                    style="background: #eff6ff; color: #1e40af; padding: 4px 10px; border-radius: 8px; font-size: 13px; font-weight: 600;"
-                                    th:text="${tb.phong.tenPhong}">
-                                    A101
-                                </span>
-                                <span th:if="${tb.phong == null}" style="color: #94a3b8; font-style: italic;">
-                                    Chưa phân phòng
-                                </span>
-                            </td>
-                            <td style="padding: 16px 12px; color: #64748b;" th:text="${tb.hangSanXuat ?: 'N/A'}">
-                                Epson
-                            </td>
-                            <td style="padding: 16px 12px;">
-                                <span th:if="${tb.trangThai.name() == 'TOT'}"
-                                    style="background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                                    <span
-                                        style="width: 6px; height: 6px; background: #16a34a; border-radius: 50%;"></span>
-                                    Tốt
-                                </span>
-                                <span th:if="${tb.trangThai.name() == 'BAO_TRI'}"
-                                    style="background: #fef3c7; color: #854d0e; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                                    <span
-                                        style="width: 6px; height: 6px; background: #f59e0b; border-radius: 50%;"></span>
-                                    Bảo trì
-                                </span>
-                                <span th:if="${tb.trangThai.name() == 'HONG'}"
-                                    style="background: #fee2e2; color: #991b1b; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                                    <span
-                                        style="width: 6px; height: 6px; background: #ef4444; border-radius: 50%;"></span>
-                                    Hỏng
-                                </span>
-                            </td>
-                            <td style="padding: 16px 12px; text-align: center;">
-                                <button onclick="viewDetails(this)" th:data-id="${tb.id}"
-                                    th:data-name="${tb.tenThietBi}"
-                                    style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
-                                    <i data-lucide="eye" style="width: 16px; height: 16px;"></i>
-                                    Chi tiết
-                                </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <!-- Equipment Grid -->
+            <div class="equipment-grid" id="equipmentGrid">
+                <div th:each="tb : ${thietBis}" th:data-status="${tb.trangThai}" th:data-name="${tb.tenThietBi}"
+                    th:data-code="${tb.maThietBi}" class="equipment-card equipment-row">
 
-                <!-- Empty State -->
-                <div id="emptyState" style="display: none; text-align: center; padding: 60px 20px;">
-                    <i data-lucide="inbox" style="width: 64px; height: 64px; color: #cbd5e1; margin-bottom: 16px;"></i>
-                    <h3 style="font-size: 18px; font-weight: 600; color: #64748b; margin: 0 0 8px 0;">
-                        Không tìm thấy thiết bị
-                    </h3>
-                    <p style="color: #94a3b8; margin: 0;">
-                        Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm
-                    </p>
+                    <!-- Card Image/Header -->
+                    <!-- Case 1: có hình ảnh thật -->
+                    <div th:if="${tb.hinhAnhChinh != null and !#strings.isEmpty(tb.hinhAnhChinh)}"
+                        class="equipment-card-image" style="padding: 0; overflow: hidden; background: #f1f5f9;">
+                        <img th:src="${tb.hinhAnhChinh}" th:alt="${tb.tenThietBi}"
+                            style="width: 100%; height: 100%; object-fit: cover; display: block;"
+                            onerror="this.parentElement.style.background='linear-gradient(135deg,#14b8a6,#06b6d4)';this.style.display='none';this.nextElementSibling.style.display='block';">
+                        <!-- fallback icon khi ảnh lỗi -->
+                        <i data-lucide="monitor"
+                            style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:1;"></i>
+
+                        <!-- Status Badge -->
+                        <div class="equipment-status-badge" th:classappend="${tb.trangThai.name() == 'TOT' ? 'available' :
+                                             tb.trangThai.name() == 'BAO_TRI' ? 'in-use' : 'damaged'}">
+                            <span th:if="${tb.trangThai.name() == 'TOT'}">Sẵn sàng</span>
+                            <span th:if="${tb.trangThai.name() == 'BAO_TRI'}">Bảo trì</span>
+                            <span th:if="${tb.trangThai.name() == 'HONG'}">Hỏng</span>
+                        </div>
+
+                        <!-- Category Badge -->
+                        <div
+                            style="position: absolute; top: 12px; left: 12px; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+                            <span th:text="${tb.loaiThietBi?.tenLoai ?: 'Thiết bị'}">Loại thiết bị</span>
+                        </div>
+                    </div>
+
+                    <!-- Case 2: không có hình ảnh → gradient màu + icon -->
+                    <div th:if="${tb.hinhAnhChinh == null or #strings.isEmpty(tb.hinhAnhChinh)}"
+                        class="equipment-card-image" th:style="${tb.trangThai.name() == 'TOT' ? 'background: linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%);' :
+                                    tb.trangThai.name() == 'BAO_TRI' ? 'background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);' :
+                                    'background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);'}">
+                        <!-- Decorative Pattern -->
+                        <div style="position: absolute; inset: 0; opacity: 0.1;">
+                            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <pattern id="pattern" x="0" y="0" width="40" height="40"
+                                        patternUnits="userSpaceOnUse">
+                                        <circle cx="20" cy="20" r="15" fill="white" opacity="0.3" />
+                                    </pattern>
+                                </defs>
+                                <rect width="100%" height="100%" fill="url(#pattern)" />
+                            </svg>
+                        </div>
+
+                        <!-- Equipment Icon -->
+                        <i data-lucide="monitor" style="position: relative; z-index: 1;"></i>
+
+                        <!-- Status Badge -->
+                        <div class="equipment-status-badge" th:classappend="${tb.trangThai.name() == 'TOT' ? 'available' :
+                                             tb.trangThai.name() == 'BAO_TRI' ? 'in-use' : 'damaged'}">
+                            <span th:if="${tb.trangThai.name() == 'TOT'}">Sẵn sàng</span>
+                            <span th:if="${tb.trangThai.name() == 'BAO_TRI'}">Bảo trì</span>
+                            <span th:if="${tb.trangThai.name() == 'HONG'}">Hỏng</span>
+                        </div>
+
+                        <!-- Category Badge -->
+                        <div
+                            style="position: absolute; top: 12px; left: 12px; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+                            <span th:text="${tb.loaiThietBi?.tenLoai ?: 'Thiết bị'}">Loại thiết bị</span>
+                        </div>
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="equipment-card-body">
+                        <h4 class="equipment-card-title" th:text="${tb.tenThietBi}">Máy chiếu Epson</h4>
+
+                        <div class="equipment-card-meta">
+                            <div class="equipment-meta-item">
+                                <i data-lucide="hash"></i>
+                                <span th:text="${tb.maThietBi}">TB001</span>
+                            </div>
+                            <div class="equipment-meta-item" th:if="${tb.phong != null}">
+                                <i data-lucide="map-pin"></i>
+                                <span th:text="${tb.phong.tenPhong}">Phòng A101</span>
+                            </div>
+                            <div class="equipment-meta-item" th:if="${tb.phong == null}">
+                                <i data-lucide="map-pin"></i>
+                                <span style="color: #94a3b8; font-style: italic;">Chưa phân phòng</span>
+                            </div>
+                            <div class="equipment-meta-item" th:if="${tb.hangSanXuat}">
+                                <i data-lucide="tag"></i>
+                                <span th:text="${tb.hangSanXuat}">Epson</span>
+                            </div>
+                        </div>
+
+                        <!-- Card Actions -->
+                        <div class="equipment-card-actions">
+                            <button onclick="viewDetails(this)" th:data-id="${tb.id}" th:data-name="${tb.tenThietBi}"
+                                class="btn-equipment btn-equipment-secondary">
+                                <i data-lucide="eye" style="width: 16px; height: 16px;"></i>
+                                Chi tiết
+                            </button>
+                            <button th:if="${tb.trangThai.name() == 'TOT'}" class="btn-equipment btn-equipment-primary"
+                                onclick="openBorrowModal(this)" th:data-id="${tb.id}" th:data-name="${tb.tenThietBi}">
+                                <i data-lucide="package" style="width: 16px; height: 16px;"></i>
+                                Mượn
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="empty-state-icon">
+                    <i data-lucide="inbox"></i>
+                </div>
+                <h3 class="empty-state-title">Không tìm thấy thiết bị</h3>
+                <p class="empty-state-description">
+                    Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm để xem thêm thiết bị
+                </p>
+            </div>
         </div>
+
+        <!-- Borrow Modal -->
+        <div id="borrowModal"
+            style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(15,23,42,0.55); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+            <div
+                style="background:#fff; border-radius:20px; width:100%; max-width:480px; margin:24px; box-shadow:0 24px 64px rgba(0,0,0,0.18); overflow:hidden; animation:slideUpModal 0.3s ease;">
+                <!-- Modal Header -->
+                <div
+                    style="background:linear-gradient(135deg,#14b8a6 0%,#06b6d4 100%); padding:24px 28px; display:flex; align-items:center; justify-content:space-between;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div
+                            style="width:40px; height:40px; background:rgba(255,255,255,0.2); border-radius:10px; display:flex; align-items:center; justify-content:center;">
+                            <i data-lucide="package" style="width:22px; height:22px; color:#fff;"></i>
+                        </div>
+                        <div>
+                            <h3
+                                style="font-family:'Outfit',sans-serif; font-size:18px; font-weight:700; color:#fff; margin:0;">
+                                Mượn thiết bị</h3>
+                            <p id="modalDeviceName"
+                                style="color:rgba(255,255,255,0.85); font-size:13px; margin:2px 0 0;">
+                            </p>
+                        </div>
+                    </div>
+                    <button onclick="closeBorrowModal()"
+                        style="background:rgba(255,255,255,0.2); border:none; color:#fff; width:36px; height:36px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s;">
+                        <i data-lucide="x" style="width:18px; height:18px;"></i>
+                    </button>
+                </div>
+
+                <!-- Modal Body -->
+                <form id="borrowForm" style="padding:28px;">
+                    <input type="hidden" name="thietBiId" id="modalThietBiId">
+
+                    <!-- Ngày trả dự kiến -->
+                    <div style="margin-bottom:20px;">
+                        <label
+                            style="display:block; font-weight:600; color:#334155; margin-bottom:8px; font-size:14px;">
+                            <i data-lucide="calendar"
+                                style="width:16px; height:16px; display:inline; vertical-align:middle; margin-right:4px;"></i>
+                            Ngày trả dự kiến <span style="color:#ef4444;">*</span>
+                        </label>
+                        <input type="date" name="ngayTraDuKien" id="modalNgayTra" required
+                            style="width:100%; padding:12px 16px; border:2px solid #e5e7eb; border-radius:12px; font-size:15px; transition:all 0.3s; box-sizing:border-box;"
+                            onfocus="this.style.borderColor='#14b8a6';this.style.boxShadow='0 0 0 3px rgba(20,184,166,0.12)';"
+                            onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';">
+                        <small style="color:#94a3b8; font-size:13px;">Chọn ngày bạn dự kiến trả thiết bị</small>
+                    </div>
+
+                    <!-- Ghi chú -->
+                    <div style="margin-bottom:24px;">
+                        <label
+                            style="display:block; font-weight:600; color:#334155; margin-bottom:8px; font-size:14px;">
+                            <i data-lucide="file-text"
+                                style="width:16px; height:16px; display:inline; vertical-align:middle; margin-right:4px;"></i>
+                            Ghi chú
+                        </label>
+                        <textarea name="ghiChu" id="modalGhiChu" rows="3"
+                            placeholder="Mục đích sử dụng, ghi chú thêm..."
+                            style="width:100%; padding:12px 16px; border:2px solid #e5e7eb; border-radius:12px; font-size:15px; transition:all 0.3s; resize:vertical; font-family:inherit; box-sizing:border-box;"
+                            onfocus="this.style.borderColor='#14b8a6';this.style.boxShadow='0 0 0 3px rgba(20,184,166,0.12)';"
+                            onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none';"></textarea>
+                        <small style="color:#94a3b8; font-size:13px;">Ghi chú về mục đích sử dụng (không bắt
+                            buộc)</small>
+                    </div>
+
+                    <!-- Alert Message -->
+                    <div id="borrowAlert"
+                        style="display:none; padding:12px 16px; border-radius:10px; margin-bottom:20px; font-size:14px;">
+                    </div>
+
+                    <!-- Lưu ý -->
+                    <div
+                        style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px 16px; margin-bottom:24px;">
+                        <p style="margin:0; font-size:13px; color:#166534;">
+                            <i data-lucide="info"
+                                style="width:14px; height:14px; display:inline; vertical-align:middle; margin-right:4px;"></i>
+                            Thiết bị cần được trả đúng hạn. Báo hỏng ngay nếu phát hiện vấn đề.
+                        </p>
+                    </div>
+
+                    <!-- Actions -->
+                    <div style="display:flex; gap:12px;">
+                        <button type="submit" id="submitBorrowBtn"
+                            style="flex:1; background:linear-gradient(135deg,#14b8a6 0%,#06b6d4 100%); color:#fff; border:none; padding:13px; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; transition:all 0.3s;"
+                            onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(20,184,166,0.35)';"
+                            onmouseleave="this.style.transform='';this.style.boxShadow='';">
+                            <i data-lucide="check"
+                                style="width:18px; height:18px; display:inline; vertical-align:middle; margin-right:6px;"></i>
+                            Xác nhận mượn
+                        </button>
+                        <button type="button" onclick="closeBorrowModal()"
+                            style="flex:1; background:#f1f5f9; color:#64748b; border:none; padding:13px; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; transition:all 0.3s;"
+                            onmouseenter="this.style.background='#e2e8f0';"
+                            onmouseleave="this.style.background='#f1f5f9';">Hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <style>
+            @keyframes slideUpModal {
+                from {
+                    opacity: 0;
+                    transform: translateY(24px) scale(0.97);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+        </style>
     </div>
+
+
 
     <th:block layout:fragment="scripts">
         <script>
@@ -174,79 +296,166 @@
             // Search and Filter functionality
             const searchInput = document.getElementById('searchInput');
             const filterStatus = document.getElementById('filterStatus');
-            const table = document.getElementById('equipmentTable');
-            const tbody = table.querySelector('tbody');
+            const equipmentGrid = document.getElementById('equipmentGrid');
             const emptyState = document.getElementById('emptyState');
             const totalCount = document.getElementById('totalCount');
 
-            function filterTable() {
+            function filterEquipment() {
                 const searchTerm = searchInput.value.toLowerCase();
                 const statusFilter = filterStatus.value;
-                const rows = tbody.querySelectorAll('.equipment-row');
+                const cards = equipmentGrid.querySelectorAll('.equipment-card');
                 let visibleCount = 0;
 
-                rows.forEach(row => {
-                    const name = row.dataset.name.toLowerCase();
-                    const code = row.dataset.code.toLowerCase();
-                    const status = row.dataset.status;
+                cards.forEach(card => {
+                    const name = card.dataset.name.toLowerCase();
+                    const code = card.dataset.code.toLowerCase();
+                    const status = card.dataset.status;
 
                     const matchesSearch = name.includes(searchTerm) || code.includes(searchTerm);
                     const matchesStatus = !statusFilter || status === statusFilter;
 
                     if (matchesSearch && matchesStatus) {
-                        row.style.display = '';
+                        card.style.display = '';
                         visibleCount++;
                     } else {
-                        row.style.display = 'none';
+                        card.style.display = 'none';
                     }
                 });
 
-                // Show/hide empty state
                 if (visibleCount === 0) {
-                    table.style.display = 'none';
+                    equipmentGrid.style.display = 'none';
                     emptyState.style.display = 'block';
                 } else {
-                    table.style.display = 'table';
+                    equipmentGrid.style.display = 'grid';
                     emptyState.style.display = 'none';
                 }
 
-                // Update count
                 totalCount.innerHTML = `Hiển thị: <strong>${visibleCount}</strong> thiết bị`;
             }
 
-            searchInput.addEventListener('input', filterTable);
-            filterStatus.addEventListener('change', filterTable);
-
-            // Row hover effect
-            const rows = document.querySelectorAll('.equipment-row');
-            rows.forEach(row => {
-                row.addEventListener('mouseenter', function () {
-                    this.style.background = '#f8fafc';
-                    this.style.transform = 'scale(1.01)';
-                });
-                row.addEventListener('mouseleave', function () {
-                    this.style.background = '';
-                    this.style.transform = '';
-                });
-            });
+            searchInput.addEventListener('input', filterEquipment);
+            filterStatus.addEventListener('change', filterEquipment);
 
             // View details function
             function viewDetails(button) {
                 const id = button.dataset.id;
-                const name = button.dataset.name;
-                alert(`Xem chi tiết thiết bị: ${name}\nID: ${id}\n\nChức năng này sẽ được phát triển sau.`);
+                window.location.href = `/giao-vien/thiet-bi/${id}`;
             }
 
             // Search input focus effect
             searchInput.addEventListener('focus', function () {
-                this.style.borderColor = '#3b82f6';
-                this.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                this.style.borderColor = 'var(--gv-primary)';
+                this.style.boxShadow = '0 0 0 3px rgba(20, 184, 166, 0.1)';
             });
-
             searchInput.addEventListener('blur', function () {
                 this.style.borderColor = '#e5e7eb';
                 this.style.boxShadow = 'none';
             });
+
+            // ===== BORROW MODAL API XỬ LÝ =====
+            const borrowModal = document.getElementById('borrowModal');
+            const borrowAlert = document.getElementById('borrowAlert');
+
+            // Set min date = today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('modalNgayTra').min = today;
+
+            function openBorrowModal(button) {
+                const id = button.dataset.id;
+                const name = button.dataset.name;
+                document.getElementById('modalThietBiId').value = id;
+                document.getElementById('modalDeviceName').textContent = name;
+
+                // Set default due date to 3 days from now
+                const dueDate = new Date();
+                dueDate.setDate(dueDate.getDate() + 3);
+                document.getElementById('modalNgayTra').value = dueDate.toISOString().split('T')[0];
+
+                document.getElementById('modalGhiChu').value = '';
+                borrowAlert.style.display = 'none';
+                borrowModal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+                lucide.createIcons();
+            }
+
+            function closeBorrowModal() {
+                borrowModal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+
+            // Xử lý submit qua AJAX (Fetch) để không load lại trang
+            document.getElementById('borrowForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const btn = document.getElementById('submitBorrowBtn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = 'Đang xử lý...';
+                btn.disabled = true;
+
+                const thietBiId = document.getElementById('modalThietBiId').value;
+                const ngayTraDuKien = document.getElementById('modalNgayTra').value;
+                const ghiChu = document.getElementById('modalGhiChu').value;
+
+                // POST as JSON tới endpoint mới (se tạo bên Controller)
+                fetch('/giao-vien/api/muon-tra/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        thietBiId: parseInt(thietBiId),
+                        ngayTraDuKien: ngayTraDuKien,
+                        ghiChu: ghiChu
+                    })
+                })
+                    .then(response => {
+                        return response.json().then(data => ({ status: response.status, body: data }));
+                    })
+                    .then(res => {
+                        if (res.status === 200 && res.body.success) {
+                            // Thành công
+                            borrowAlert.style.display = 'block';
+                            borrowAlert.style.backgroundColor = '#dcfce7';
+                            borrowAlert.style.color = '#166534';
+                            borrowAlert.style.border = '1px solid #bbf7d0';
+                            borrowAlert.textContent = 'Mượn thiết bị thành công! Đang tải lại danh sách...';
+
+                            // Tải lại trang sau 1.5 giây để update danh sách thiết bị
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            // Thất bại
+                            borrowAlert.style.display = 'block';
+                            borrowAlert.style.backgroundColor = '#fee2e2';
+                            borrowAlert.style.color = '#991b1b';
+                            borrowAlert.style.border = '1px solid #fecaca';
+                            borrowAlert.textContent = res.body.message || 'Có lỗi xảy ra khi mượn thiết bị.';
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        }
+                    })
+                    .catch(error => {
+                        borrowAlert.style.display = 'block';
+                        borrowAlert.style.backgroundColor = '#fee2e2';
+                        borrowAlert.style.color = '#991b1b';
+                        borrowAlert.style.border = '1px solid #fecaca';
+                        borrowAlert.textContent = 'Lỗi kết nối đến máy chủ!';
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    });
+            });
+
+            // Close when clicking backdrop
+            borrowModal.addEventListener('click', function (e) {
+                if (e.target === borrowModal) closeBorrowModal();
+            });
+
+            // Close on Escape key
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') closeBorrowModal();
+            });
+
+            setTimeout(() => { lucide.createIcons(); }, 100);
         </script>
     </th:block>
 </body>
