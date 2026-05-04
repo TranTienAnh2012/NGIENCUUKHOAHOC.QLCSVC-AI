@@ -1,5 +1,6 @@
 package com.Tta.QLCSVC.DHNT.areas.admin.service;
 
+
 import com.Tta.QLCSVC.DHNT.entity.LoaiThietBi;
 import com.Tta.QLCSVC.DHNT.entity.PhongHoc;
 import com.Tta.QLCSVC.DHNT.entity.ThietBi;
@@ -24,12 +25,11 @@ public class AdminThietBiService {
     private final LoaiThietBiRepository loaiThietBiRepository;
     private final PhongHocRepository phongHocRepository;
 
+
     @Transactional(readOnly = true)
     public Page<ThietBi> getAllThietBi(Pageable pageable) {
-        // Note: Page with JOIN FETCH requires custom implementation
-        // For now, we'll fetch and initialize relationships
         Page<ThietBi> page = thietBiRepository.findAll(pageable);
-        // Force initialization of lazy relationships
+        // Force initialization of lazy relationships + populate hinhAnhChinh
         page.getContent().forEach(tb -> {
             if (tb.getLoaiThietBi() != null) {
                 tb.getLoaiThietBi().getTenLoai();
@@ -37,6 +37,7 @@ public class AdminThietBiService {
             if (tb.getPhong() != null) {
                 tb.getPhong().getTenPhong();
             }
+
         });
         return page;
     }
@@ -45,13 +46,13 @@ public class AdminThietBiService {
     public ThietBi getThietBiById(Long id) {
         ThietBi thietBi = thietBiRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("ThietBi", "id", id));
-        // Eagerly fetch lazy relationships to avoid LazyInitializationException
         if (thietBi.getLoaiThietBi() != null) {
-            thietBi.getLoaiThietBi().getTenLoai(); // Force initialization
+            thietBi.getLoaiThietBi().getTenLoai();
         }
         if (thietBi.getPhong() != null) {
-            thietBi.getPhong().getTenPhong(); // Force initialization
+            thietBi.getPhong().getTenPhong();
         }
+
         return thietBi;
     }
 
@@ -122,4 +123,5 @@ public class AdminThietBiService {
         }
         thietBiRepository.deleteById(id);
     }
+
 }

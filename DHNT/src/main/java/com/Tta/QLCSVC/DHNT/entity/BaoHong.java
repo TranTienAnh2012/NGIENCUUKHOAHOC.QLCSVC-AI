@@ -26,7 +26,7 @@ public class BaoHong {
     private ThietBi thietBi;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "nguoi_bao_id", nullable = false)
+    @JoinColumn(name = "nguoi_bao_id", nullable = true)  // nullable: cho phep bao hong qua QR (khong can tai khoan)
     private NguoiDung nguoiBao;
 
     @Column(name = "ngay_bao")
@@ -45,6 +45,13 @@ public class BaoHong {
 
     @Column(name = "hinh_anh_url", length = 500)
     private String hinhAnhUrl;
+
+    /**
+     * Ghi chu them: luu ten/SDT nguoi bao khi bao hong qua QR khong co tai khoan.
+     * Vi du: "Bao qua QR Code | Nguoi bao: Nguyen Van A | SDT: 0901234567"
+     */
+    @Column(name = "ghi_chu", columnDefinition = "TEXT")
+    private String ghiChu;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

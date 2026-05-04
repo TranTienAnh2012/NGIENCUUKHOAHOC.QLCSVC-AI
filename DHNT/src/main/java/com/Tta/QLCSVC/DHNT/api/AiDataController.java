@@ -37,20 +37,6 @@ public class AiDataController {
     @Autowired
     private NguoiDungRepository nguoiDungRepository;
 
-    @Autowired
-    private ThongBaoRepository thongBaoRepository;
-
-    /**
-     * Mark all notifications as read
-     */
-    @PostMapping("/notifications/{userId}/mark-read")
-    public ResponseEntity<Map<String, Object>> markAllRead(@PathVariable Long userId) {
-        List<ThongBao> notifications = thongBaoRepository.findByNguoiDungIdAndDaDocFalse(userId);
-        notifications.forEach(n -> n.setDaDoc(true));
-        thongBaoRepository.saveAll(notifications);
-        return ResponseEntity.ok(Map.of("success", true));
-    }
-
     /**
      * Get system statistics
      */
@@ -206,23 +192,61 @@ public class AiDataController {
     }
 
     /**
-     * Get overdue borrows (DANG_MUON and expected return date < now)
+     * POST /api/ai-data/report-damage
+     * Tiep nhan bao cao hong tu Flask QR form (khong can JWT - dung InternalApiKey).
+     * Reporter la nguoi dung khong co tai khoan (khach, hoc sinh, GV chua dang nhap).
+     *
+     * Body params:
+     *   thiet_bi_id   : Long   - ID thiet bi (bat buoc)
+     *   mo_ta         : String - Mo ta loi (bat buoc)
+     *   muc_do        : String - THAP | TRUNG_BINH | CAO | KHAN_CAP (mac dinh: TRUNG_BINH)
+     *   ten_nguoi_bao : String - Ten nguoi bao (tuy chon)
+     *   so_dien_thoai : String - SDT nguoi bao (tuy chon)
      */
-    @GetMapping("/borrows/overdue")
-    public ResponseEntity<List<Map<String, Object>>> getOverdueBorrows() {
-        System.out.println("Debug: Checking overdue borrows at " + java.time.LocalDateTime.now());
-        List<MuonTraThietBi> overdueBorrows = muonTraThietBiRepository
-                .findOverdueRecords(java.time.LocalDateTime.now());
-        
-        System.out.println("Debug: Found " + overdueBorrows.size() + " overdue records");
-        for (MuonTraThietBi m : overdueBorrows) {
-            System.out.println("Debug: Record ID " + m.getId() + " - User ID: " + (m.getNguoiMuon() != null ? m.getNguoiMuon().getId() : "NULL"));
+    @PostMapping("/report-damage")
+    public ResponseEntity<Map<String, Object>> reportDamageFromQR(
+            @RequestParam Long thiet_bi_id,
+            @RequestParam String mo_ta,
+            @RequestParam(required = false, defaultValue = "TRUNG_BINH") String muc_do,
+            @RequestParam(required = false, defaultValue = "Khách/Người dùng") String ten_nguoi_bao,
+            @RequestParam(required = false, defaultValue = "") String so_dien_thoai) {
+
+        Map<String, Object> result = new HashMap<>();
+
+        // Tim thiet bi
+        Optional<ThietBi> thietBiOpt = thietBiRepository.findById(thiet_bi_id);
+        if (thietBiOpt.isEmpty()) {
+            result.put("success", false);
+            result.put("message", "Không tìm thấy thiết bị ID=" + thiet_bi_id);
+            return ResponseEntity.badRequest().body(result);
         }
 
-        List<Map<String, Object>> result = overdueBorrows.stream()
-                .map(this::mapBorrowToSimple)
-                .collect(Collectors.toList());
+        BaoHong baoHong = new BaoHong();
+        baoHong.setThietBi(thietBiOpt.get());
+        baoHong.setMoTaLoi(mo_ta);
+        baoHong.setTrangThai(BaoHong.TrangThaiBaoHong.CHO_XU_LY);
 
+        try {
+            BaoHong.MucDoNghiemTrong mucDoEnum = BaoHong.MucDoNghiemTrong.valueOf(muc_do.toUpperCase());
+            baoHong.setMucDoNghiemTrong(mucDoEnum);
+        } catch (IllegalArgumentException e) {
+            baoHong.setMucDoNghiemTrong(BaoHong.MucDoNghiemTrong.TRUNG_BINH);
+        }
+
+        // Luu ghi chu nguoi bao (khong co tai khoan)
+        String ghiChu = "Báo qua QR Code";
+        if (!ten_nguoi_bao.equals("Khách/Người dùng"))
+            ghiChu += " | Người báo: " + ten_nguoi_bao;
+        if (!so_dien_thoai.isEmpty())
+            ghiChu += " | SDT: " + so_dien_thoai;
+        baoHong.setGhiChu(ghiChu);
+
+        BaoHong saved = baoHongRepository.save(baoHong);
+
+        result.put("success", true);
+        result.put("message", "Báo hỏng thành công! Nhân viên kỹ thuật sẽ xử lý sớm.");
+        result.put("bao_hong_id", saved.getId());
+        result.put("thiet_bi", thietBiOpt.get().getTenThietBi());
         return ResponseEntity.ok(result);
     }
 
@@ -236,7 +260,9 @@ public class AiDataController {
         map.put("status", device.getTrangThai().toString());
         map.put("room", device.getPhong() != null ? device.getPhong().getTenPhong() : null);
         map.put("category", device.getLoaiThietBi() != null ? device.getLoaiThietBi().getTenLoai() : null);
-        map.put("hinh_anh", resolveDeviceImage(device));
+        map.put("manufacturer", device.getHangSanXuat());
+        map.put("model", device.getModel());
+        map.put("year", device.getNamSanXuat());
         return map;
     }
 
@@ -245,116 +271,24 @@ public class AiDataController {
         map.put("id", borrow.getId());
         map.put("device_name", borrow.getThietBi() != null ? borrow.getThietBi().getTenThietBi() : null);
         map.put("device_code", borrow.getThietBi() != null ? borrow.getThietBi().getMaThietBi() : null);
-        map.put("device_id", borrow.getThietBi() != null ? borrow.getThietBi().getId() : null);
-        map.put("device_image", borrow.getThietBi() != null ? resolveDeviceImage(borrow.getThietBi()) : null);
         map.put("borrow_date", borrow.getNgayMuon() != null ? borrow.getNgayMuon().toString() : null);
         map.put("expected_return", borrow.getNgayTraDuKien() != null ? borrow.getNgayTraDuKien().toString() : null);
         map.put("actual_return", borrow.getNgayTraThucTe() != null ? borrow.getNgayTraThucTe().toString() : null);
         map.put("status", borrow.getTrangThai().toString());
         map.put("user_name", borrow.getNguoiMuon() != null ? borrow.getNguoiMuon().getHoTen() : null);
-        map.put("user_id", borrow.getNguoiMuon() != null ? borrow.getNguoiMuon().getId() : null);
         map.put("ghi_chu", borrow.getGhiChu());
         return map;
-    }
-
-    private String resolveDeviceImage(ThietBi device) {
-        if (device == null)
-            return null;
-
-        // Ưu tiên 1: Lấy từ trường hinh_anh_chinh ở bảng thiet_bi
-        if (device.getHinhAnhChinh() != null && !device.getHinhAnhChinh().trim().isEmpty()) {
-            return device.getHinhAnhChinh();
-        }
-
-        // Ưu tiên 2: Lấy từ danh sách hinhAnhs (bảng hinh_anh_thiet_bi)
-        if (device.getHinhAnhs() != null && !device.getHinhAnhs().isEmpty()) {
-            // Tìm ảnh có loại là HINH_ANH_CHINH
-            for (HinhAnhThietBi img : device.getHinhAnhs()) {
-                if (img.getLoaiHinhAnh() == HinhAnhThietBi.LoaiHinhAnh.HINH_ANH_CHINH) {
-                    return img.getUrlHinhAnh();
-                }
-            }
-            // Nếu không có loại HINH_ANH_CHINH, lấy ảnh đầu tiên
-            return device.getHinhAnhs().get(0).getUrlHinhAnh();
-        }
-
-        return "N/A";
     }
 
     private Map<String, Object> mapDamageToSimple(BaoHong damage) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", damage.getId());
         map.put("device_name", damage.getThietBi() != null ? damage.getThietBi().getTenThietBi() : null);
-        map.put("device_image", damage.getThietBi() != null ? resolveDeviceImage(damage.getThietBi()) : null);
         map.put("description", damage.getMoTaLoi());
         map.put("status", damage.getTrangThai());
         map.put("severity", damage.getMucDoNghiemTrong());
         map.put("reported_date", damage.getCreatedAt());
         map.put("reporter_name", damage.getNguoiBao() != null ? damage.getNguoiBao().getHoTen() : null);
         return map;
-    }
-
-    /**
-     * Create a new notification
-     */
-    @PostMapping("/notifications")
-    public ResponseEntity<Map<String, Object>> createNotification(@RequestBody Map<String, Object> payload) {
-        try {
-            Long userId = Long.valueOf(payload.get("user_id").toString());
-            String title = payload.get("title").toString();
-            String content = payload.get("content").toString();
-            String type = payload.getOrDefault("type", "SYSTEM").toString();
-
-            NguoiDung user = nguoiDungRepository.findById(userId).orElse(null);
-            if (user == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
-            }
-
-            ThongBao notification = new ThongBao();
-            notification.setNguoiDung(user);
-            notification.setTieuDe(title);
-            notification.setNoiDung(content);
-            notification.setLoaiThongBao(type);
-            notification.setDaDoc(false);
-
-            thongBaoRepository.save(notification);
-            System.out.println("Debug: Saved notification for User ID: " + userId + " - Title: " + title);
-
-            return ResponseEntity.ok(Map.of("success", true, "id", notification.getId()));
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
-     * Get unread notifications for a user
-     */
-    @GetMapping("/notifications/{userId}")
-    public ResponseEntity<List<Map<String, Object>>> getNotifications(@PathVariable Long userId) {
-        System.out.println("Debug: Fetching notifications for user ID: " + userId);
-        List<ThongBao> notifications = thongBaoRepository.findByNguoiDungIdOrderByCreatedAtDesc(userId);
-        System.out.println("Debug: Found " + notifications.size() + " notifications");
-
-        List<Map<String, Object>> result = notifications.stream().limit(10).map(n -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", n.getId());
-            map.put("title", n.getTieuDe());
-            map.put("content", n.getNoiDung());
-            map.put("is_read", n.isDaDoc());
-            map.put("type", n.getLoaiThongBao());
-            map.put("created_at", n.getCreatedAt() != null ? n.getCreatedAt().toString() : null);
-            return map;
-        }).collect(Collectors.toList());
-
-        return ResponseEntity.ok(result);
-    }
-
-    /**
-     * Get unread count
-     */
-    @GetMapping("/notifications/{userId}/unread-count")
-    public ResponseEntity<Map<String, Object>> getUnreadCount(@PathVariable Long userId) {
-        long count = thongBaoRepository.countByNguoiDungIdAndDaDocFalse(userId);
-        return ResponseEntity.ok(Map.of("count", count));
     }
 }

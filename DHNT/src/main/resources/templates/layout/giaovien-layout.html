@@ -26,10 +26,30 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" th:href="@{/css/index.css(v=2)}">
-    <link rel="stylesheet" th:href="@{/css/giaovien.css(v=2)}">
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/giaovien.css}">
     <!-- AI Chatbot Widget CSS -->
     <link rel="stylesheet" th:href="@{/css/chatbot-widget.css}">
+    <!-- html5-qrcode for QR scanning -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+      #qr-scan-btn {
+        position:fixed; bottom:100px; right:24px; z-index:1050;
+        width:52px; height:52px; border-radius:50%;
+        background:linear-gradient(135deg,#10b981,#059669);
+        border:none; color:white; cursor:pointer;
+        box-shadow:0 4px 15px rgba(16,185,129,.45);
+        display:flex; align-items:center; justify-content:center;
+        transition:transform .2s, box-shadow .2s;
+      }
+      #qr-scan-btn:hover { transform:scale(1.1); box-shadow:0 6px 20px rgba(16,185,129,.6); }
+      #qr-scan-btn svg { width:22px; height:22px; }
+      #qr-scan-btn .scan-badge {
+        position:absolute; top:-4px; right:-4px;
+        background:#f59e0b; color:white; font-size:9px;
+        font-weight:700; padding:2px 5px; border-radius:10px;
+      }
+    </style>
 </head>
 
 
@@ -76,26 +96,9 @@
                 </div>
 
                 <!-- Notifications -->
-                <div class="lms-notification-menu position-relative">
-                    <button class="lms-action-btn lms-icon-btn" title="Thông báo" id="notificationBtn">
-                        <i data-lucide="bell"></i>
-                        <span id="notif-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.6rem;">
-                            0
-                        </span>
-                    </button>
-                    <div class="lms-notification-dropdown" id="notificationDropdown" style="display: none;">
-                        <div class="notif-header">
-                            <span>Thông báo</span>
-                            <a href="#" id="markAllRead">Đánh dấu đã đọc</a>
-                        </div>
-                        <div class="notif-list" id="notif-list">
-                            <div class="notif-empty">Không có thông báo mới</div>
-                        </div>
-                        <div class="notif-footer">
-                            <a href="/giao-vien/thong-bao">Xem tất cả</a>
-                        </div>
-                    </div>
-                </div>
+                <button class="lms-action-btn lms-icon-btn" title="Thông báo">
+                    <i data-lucide="bell"></i>
+                </button>
 
                 <!-- Messages -->
                 <button class="lms-action-btn lms-icon-btn" title="Tin nhắn">
@@ -104,7 +107,6 @@
 
                 <!-- User Menu -->
                 <div class="lms-user-menu">
-                    <input type="hidden" id="currentUserId" th:value="${#authentication.principal != 'anonymousUser' ? #authentication.principal.id : ''}">
                     <a href="/giao-vien/profile" class="lms-user-avatar"
                         style="text-decoration: none; cursor: pointer;">
                         <i data-lucide="user"></i>
@@ -132,9 +134,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Debug User ID (Hidden) -->
-                <span id="debugUserId" style="display:none;" th:text="${#authentication.principal.getClass().name == 'com.Tta.QLCSVC.DHNT.security.CustomUserDetails' ? 'ID:' + #authentication.principal.user.id : 'ID:Unknown'}"></span>
 
                 <!-- Settings -->
                 <button class="lms-action-btn lms-icon-btn" title="Cài đặt">
@@ -172,6 +171,32 @@
     <!-- AI Chatbot Widget -->
     <div th:replace="~{fragments/chatbot-widget :: chatbot-widget}" th:with="userRole='GIAO_VIEN'"></div>
 
+    <!-- QR Scanner Floating Button -->
+    <button id="qr-scan-btn" title="Scan QR thiết bị" onclick="openQrScanner()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 18h.01M18 15h.01M21 15h.01M21 18h.01M21 21h.01M18 21h.01M15 21h.01M18 18v.01"/>
+        </svg>
+        <span class="scan-badge">QR</span>
+    </button>
+    <!-- QR Scanner Modal -->
+    <div class="modal fade" id="qrScanModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered" style="max-width:400px">
+        <div class="modal-content">
+          <div class="modal-header" style="background:linear-gradient(135deg,#10b981,#059669);color:white;">
+            <h5 class="modal-title">📷 Scan QR Thiết bị</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="stopQrScanner()"></button>
+          </div>
+          <div class="modal-body p-3" style="background:#0f172a;">
+            <div id="qr-reader" style="width:100%;border-radius:8px;overflow:hidden;"></div>
+            <div id="qr-status" class="mt-2 text-center" style="color:#94a3b8;font-size:0.82rem;">
+              Hướng camera vào mã QR dán trên thiết bị
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Scripts -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -195,111 +220,48 @@
             setTimeout(() => {
                 lucide.createIcons();
             }, 100);
-
-            // Notification Logic
-            const notificationBtn = document.getElementById('notificationBtn');
-            const notificationDropdown = document.getElementById('notificationDropdown');
-            const notifBadge = document.getElementById('notif-badge');
-            const notifList = document.getElementById('notif-list');
-
-            // Giả định user_id có sẵn từ hidden input
-            const userId = document.getElementById('currentUserId')?.value;
-            console.log("Logged in User ID:", userId);
-            const debugEl = document.getElementById('debugUserId');
-            if (debugEl && userId) {
-                debugEl.innerText = "User ID: " + userId;
-                debugEl.style.display = 'inline-block';
-                debugEl.style.color = '#94a3b8';
-                debugEl.style.fontSize = '12px';
-                debugEl.style.marginRight = '10px';
-            }
-
-            function updateUnreadCount() {
-                if (!userId) {
-                    console.warn("No User ID found for notifications");
-                    return;
-                }
-                fetch(`/api/ai-data/notifications/${userId}/unread-count`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.count > 0) {
-                            notifBadge.innerText = data.count > 9 ? '9+' : data.count;
-                            notifBadge.style.display = 'block';
-                        } else {
-                            notifBadge.style.display = 'none';
-                        }
-                    });
-            }
-
-            function loadNotifications() {
-                if (!userId) return;
-                fetch(`/api/ai-data/notifications/${userId}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data && data.length > 0) {
-                            notifList.innerHTML = '';
-                            data.forEach(n => {
-                                const date = new Date(n.created_at).toLocaleString('vi-VN');
-                                const isUnread = !n.is_read;
-                                const item = document.createElement('div');
-                                item.className = `notif-item ${isUnread ? 'unread' : ''}`;
-                                item.innerHTML = `
-                                    <div class="notif-icon ${n.type === 'OVERDUE' ? 'overdue' : ''}">
-                                        <i data-lucide="${n.type === 'OVERDUE' ? 'alert-triangle' : 'bell'}"></i>
-                                    </div>
-                                    <div class="notif-content">
-                                        <div class="notif-title">${n.title}</div>
-                                        <div class="notif-body">${n.content}</div>
-                                        <div class="notif-time">${date}</div>
-                                    </div>
-                                `;
-                                notifList.appendChild(item);
-                            });
-                            lucide.createIcons();
-                        } else {
-                            notifList.innerHTML = '<div class="notif-empty">Không có thông báo mới</div>';
-                        }
-                    });
-            }
-
-            notificationBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const isVisible = notificationDropdown.style.display === 'block';
-                notificationDropdown.style.display = isVisible ? 'none' : 'block';
-                if (!isVisible) loadNotifications();
-            });
-
-            document.addEventListener('click', () => {
-                notificationDropdown.style.display = 'none';
-            });
-
-            notificationDropdown.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
-
-            document.getElementById('markAllRead').addEventListener('click', (e) => {
-                e.preventDefault();
-                if (!userId) return;
-                fetch(`/api/ai-data/notifications/${userId}/mark-read`, { method: 'POST' })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.success) {
-                            updateUnreadCount();
-                            loadNotifications();
-                        }
-                    });
-            });
-
-            // Initial load
-            updateUnreadCount();
-            // Polling every 5 minutes
-            setInterval(updateUnreadCount, 300000);
         });
     </script>
 
     <!-- AI Chatbot Widget JS -->
     <script>window.CHATBOT_USER_ROLE = 'GIAO_VIEN';</script>
     <script th:src="@{/js/chatbot-widget.js(v=3)}"></script>
+
+    <!-- QR Scanner JS -->
+    <script>
+    let qrScanner = null;
+    function openQrScanner() {
+        const modal = new bootstrap.Modal(document.getElementById('qrScanModal'));
+        modal.show();
+        document.getElementById('qr-status').textContent = 'Đang khởi động camera...';
+        document.getElementById('qrScanModal').addEventListener('shown.bs.modal', function startScan() {
+            document.getElementById('qrScanModal').removeEventListener('shown.bs.modal', startScan);
+            qrScanner = new Html5Qrcode('qr-reader');
+            qrScanner.start(
+                { facingMode: 'environment' },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    document.getElementById('qr-status').innerHTML =
+                        '<span style="color:#10b981;font-weight:700;">✅ Đã nhận diện QR!</span>';
+                    stopQrScanner();
+                    bootstrap.Modal.getInstance(document.getElementById('qrScanModal')).hide();
+                    window.location.href = decodedText.startsWith('http') ? decodedText
+                        : 'http://localhost:5000/api/ai/device-info/' + decodedText;
+                },
+                (_err) => {}
+            ).then(() => {
+                document.getElementById('qr-status').textContent = 'Hướng camera vào mã QR trên thiết bị';
+            }).catch(err => {
+                document.getElementById('qr-status').innerHTML =
+                    '<span style="color:#f87171;">❌ Không truy cập được camera: ' + err + '</span>';
+            });
+        }, { once: true });
+    }
+    function stopQrScanner() {
+        if (qrScanner) { qrScanner.stop().catch(() => {}); qrScanner = null; }
+    }
+    document.getElementById('qrScanModal').addEventListener('hide.bs.modal', stopQrScanner);
+    </script>
 
     <!-- Page specific scripts -->
     <th:block layout:fragment="scripts">
