@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/giaovien-layout}">
+
+<head>
+    <title th:text="${'Chi tiết: ' + tb.tenThietBi}">Chi tiết thiết bị</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="animate-in" style="margin-bottom: 32px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <a th:href="@{/giao-vien/thiet-bi}"
+                    style="width: 40px; height: 40px; border-radius: 10px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #64748b; text-decoration: none; transition: all 0.3s;">
+                    <i data-lucide="arrow-left" style="width: 20px; height: 20px;"></i>
+                </a>
+                <div>
+                    <h2
+                        style="font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">
+                        Chi tiết thiết bị
+                    </h2>
+                    <p style="color: #64748b; margin: 0;" th:text="${tb.tenThietBi}">Tên thiết bị</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 animate-in" style="animation-delay: 0.1s;">
+            <!-- Cột trái: Hình ảnh -->
+            <div class="col-lg-5">
+                <div class="card-modern" style="height: 100%; overflow: hidden;">
+                    <div
+                        style="aspect-ratio: 1/1; background: #f8fafc; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;">
+                        <img th:if="${!#strings.isEmpty(tb.hinhAnhChinh)}" th:src="${tb.hinhAnhChinh}"
+                            th:alt="${tb.tenThietBi}" style="width: 100%; height: 100%; object-fit: cover;">
+                        <div th:unless="${!#strings.isEmpty(tb.hinhAnhChinh)}"
+                            style="text-align: center; color: #cbd5e1;">
+                            <i data-lucide="monitor" style="width: 80px; height: 80px;"></i>
+                            <p style="margin-top: 12px; font-size: 14px;">Không có hình ảnh</p>
+                        </div>
+
+                        <!-- Badge Trạng thái -->
+                        <div style="position: absolute; top: 16px; right: 16px;">
+                            <span th:if="${tb.trangThai.name() == 'TOT'}"
+                                style="background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid #bbf7d0;">
+                                Sẵn sàng
+                            </span>
+                            <span th:if="${tb.trangThai.name() == 'BAO_TRI'}"
+                                style="background: #fef9c3; color: #854d0e; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid #fef08a;">
+                                Đang bảo trì
+                            </span>
+                            <span th:if="${tb.trangThai.name() == 'HONG'}"
+                                style="background: #fee2e2; color: #991b1b; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid #fecaca;">
+                                Đang hỏng
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Mini Gallery (nếu có nhiều ảnh) -->
+                    <div th:if="${tb.hinhAnhs != null and !tb.hinhAnhs.isEmpty()}"
+                        style="padding: 16px; display: flex; gap: 8px; overflow-x: auto; background: white; border-top: 1px solid #f1f5f9;">
+                        <div th:each="img : ${tb.hinhAnhs}"
+                            style="width: 60px; height: 60px; border-radius: 8px; overflow: hidden; border: 2px solid #f1f5f9; cursor: pointer; flex-shrink: 0;"
+                            onclick="changeMainImage(this.querySelector('img').src)">
+                            <img th:src="${img.urlHinhAnh}" style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cột phải: Thông tin chi tiết -->
+            <div class="col-lg-7">
+                <div class="card-modern" style="padding: 24px; height: 100%;">
+                    <div style="margin-bottom: 24px;">
+                        <h3
+                            style="font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="info" style="width: 24px; height: 24px; color: #3b82f6;"></i>
+                            Thông số kỹ thuật
+                        </h3>
+
+                        <div class="row g-4">
+                            <div class="col-sm-6">
+                                <p style="color: #64748b; font-size: 13px; margin: 0;">Mã thiết bị</p>
+                                <p style="color: #0f172a; font-weight: 600; margin: 4px 0;" th:text="${tb.maThietBi}">
+                                    TB001</p>
+                            </div>
+                            <div class="col-sm-6">
+                                <p style="color: #64748b; font-size: 13px; margin: 0;">Loại thiết bị</p>
+                                <p style="color: #0f172a; font-weight: 600; margin: 4px 0;"
+                                    th:text="${tb.loaiThietBi.tenLoai}">Máy chiếu</p>
+                            </div>
+                            <div class="col-sm-6">
+                                <p style="color: #64748b; font-size: 13px; margin: 0;">Hãng sản xuất</p>
+                                <p style="color: #0f172a; font-weight: 600; margin: 4px 0;"
+                                    th:text="${tb.hangSanXuat ?: 'Đang cập nhật'}">Epson</p>
+                            </div>
+                            <div class="col-sm-6">
+                                <p style="color: #64748b; font-size: 13px; margin: 0;">Model</p>
+                                <p style="color: #0f172a; font-weight: 600; margin: 4px 0;"
+                                    th:text="${tb.model ?: 'Đang cập nhật'}">EB-X05</p>
+                            </div>
+                            <div class="col-sm-6">
+                                <p style="color: #64748b; font-size: 13px; margin: 0;">Năm sản xuất</p>
+                                <p style="color: #0f172a; font-weight: 600; margin: 4px 0;"
+                                    th:text="${tb.namSanXuat ?: 'Đang cập nhật'}">2020</p>
+                            </div>
+                            <div class="col-sm-6">
+                                <p style="color: #64748b; font-size: 13px; margin: 0;">Phòng hiện tại</p>
+                                <p style="color: #0f172a; font-weight: 600; margin: 4px 0;"
+                                    th:text="${tb.phong != null ? tb.phong.tenPhong : 'Chưa xếp phòng'}">Phòng 101</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="padding-top: 24px; border-top: 1px solid #f1f5f9; margin-bottom: 24px;">
+                        <h4 style="font-size: 16px; font-weight: 600; color: #334155; margin-bottom: 8px;">Ghi chú / Mô
+                            tả</h4>
+                        <p style="color: #64748b; font-size: 14px; line-height: 1.6; margin: 0;"
+                            th:text="${tb.ghiChu ?: 'Không có ghi chú thêm cho thiết bị này.'}">-</p>
+                    </div>
+
+                    <!-- Actions -->
+                    <div style="margin-top: auto; display: flex; gap: 12px;">
+                        <button th:if="${tb.trangThai.name() == 'TOT'}" class="btn-borrow"
+                            th:attr="data-id=${tb.id}, data-name=${tb.tenThietBi}" onclick="openBorrowModal(this)"
+                            style="flex: 2; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <i data-lucide="calendar-plus" style="width: 20px; height: 20px;"></i>
+                            Mượn thiết bị ngay
+                        </button>
+                        <button th:unless="${tb.trangThai.name() == 'TOT'}" disabled
+                            style="flex: 2; background: #f1f5f9; color: #94a3b8; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: not-allowed; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <i data-lucide="slash" style="width: 20px; height: 20px;"></i>
+                            Không khả dụng
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mượn Modal (Dùng chung bộ logic AJAX từ list.html) -->
+        <div id="borrowModal" class="modal-backdrop-custom" style="display: none;">
+            <div class="modal-content-custom animate-in" style="max-width: 500px;">
+                <div class="modal-header-custom">
+                    <h3 class="modal-title">
+                        <i data-lucide="calendar-plus" style="width: 22px; height: 22px; margin-right: 8px;"></i>
+                        Tạo phiếu mượn
+                    </h3>
+                    <button class="modal-close" onclick="closeBorrowModal()">
+                        <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                    </button>
+                </div>
+
+                <div id="borrowAlert"
+                    style="display: none; padding: 12px 16px; margin: 16px; border-radius: 8px; font-size: 14px;"></div>
+
+                <form id="borrowForm" style="padding: 20px;">
+                    <input type="hidden" id="modalThietBiId">
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 13px; color: #64748b; margin-bottom: 4px;">Thiết bị
+                            mượn</label>
+                        <p id="modalDeviceName" style="font-weight: 600; color: #0f172a; margin: 0;"></p>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600; color: #334155; margin-bottom: 8px;">Ngày trả dự
+                            kiến <span style="color: #ef4444;">*</span></label>
+                        <input type="date" id="modalNgayTra" required
+                            th:min="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}"
+                            th:value="${#temporals.format(#temporals.createNow().plusDays(3), 'yyyy-MM-dd')}"
+                            style="width: 100%; padding: 10px 14px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 14px;">
+                    </div>
+
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; font-weight: 600; color: #334155; margin-bottom: 8px;">Ghi
+                            chú</label>
+                        <textarea id="modalGhiChu" rows="3" placeholder="Ghi chú thêm (nếu có)..."
+                            style="width: 100%; padding: 10px 14px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 14px; resize: none;"></textarea>
+                    </div>
+
+                    <button type="submit" id="submitBorrowBtn"
+                        style="width: 100%; background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 600; transition: all 0.3s;">
+                        Xác nhận mượn
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            // Khởi tạo icons
+            setTimeout(() => { lucide.createIcons(); }, 100);
+
+            function changeMainImage(src) {
+                const mainImg = document.querySelector('.col-lg-5 img');
+                if (mainImg) {
+                    mainImg.src = src;
+                }
+            }
+
+            // Copy logic AJAX từ list.html sang
+            const borrowModal = document.getElementById('borrowModal');
+            const borrowAlert = document.getElementById('borrowAlert');
+
+            function openBorrowModal(button) {
+                const id = button.dataset.id;
+                const name = button.dataset.name;
+                document.getElementById('modalThietBiId').value = id;
+                document.getElementById('modalDeviceName').textContent = name;
+
+                // Set default due date to 3 days from now
+                const dueDate = new Date();
+                dueDate.setDate(dueDate.getDate() + 3);
+                document.getElementById('modalNgayTra').value = dueDate.toISOString().split('T')[0];
+
+                borrowAlert.style.display = 'none';
+                borrowModal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+                lucide.createIcons();
+            }
+
+            function closeBorrowModal() {
+                borrowModal.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+
+            document.getElementById('borrowForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const btn = document.getElementById('submitBorrowBtn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = 'Đang xử lý...';
+                btn.disabled = true;
+
+                const thietBiId = document.getElementById('modalThietBiId').value;
+                const ngayTraDuKien = document.getElementById('modalNgayTra').value;
+                const ghiChu = document.getElementById('modalGhiChu').value;
+
+                fetch('/giao-vien/api/muon-tra/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        thietBiId: parseInt(thietBiId),
+                        ngayTraDuKien: ngayTraDuKien,
+                        ghiChu: ghiChu
+                    })
+                })
+                    .then(response => response.json().then(data => ({ status: response.status, body: data })))
+                    .then(res => {
+                        if (res.status === 200 && res.body.success) {
+                            borrowAlert.style.display = 'block';
+                            borrowAlert.style.backgroundColor = '#dcfce7';
+                            borrowAlert.style.color = '#166534';
+                            borrowAlert.textContent = 'Mượn thiết bị thành công! Đang chuyển hướng...';
+                            setTimeout(() => { window.location.href = '/giao-vien/muon-tra'; }, 1500);
+                        } else {
+                            borrowAlert.style.display = 'block';
+                            borrowAlert.style.backgroundColor = '#fee2e2';
+                            borrowAlert.style.color = '#991b1b';
+                            borrowAlert.textContent = res.body.message || 'Có lỗi xảy ra.';
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        }
+                    })
+                    .catch(error => {
+                        borrowAlert.style.display = 'block';
+                        borrowAlert.style.backgroundColor = '#fee2e2';
+                        borrowAlert.style.color = '#991b1b';
+                        borrowAlert.textContent = 'Lỗi kết nối!';
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    });
+            });
+
+            borrowModal.addEventListener('click', function (e) { if (e.target === borrowModal) closeBorrowModal(); });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeBorrowModal(); });
+        </script>
+
+        <style>
+            .modal-backdrop-custom {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(15, 23, 42, 0.6);
+                backdrop-filter: blur(4px);
+                z-index: 9999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+
+            .modal-content-custom {
+                background: white;
+                border-radius: 20px;
+                width: 100%;
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                overflow: hidden;
+                position: relative;
+            }
+
+            .modal-header-custom {
+                padding: 20px;
+                border-bottom: 1px solid #f1f5f9;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .modal-title {
+                font-size: 18px;
+                font-weight: 700;
+                color: #0f172a;
+                margin: 0;
+                display: flex;
+                align-items: center;
+            }
+
+            .modal-close {
+                background: none;
+                border: none;
+                color: #94a3b8;
+                cursor: pointer;
+                padding: 4px;
+                border-radius: 8px;
+                transition: all 0.2s;
+            }
+
+            .modal-close:hover {
+                background: #f1f5f9;
+                color: #0f172a;
+            }
+        </style>
+    </th:block>
+</body>
+
+</html>

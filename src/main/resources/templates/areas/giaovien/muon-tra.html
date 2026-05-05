@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/giaovien-layout}">
+
+<head>
+    <title>Mượn trả thiết bị - Giáo viên</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Alert Messages -->
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show animate-in" role="alert"
+            style="margin-bottom: 24px;">
+            <i data-lucide="check-circle" style="width: 20px; height: 20px; margin-right: 8px;"></i>
+            <span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Page Header -->
+        <div class="animate-in" style="margin-bottom: 32px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <div>
+                    <h2
+                        style="font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0;">
+                        Quản lý mượn trả
+                    </h2>
+                    <p style="color: #64748b; margin: 0;">
+                        Theo dõi lịch sử mượn trả thiết bị của bạn
+                    </p>
+                </div>
+                <a th:href="@{/giao-vien/muon-tra/create}"
+                    style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; border: none; padding: 14px 24px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                    <i data-lucide="plus" style="width: 20px; height: 20px;"></i>
+                    Mượn thiết bị mới
+                </a>
+            </div>
+        </div>
+
+        <!-- Borrowing List -->
+        <div class="card-modern animate-in" style="animation-delay: 0.1s;">
+            <div class="card-header-modern">
+                <h3 class="card-title">
+                    <i data-lucide="book-open" style="width: 24px; height: 24px; margin-right: 8px;"></i>
+                    Lịch sử mượn trả
+                </h3>
+                <span style="color: #64748b; font-size: 14px;">
+                    Tổng: <strong th:text="${#lists.size(muonTras)}">0</strong> phiếu
+                </span>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #f1f5f9; text-align: left;">
+                            <th
+                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Thiết bị
+                            </th>
+                            <th
+                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Ngày mượn
+                            </th>
+                            <th
+                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Ngày trả dự kiến
+                            </th>
+                            <th
+                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Ngày trả thực tế
+                            </th>
+                            <th
+                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Trạng thái
+                            </th>
+                            <th
+                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                Thao tác
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="mt : ${muonTras}" style="border-bottom: 1px solid #f1f5f9; transition: all 0.3s;"
+                            onmouseenter="this.style.background='#f8fafc'" onmouseleave="this.style.background=''">
+                            <td style="padding: 16px 12px;">
+                                <div style="font-weight: 600; color: #0f172a; margin-bottom: 4px;"
+                                    th:text="${mt.thietBi?.tenThietBi}">
+                                    Máy chiếu Epson
+                                </div>
+                                <div style="font-size: 13px; color: #94a3b8;">
+                                    <code th:text="${mt.thietBi?.maThietBi}">TB001</code>
+                                </div>
+                            </td>
+                            <td style="padding: 16px 12px; color: #64748b; font-size: 14px;"
+                                th:text="${#temporals.format(mt.ngayMuon, 'dd/MM/yyyy HH:mm')}">
+                                22/01/2026 10:00
+                            </td>
+                            <td style="padding: 16px 12px; color: #64748b; font-size: 14px;"
+                                th:text="${#temporals.format(mt.ngayTraDuKien, 'dd/MM/yyyy')}">
+                                25/01/2026
+                            </td>
+                            <td style="padding: 16px 12px; color: #64748b; font-size: 14px;">
+                                <span th:if="${mt.ngayTraThucTe != null}"
+                                    th:text="${#temporals.format(mt.ngayTraThucTe, 'dd/MM/yyyy HH:mm')}">
+                                    24/01/2026 14:30
+                                </span>
+                                <span th:if="${mt.ngayTraThucTe == null}" style="color: #94a3b8;">
+                                    Chưa trả
+                                </span>
+                            </td>
+                            <td style="padding: 16px 12px;">
+                                <span th:if="${mt.trangThai.name() == 'DANG_MUON'}"
+                                    style="background: #dbeafe; color: #1e40af; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span
+                                        style="width: 6px; height: 6px; background: #3b82f6; border-radius: 50%;"></span>
+                                    Đang mượn
+                                </span>
+                                <span th:if="${mt.trangThai.name() == 'DA_TRA'}"
+                                    style="background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span
+                                        style="width: 6px; height: 6px; background: #16a34a; border-radius: 50%;"></span>
+                                    Đã trả
+                                </span>
+                                <span th:if="${mt.trangThai.name() == 'QUA_HAN'}"
+                                    style="background: #fee2e2; color: #991b1b; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span
+                                        style="width: 6px; height: 6px; background: #dc2626; border-radius: 50%;"></span>
+                                    Quá hạn
+                                </span>
+                            </td>
+                            <td style="padding: 16px 12px;">
+                                <form th:if="${mt.trangThai.name() == 'DANG_MUON'}"
+                                    th:action="@{/giao-vien/muon-tra/return/{id}(id=${mt.id})}" method="post"
+                                    style="display: inline;">
+                                    <button type="submit"
+                                        style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center; gap: 6px;">
+                                        <i data-lucide="check" style="width: 16px; height: 16px;"></i>
+                                        Trả
+                                    </button>
+                                </form>
+                                <span th:if="${mt.trangThai.name() != 'DANG_MUON'}"
+                                    style="color: #94a3b8; font-size: 13px;">
+                                    -
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Empty State -->
+                <div th:if="${#lists.isEmpty(muonTras)}" style="text-align: center; padding: 60px 20px;">
+                    <i data-lucide="inbox" style="width: 64px; height: 64px; color: #cbd5e1; margin-bottom: 16px;"></i>
+                    <h3 style="font-size: 18px; font-weight: 600; color: #64748b; margin: 0 0 8px 0;">
+                        Chưa có phiếu mượn nào
+                    </h3>
+                    <p style="color: #94a3b8; margin: 0 0 20px 0;">
+                        Bạn chưa mượn thiết bị nào
+                    </p>
+                    <a th:href="@{/giao-vien/muon-tra/create}"
+                        style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; border: none; padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                        <i data-lucide="plus" style="width: 18px; height: 18px;"></i>
+                        Mượn thiết bị đầu tiên
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            lucide.createIcons();
+
+            // Auto-dismiss alerts
+            setTimeout(() => {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(alert => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 5000);
+        </script>
+    </th:block>
+</body>
+
+</html>

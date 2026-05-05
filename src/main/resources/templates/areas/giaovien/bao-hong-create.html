@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/giaovien-layout}">
+
+<head>
+    <title>Báo hỏng mới - Giáo viên</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Alert Messages -->
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show animate-in" role="alert"
+            style="margin-bottom: 24px;">
+            <i data-lucide="alert-circle" style="width: 20px; height: 20px; margin-right: 8px;"></i>
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Page Header -->
+        <div class="animate-in" style="margin-bottom: 32px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <a th:href="@{/giao-vien/bao-hong}"
+                    style="width: 40px; height: 40px; border-radius: 10px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #64748b; text-decoration: none; transition: all 0.3s;">
+                    <i data-lucide="arrow-left" style="width: 20px; height: 20px;"></i>
+                </a>
+                <div>
+                    <h2
+                        style="font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">
+                        Báo hỏng thiết bị
+                    </h2>
+                    <p style="color: #64748b; margin: 0;">
+                        Điền thông tin chi tiết về thiết bị hỏng
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Form -->
+        <div class="card-modern animate-in" style="animation-delay: 0.1s; max-width: 800px;">
+            <div class="card-header-modern">
+                <h3 class="card-title">
+                    <i data-lucide="alert-triangle" style="width: 24px; height: 24px; margin-right: 8px;"></i>
+                    Thông tin báo hỏng
+                </h3>
+            </div>
+
+            <form th:action="@{/giao-vien/bao-hong/create}" method="post" style="padding: 24px;">
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; color: #334155; margin-bottom: 8px;">
+                        Thiết bị <span style="color: #ef4444;">*</span>
+                    </label>
+                    <select name="thietBiId" required
+                        style="width: 100%; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 15px; transition: all 0.3s; cursor: pointer;">
+                        <option value="">-- Chọn thiết bị --</option>
+                        <option th:each="tb : ${thietBis}" th:value="${tb.id}"
+                            th:text="${tb.tenThietBi + ' (' + tb.maThietBi + ')'}">
+                            Máy chiếu Epson (TB001)
+                        </option>
+                    </select>
+                    <small style="color: #94a3b8; font-size: 13px;">Chọn thiết bị bị hỏng</small>
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; color: #334155; margin-bottom: 8px;">
+                        Mô tả lỗi <span style="color: #ef4444;">*</span>
+                    </label>
+                    <textarea name="moTaLoi" required rows="5"
+                        placeholder="Mô tả chi tiết về tình trạng hỏng hóc của thiết bị..."
+                        style="width: 100%; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 15px; transition: all 0.3s; resize: vertical; font-family: inherit;"></textarea>
+                    <small style="color: #94a3b8; font-size: 13px;">Mô tả càng chi tiết càng giúp xử lý nhanh
+                        hơn</small>
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; color: #334155; margin-bottom: 8px;">
+                        Mức độ nghiêm trọng
+                    </label>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+                        <label style="position: relative; cursor: pointer;">
+                            <input type="radio" name="mucDoNghiemTrong" value="THAP"
+                                style="position: absolute; opacity: 0;">
+                            <div class="severity-option" data-severity="low"
+                                style="padding: 16px; border: 2px solid #e5e7eb; border-radius: 12px; text-align: center; transition: all 0.3s;">
+                                <div style="font-size: 24px; margin-bottom: 4px;">🟢</div>
+                                <div style="font-weight: 600; font-size: 14px; color: #334155;">Thấp</div>
+                            </div>
+                        </label>
+
+                        <label style="position: relative; cursor: pointer;">
+                            <input type="radio" name="mucDoNghiemTrong" value="TRUNG_BINH" checked
+                                style="position: absolute; opacity: 0;">
+                            <div class="severity-option active" data-severity="medium"
+                                style="padding: 16px; border: 2px solid #3b82f6; border-radius: 12px; text-align: center; transition: all 0.3s; background: #eff6ff;">
+                                <div style="font-size: 24px; margin-bottom: 4px;">🟡</div>
+                                <div style="font-weight: 600; font-size: 14px; color: #334155;">Trung bình</div>
+                            </div>
+                        </label>
+
+                        <label style="position: relative; cursor: pointer;">
+                            <input type="radio" name="mucDoNghiemTrong" value="CAO"
+                                style="position: absolute; opacity: 0;">
+                            <div class="severity-option" data-severity="high"
+                                style="padding: 16px; border: 2px solid #e5e7eb; border-radius: 12px; text-align: center; transition: all 0.3s;">
+                                <div style="font-size: 24px; margin-bottom: 4px;">🟠</div>
+                                <div style="font-weight: 600; font-size: 14px; color: #334155;">Cao</div>
+                            </div>
+                        </label>
+
+                        <label style="position: relative; cursor: pointer;">
+                            <input type="radio" name="mucDoNghiemTrong" value="KHAN_CAP"
+                                style="position: absolute; opacity: 0;">
+                            <div class="severity-option" data-severity="urgent"
+                                style="padding: 16px; border: 2px solid #e5e7eb; border-radius: 12px; text-align: center; transition: all 0.3s;">
+                                <div style="font-size: 24px; margin-bottom: 4px;">🔴</div>
+                                <div style="font-weight: 600; font-size: 14px; color: #334155;">Khẩn cấp</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 12px; padding-top: 24px; border-top: 1px solid #f1f5f9;">
+                    <button type="submit"
+                        style="flex: 1; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                        <i data-lucide="send" style="width: 18px; height: 18px; margin-right: 8px;"></i>
+                        Gửi báo cáo
+                    </button>
+                    <a th:href="@{/giao-vien/bao-hong}"
+                        style="flex: 1; background: #f1f5f9; color: #64748b; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; text-decoration: none; text-align: center;">
+                        Hủy
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            lucide.createIcons();
+
+            // Severity option selection
+            const severityOptions = document.querySelectorAll('.severity-option');
+            const radioInputs = document.querySelectorAll('input[name="mucDoNghiemTrong"]');
+
+            radioInputs.forEach((radio, index) => {
+                radio.addEventListener('change', function () {
+                    severityOptions.forEach(opt => {
+                        opt.classList.remove('active');
+                        opt.style.borderColor = '#e5e7eb';
+                        opt.style.background = '';
+                    });
+
+                    if (this.checked) {
+                        const option = severityOptions[index];
+                        option.classList.add('active');
+                        option.style.borderColor = '#3b82f6';
+                        option.style.background = '#eff6ff';
+                    }
+                });
+            });
+
+            // Click on div to select radio
+            severityOptions.forEach((option, index) => {
+                option.addEventListener('click', function () {
+                    radioInputs[index].checked = true;
+                    radioInputs[index].dispatchEvent(new Event('change'));
+                });
+            });
+
+            // Input focus effects
+            const inputs = document.querySelectorAll('select, textarea');
+            inputs.forEach(input => {
+                input.addEventListener('focus', function () {
+                    this.style.borderColor = '#3b82f6';
+                    this.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                });
+                input.addEventListener('blur', function () {
+                    this.style.borderColor = '#e5e7eb';
+                    this.style.boxShadow = 'none';
+                });
+            });
+
+            // Button hover effects
+            const submitBtn = document.querySelector('button[type="submit"]');
+            submitBtn.addEventListener('mouseenter', function () {
+                this.style.transform = 'translateY(-2px)';
+                this.style.boxShadow = '0 12px 24px rgba(239, 68, 68, 0.3)';
+            });
+            submitBtn.addEventListener('mouseleave', function () {
+                this.style.transform = '';
+                this.style.boxShadow = '';
+            });
+        </script>
+    </th:block>
+</body>
+
+</html>

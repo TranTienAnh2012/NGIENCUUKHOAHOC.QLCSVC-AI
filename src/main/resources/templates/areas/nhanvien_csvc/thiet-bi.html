@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/nhanvien-layout}">
+
+<head>
+    <title th:text="${title}">Danh sách thiết bị</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="card-modern">
+            <div style="text-align: center; padding: 60px 20px;">
+                <i data-lucide="monitor" style="width: 64px; height: 64px; color: #94a3b8; margin-bottom: 16px;"></i>
+                <h3 style="font-family: 'Outfit', sans-serif; font-size: 24px; color: #0f172a; margin-bottom: 8px;">Quản lý Thiết bị</h3>
+                <p style="color: #64748b; font-size: 16px;">Giao diện quản lý thiết bị dành cho nhân viên đang được xây dựng.</p>
+            </div>
+        </div>
+        <script>
+            setTimeout(() => { lucide.createIcons(); }, 100);
+        </script>
+    </div>
+</body>
+</html>

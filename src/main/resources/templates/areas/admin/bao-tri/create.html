@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${title}">Tạo phiếu bảo trì</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/admin}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/admin/bao-tri}">Bảo trì</a></li>
+                    <li class="breadcrumb-item active">Tạo mới</li>
+                </ol>
+            </nav>
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i data-lucide="plus-circle"></i> Tạo phiếu bảo trì mới</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="createForm">
+                                <div class="mb-3"><label for="thietBiId" class="form-label">Thiết bị <span
+                                            class="text-danger">*</span></label><select class="form-select"
+                                        id="thietBiId" required>
+                                        <option value="">-- Chọn thiết bị --</option>
+                                    </select></div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3"><label for="ngayBaoTri" class="form-label">Ngày bảo trì
+                                            <span class="text-danger">*</span></label><input type="date"
+                                            class="form-control" id="ngayBaoTri" required></div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="loaiBaoTri" class="form-label">Loại bảo trì <span
+                                                class="text-danger">*</span></label>
+                                        <select class="form-select" id="loaiBaoTri" required>
+                                            <option value="DINH_KY">Định kỳ</option>
+                                            <option value="SUA_CHUA">Sửa chữa</option>
+                                            <option value="PHONG_NGUA">Phòng ngừa</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3"><label for="nguoiThucHien" class="form-label">Người thực
+                                            hiện</label><input type="text" class="form-control" id="nguoiThucHien">
+                                    </div>
+                                    <div class="col-md-6 mb-3"><label for="chiPhi" class="form-label">Chi phí
+                                            (VNĐ)</label><input type="number" class="form-control" id="chiPhi" min="0">
+                                    </div>
+                                </div>
+                                <div class="mb-3"><label for="noiDung" class="form-label">Nội dung bảo
+                                        trì</label><textarea class="form-control" id="noiDung" rows="4"></textarea>
+                                </div>
+                                <div class="d-flex gap-2 justify-content-end"><a th:href="@{/admin/bao-tri}"
+                                        class="btn btn-secondary"><i data-lucide="x"></i> Hủy</a><button type="submit"
+                                        class="btn btn-primary"><i data-lucide="save"></i> Lưu</button></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <th:block layout:fragment="scripts">
+        <script
+            th:inline="javascript">document.addEventListener('DOMContentLoaded', () => { loadThietBi(); lucide.createIcons(); }); function loadThietBi() { fetch('/api/admin/thiet-bi/all').then(r => r.json()).then(data => { if (data.success) { const select = document.getElementById('thietBiId'); data.data.forEach(item => { const option = document.createElement('option'); option.value = item.id; option.textContent = item.tenThietBi; select.appendChild(option); }); } }); } document.getElementById('createForm').addEventListener('submit', function (e) { e.preventDefault(); const data = { thietBi: { id: parseInt(document.getElementById('thietBiId').value) }, ngayBaoTri: document.getElementById('ngayBaoTri').value, loaiBaoTri: document.getElementById('loaiBaoTri').value, nguoiThucHien: document.getElementById('nguoiThucHien').value, chiPhi: document.getElementById('chiPhi').value ? parseFloat(document.getElementById('chiPhi').value) : null, noiDung: document.getElementById('noiDung').value }; fetch('/api/admin/bao-tri', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }).then(r => r.json()).then(data => { if (data.success) { alert('Tạo phiếu bảo trì thành công!'); window.location.href = '/admin/bao-tri'; } else { alert('Lỗi: ' + (data.message || 'Không thể tạo')); } }).catch(e => { console.error('Error:', e); alert('Có lỗi xảy ra'); }); });</script>
+    </th:block>
+</body>
+
+</html>

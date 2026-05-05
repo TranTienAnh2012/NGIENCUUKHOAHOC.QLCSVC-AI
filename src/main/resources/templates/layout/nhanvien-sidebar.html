@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<body>
+    <!-- Sidebar Fragment for Nhan Vien CSVC -->
+    <aside class="nhanvien-sidebar" th:fragment="sidebar">
+        <div class="sidebar-header-modern">
+            <div class="logo-container">
+                <div class="logo-icon nhanvien-icon">
+                    <i data-lucide="wrench"></i>
+                </div>
+                <div class="logo-text">
+                    <h2>QLCSVC-AI</h2>
+                    <span class="role-badge nhanvien-badge">Nhân viên CSVC</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav-modern">
+            <ul>
+                <li class="nav-item">
+                    <a th:href="@{/nhanvien-csvc}" class="nav-link-modern">
+                        <div class="nav-icon">
+                            <i data-lucide="layout-dashboard"></i>
+                        </div>
+                        <span>Dashboard</span>
+                        <div class="nav-indicator"></div>
+                    </a>
+                </li>
+
+                <li class="nav-divider-modern">
+                    <span>Quản lý yêu cầu</span>
+                </li>
+
+                <li class="nav-item">
+                    <a th:href="@{/nhanvien-csvc/bao-hong}" class="nav-link-modern">
+                        <div class="nav-icon">
+                            <i data-lucide="clipboard-list"></i>
+                        </div>
+                        <span>Phiếu báo hỏng</span>
+                        <span class="badge-count">0</span>
+                        <div class="nav-indicator"></div>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a th:href="@{/nhanvien-csvc/bao-tri}" class="nav-link-modern">
+                        <div class="nav-icon">
+                            <i data-lucide="tool"></i>
+                        </div>
+                        <span>Lịch bảo trì</span>
+                        <div class="nav-indicator"></div>
+                    </a>
+                </li>
+
+                <li class="nav-divider-modern">
+                    <span>Quản lý thiết bị</span>
+                </li>
+
+                <li class="nav-item">
+                    <a th:href="@{/nhanvien-csvc/thiet-bi}" class="nav-link-modern">
+                        <div class="nav-icon">
+                            <i data-lucide="monitor"></i>
+                        </div>
+                        <span>Danh sách thiết bị</span>
+                        <div class="nav-indicator"></div>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a th:href="@{/nhanvien-csvc/phong-hoc}" class="nav-link-modern">
+                        <div class="nav-icon">
+                            <i data-lucide="home"></i>
+                        </div>
+                        <span>Phòng học</span>
+                        <div class="nav-indicator"></div>
+                    </a>
+                </li>
+
+                <li class="nav-divider-modern">
+                    <span>Công cụ AI</span>
+                </li>
+
+                <li class="nav-item">
+                    <a href="http://localhost:5000/api/ai/scan" target="_blank" class="nav-link-modern">
+                        <div class="nav-icon">
+                            <i data-lucide="scan"></i>
+                        </div>
+                        <span>Scan / AI</span>
+                        <div class="nav-indicator"></div>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a href="http://localhost:5000/api/ai/device-lookup" target="_blank" class="nav-link-modern">
+                        <div class="nav-icon">
+                            <i data-lucide="search"></i>
+                        </div>
+                        <span>Tra cứu thiết bị</span>
+                        <div class="nav-indicator"></div>
+                    </a>
+                </li>
+
+                <li class="nav-divider-modern">
+                    <span>Báo cáo</span>
+                </li>
+
+                <li class="nav-item">
+                    <a th:href="@{/nhanvien-csvc/thong-ke}" class="nav-link-modern">
+                        <div class="nav-icon">
+                            <i data-lucide="bar-chart-3"></i>
+                        </div>
+                        <span>Thống kê</span>
+                        <div class="nav-indicator"></div>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a th:href="@{/nhanvien-csvc/profile}" class="nav-link-modern">
+                        <div class="nav-icon">
+                            <i data-lucide="user"></i>
+                        </div>
+                        <span>Thông tin cá nhân</span>
+                        <div class="nav-indicator"></div>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="sidebar-footer-modern">
+            <div class="quick-stats">
+                <div class="stat-item">
+                    <i data-lucide="alert-circle"></i>
+                    <div>
+                        <span class="stat-label">Chờ xử lý</span>
+                        <span class="stat-value">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+</body>
+
+</html>

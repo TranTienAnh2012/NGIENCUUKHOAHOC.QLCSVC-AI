@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/nhanvien-layout}">
+
+<head>
+    <title th:text="${title}">Danh sách báo hỏng</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <!-- Header -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-1" th:text="${title}">Danh sách báo hỏng</h4>
+                            <p class="text-muted small mb-0">Quản lý phiếu báo hỏng từ giáo viên</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <select class="form-select" id="filterTrangThai">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="CHO_XU_LY">Chờ xử lý</option>
+                        <option value="DANG_XU_LY">Đang xử lý</option>
+                        <option value="HOAN_THANH">Hoàn thành</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="filterMucDo">
+                        <option value="">Tất cả mức độ</option>
+                        <option value="KHAN_CAP">Khẩn cấp</option>
+                        <option value="CAO">Cao</option>
+                        <option value="TRUNG_BINH">Trung bình</option>
+                        <option value="THAP">Thấp</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <input type="text" class="form-control" id="searchInput" placeholder="Tìm kiếm thiết bị...">
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="dataTable">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Thiết bị</th>
+                                            <th>Người báo</th>
+                                            <th>Ngày báo</th>
+                                            <th>Mức độ</th>
+                                            <th>Trạng thái</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="item : ${baoHongs}">
+                                            <td th:text="${item.id}">1</td>
+                                            <td th:text="${item.thietBi?.tenThietBi}">Máy chiếu</td>
+                                            <td th:text="${item.nguoiBao?.hoTen}">Nguyễn Văn A</td>
+                                            <td th:text="${#temporals.format(item.ngayBao, 'dd/MM/yyyy HH:mm')}">
+                                                22/01/2026</td>
+                                            <td>
+                                                <span
+                                                    th:class="'badge ' + ${item.mucDoNghiemTrong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.MucDoNghiemTrong).KHAN_CAP ? 'bg-danger' : 
+                                                    item.mucDoNghiemTrong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.MucDoNghiemTrong).CAO ? 'bg-warning' : 
+                                                    item.mucDoNghiemTrong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.MucDoNghiemTrong).TRUNG_BINH ? 'bg-info' : 'bg-secondary'}"
+                                                    th:text="${item.mucDoNghiemTrong}">TRUNG_BINH</span>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    th:class="'badge ' + ${item.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).CHO_XU_LY ? 'bg-warning' : 
+                                                    item.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).DANG_XU_LY ? 'bg-info' : 
+                                                    item.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).HOAN_THANH ? 'bg-success' : 'bg-secondary'}"
+                                                    th:text="${item.trangThai}">CHO_XU_LY</span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a th:href="@{/nhanvien-csvc/bao-hong/{id}(id=${item.id})}"
+                                                        class="btn btn-info" title="Xem chi tiết">
+                                                        <i data-lucide="eye"></i>
+                                                    </a>
+                                                    <a th:if="${item.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).CHO_XU_LY}"
+                                                        th:href="@{/nhanvien-csvc/bao-tri/create(baoHongId=${item.id})}"
+                                                        class="btn btn-success" title="Lên lịch bảo trì">
+                                                        <i data-lucide="calendar-plus"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', () => {
+                lucide.createIcons();
+
+                const filterTrangThai = document.getElementById('filterTrangThai');
+                const filterMucDo = document.getElementById('filterMucDo');
+                const searchInput = document.getElementById('searchInput');
+                const table = document.getElementById('dataTable');
+                const rows = table.querySelectorAll('tbody tr');
+
+                function filterTable() {
+                    const trangThaiValue = filterTrangThai.value.toLowerCase();
+                    const mucDoValue = filterMucDo.value.toLowerCase();
+                    const searchValue = searchInput.value.toLowerCase();
+
+                    rows.forEach(row => {
+                        const trangThai = row.cells[5].textContent.toLowerCase();
+                        const mucDo = row.cells[4].textContent.toLowerCase();
+                        const thietBi = row.cells[1].textContent.toLowerCase();
+
+                        const matchTrangThai = !trangThaiValue || trangThai.includes(trangThaiValue);
+                        const matchMucDo = !mucDoValue || mucDo.includes(mucDoValue);
+                        const matchSearch = !searchValue || thietBi.includes(searchValue);
+
+                        row.style.display = matchTrangThai && matchMucDo && matchSearch ? '' : 'none';
+                    });
+                }
+
+                filterTrangThai.addEventListener('change', filterTable);
+                filterMucDo.addEventListener('change', filterTable);
+                searchInput.addEventListener('input', filterTable);
+            });
+        </script>
+    </th:block>
+</body>
+
+</html>

@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Báo Hỏng Thiết Bị - Scan Ảnh AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* ============================================================
+           CSS TỔNG THỂ
+           ============================================================ */
+        body { background: #f0f2f5; }
+
+        .card { border: none; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .card-header { border-radius: 16px 16px 0 0 !important; }
+
+        /* ============================================================
+           SCAN SECTION - Khu vực chụp/upload ảnh
+           Dùng gradient để nổi bật, phân biệt với phần form bên dưới
+           ============================================================ */
+        .scan-section {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .scan-section h5 { font-size: 1.1rem; font-weight: 600; }
+
+        /* Khu vực preview ảnh - hình vuông, có border dash khi chưa có ảnh */
+        .image-preview-area {
+            width: 100%;
+            height: 260px;
+            background: rgba(255,255,255,0.07);
+            border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            cursor: pointer;
+            transition: border-color 0.3s;
+            position: relative;
+        }
+        .image-preview-area:hover { border-color: rgba(255,255,255,0.6); }
+        .image-preview-area img {
+            width: 100%; height: 100%;
+            object-fit: contain;
+        }
+        .preview-placeholder {
+            text-align: center;
+            color: rgba(255,255,255,0.5);
+            pointer-events: none;
+        }
+
+        /* Video stream từ camera - chiếm toàn bộ khung preview */
+        #cameraVideo {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            display: none; /* Ẩn mặc định, chỉ hiện khi bật camera */
+        }
+
+        /* Canvas dùng để capture frame từ video (ẩn, chỉ dùng để lấy pixel data) */
+        #captureCanvas { display: none; }
+
+        /* Nút scan ảnh - màu xanh lam nổi bật */
+        .btn-scan {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-scan:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102,126,234,0.5);
+            color: white;
+        }
+        .btn-scan:disabled { opacity: 0.6; transform: none; }
+
+        /* ============================================================
+           KẾT QUẢ SCAN - Hiển thị sau khi AI phân tích xong
+           ============================================================ */
+        .scan-result-box {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 16px;
+            margin-top: 16px;
+            display: none; /* Ẩn mặc định */
+        }
+
+        /* Badge độ tin cậy - màu thay đổi theo mức confidence */
+        .confidence-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .confidence-high { background: #28a745; color: white; }   /* > 70% */
+        .confidence-med  { background: #ffc107; color: #333; }    /* 40-70% */
+        .confidence-low  { background: #dc3545; color: white; }   /* < 40% */
+
+        /* Thẻ hiển thị thiết bị match trong DB */
+        .matched-device-card {
+            background: rgba(40,167,69,0.15);
+            border: 1px solid rgba(40,167,69,0.4);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+        }
+
+        /* Nút "Dùng kết quả này" - điền tự động vào form */
+        .btn-use-result {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white; border: none;
+            padding: 8px 20px; border-radius: 8px;
+            font-weight: 600; font-size: 0.9rem;
+            transition: transform 0.2s;
+        }
+        .btn-use-result:hover { transform: translateY(-1px); color: white; }
+
+        /* ============================================================
+           CÁC SECTION TRONG KẾT QUẢ SCAN (mới thêm)
+           Mỗi section là 1 khối thông tin: AI / DB / Mượn / Báo hỏng
+           ============================================================ */
+        .result-section {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            padding: 12px 14px;
+        }
+        .result-section-title {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+
+        /* Grid 2 cột để hiển thị các cặp label-value */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        @media (max-width: 500px) { .info-grid { grid-template-columns: 1fr; } }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .info-label {
+            font-size: 0.7rem;
+            opacity: 0.6;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .info-value {
+            font-size: 0.88rem;
+            font-weight: 500;
+        }
+
+        /* Hàng lịch sử (báo hỏng / mượn trả) */
+        .history-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .history-row:last-child { border-bottom: none; }
+        .history-row .h-main { font-weight: 500; }
+        .history-row .h-sub  { font-size: 0.75rem; opacity: 0.65; margin-top: 1px; }
+        .history-row .h-badge { flex-shrink: 0; margin-left: 8px; }
+
+        /* ============================================================
+           PHẦN FORM BÁO HỎNG - phần gốc
+           ============================================================ */
+        .ai-analysis-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+        .ai-analysis-content {
+            background: white;
+            color: #333;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .loading-spinner { display: none; }
+
+        /* Toast thông báo nhỏ góc trên phải */
+        .toast-notify {
+            position: fixed; top: 20px; right: 20px;
+            z-index: 9999; min-width: 280px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Toast thông báo (hiện tạm 3 giây khi dùng kết quả) -->
+    <div class="toast-notify">
+        <div id="notifyToast" class="toast align-items-center text-white bg-success border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage">Đã điền thông tin thiết bị!</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-4 mb-5" style="max-width: 760px;">
+        <div class="card">
+            <div class="card-header bg-danger text-white py-3">
+                <h4 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Báo Hỏng Thiết Bị</h4>
+                <small class="opacity-75">Hệ thống Quản lý Cơ sở Vật chất - AI Scan</small>
+            </div>
+
+            <div class="card-body p-4">
+
+                <!-- ==================================================
+                     BƯỚC 1: QUÉT ẢNH THIẾT BỊ (phần mới thêm)
+                     Người dùng chụp hoặc upload ảnh → AI nhận dạng
+                     → tự động điền thông tin vào form bên dưới
+                     ================================================== -->
+                <div class="scan-section">
+                    <h5><i class="fas fa-camera me-2"></i>Bước 1: Quét Ảnh Thiết Bị <span class="badge bg-warning text-dark ms-2" style="font-size:0.7rem;">MỚI</span></h5>
+                    <p class="opacity-75 small mb-3">Chụp ảnh hoặc upload ảnh thiết bị → AI tự nhận dạng và điền thông tin vào form</p>
+
+                    <div class="row g-3">
+                        <!-- Cột trái: Khung hiển thị ảnh / camera -->
+                        <div class="col-md-6">
+                            <!-- Khung preview: click để upload -->
+                            <div class="image-preview-area" id="previewArea" onclick="triggerUpload()" title="Click để chọn ảnh">
+                                <!-- Video stream camera (ẩn mặc định) -->
+                                <video id="cameraVideo" autoplay playsinline></video>
+
+                                <!-- Ảnh preview sau khi chọn/chụp -->
+                                <img id="previewImg" style="display:none;" alt="Ảnh thiết bị">
+
+                                <!-- Placeholder khi chưa có ảnh -->
+                                <div class="preview-placeholder" id="previewPlaceholder">
+                                    <i class="fas fa-image fa-3x mb-2"></i>
+                                    <p class="mb-0 small">Click chọn ảnh<br>hoặc dùng camera</p>
+                                </div>
+                            </div>
+
+                            <!-- Input file ẩn - được trigger bởi click vào preview area -->
+                            <input type="file" id="imageFileInput" accept="image/*"
+                                   style="display:none;" onchange="handleFileSelect(event)">
+
+                            <!-- Canvas ẩn dùng để capture frame từ video -->
+                            <canvas id="captureCanvas"></canvas>
+                        </div>
+
+                        <!-- Cột phải: Các nút thao tác -->
+                        <div class="col-md-6 d-flex flex-column gap-2">
+                            <!-- Nút upload ảnh từ file -->
+                            <button type="button" class="btn btn-outline-light" onclick="triggerUpload()" id="uploadBtn">
+                                <i class="fas fa-upload me-2"></i>Chọn ảnh từ thiết bị
+                            </button>
+
+                            <!-- Nút bật/tắt camera -->
+                            <button type="button" class="btn btn-outline-info" onclick="toggleCamera()" id="cameraBtn">
+                                <i class="fas fa-camera me-2"></i>Bật Camera
+                            </button>
+
+                            <!-- Nút chụp ảnh (chỉ hiện khi camera đang bật) -->
+                            <button type="button" class="btn btn-info" onclick="capturePhoto()"
+                                    id="captureBtn" style="display:none;">
+                                <i class="fas fa-circle me-2"></i>Chụp Ảnh
+                            </button>
+
+                            <!-- Nút quét AI - gửi ảnh lên Flask để phân tích -->
+                            <button type="button" class="btn-scan btn" onclick="scanWithAI()"
+                                    id="scanBtn" disabled>
+                                <i class="fas fa-search me-2"></i>Quét AI Nhận Dạng
+                            </button>
+
+                            <!-- Spinner loading -->
+                            <div id="scanSpinner" style="display:none;" class="text-center text-white">
+                                <i class="fas fa-spinner fa-spin me-2"></i>
+                                <span class="small">Đang phân tích ảnh...</span>
+                            </div>
+
+                            <!-- Thông tin ảnh đã chọn -->
+                            <div id="imageInfo" class="small opacity-75" style="display:none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Kết quả scan AI - ẩn mặc định, hiện sau khi quét -->
+                    <div class="scan-result-box" id="scanResultBox">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h6 class="mb-0"><i class="fas fa-robot me-2"></i>Kết Quả Nhận Dạng AI</h6>
+                            <button type="button" class="btn btn-sm btn-outline-light"
+                                    onclick="clearScanResult()" title="Xóa kết quả">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+
+                        <!-- PHẦN A: Kết quả AI nhận dạng từ ảnh -->
+                        <div class="result-section mb-3">
+                            <div class="result-section-title">📷 AI Nhận Dạng Từ Ảnh</div>
+                            <div class="mb-1">
+                                <strong>Thiết bị:</strong>
+                                <span id="detectedName" class="ms-2"></span>
+                                <span id="confidenceBadge" class="confidence-badge ms-2"></span>
+                            </div>
+                            <div class="small opacity-75 mb-1">
+                                <span id="detectedBrandModel"></span>
+                            </div>
+                            <div class="small mb-1">
+                                <strong>Tình trạng nhìn thấy:</strong>
+                                <span id="detectedCondition"></span>
+                            </div>
+                            <div id="damageSignsRow" class="small" style="display:none;">
+                                <strong class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Hư hỏng phát hiện:</strong>
+                                <span id="detectedDamage"></span>
+                            </div>
+                        </div>
+
+                        <!-- PHẦN B: Thông tin thiết bị trong DB -->
+                        <div id="matchedDeviceSection" style="display:none;">
+                            <div class="result-section mb-3">
+                                <div class="result-section-title">🗄️ Thông Tin Trong Hệ Thống DB</div>
+                                <div class="info-grid">
+                                    <div class="info-item">
+                                        <span class="info-label">Tên thiết bị</span>
+                                        <span class="info-value" id="dbDeviceName"></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Mã thiết bị</span>
+                                        <span class="info-value" id="dbDeviceCode"></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Phòng / Vị trí</span>
+                                        <span class="info-value" id="dbDeviceRoom"></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Loại thiết bị</span>
+                                        <span class="info-value" id="dbDeviceCategory"></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Trạng thái hiện tại</span>
+                                        <span class="info-value"><span id="dbDeviceStatus" class="badge"></span></span>
+                                    </div>
+                                    <div class="info-item">
+                                        <span class="info-label">Độ khớp DB</span>
+                                        <span class="info-value"><span id="matchScoreBadge" class="badge bg-info"></span></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- PHẦN C: Ai đang mượn (hiện nếu có) -->
+                            <div id="currentBorrowerSection" style="display:none;">
+                                <div class="result-section mb-3" style="border-color: rgba(255,193,7,0.4); background: rgba(255,193,7,0.08);">
+                                    <div class="result-section-title" style="color:#ffc107;">⚠️ Thiết Bị Đang Được Mượn</div>
+                                    <div class="info-grid">
+                                        <div class="info-item">
+                                            <span class="info-label">Người mượn</span>
+                                            <span class="info-value fw-bold" id="borrowerName"></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Ngày mượn</span>
+                                            <span class="info-value" id="borrowDate"></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Dự kiến trả</span>
+                                            <span class="info-value" id="expectedReturn"></span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Ghi chú</span>
+                                            <span class="info-value" id="borrowNote"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- PHẦN D: Lịch sử báo hỏng -->
+                            <div id="damageHistorySection" style="display:none;">
+                                <div class="result-section mb-3">
+                                    <div class="result-section-title">🔧 Lịch Sử Báo Hỏng Gần Đây</div>
+                                    <div id="damageHistoryList" class="small"></div>
+                                </div>
+                            </div>
+
+                            <!-- PHẦN E: Lịch sử mượn trả -->
+                            <div id="borrowHistorySection" style="display:none;">
+                                <div class="result-section mb-3">
+                                    <div class="result-section-title">📋 Lịch Sử Mượn Trả Gần Đây</div>
+                                    <div id="borrowHistoryList" class="small"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Khi không tìm thấy trong DB -->
+                        <div id="noMatchSection" style="display:none;">
+                            <div class="alert alert-warning py-2 mb-2 mt-2 small">
+                                <i class="fas fa-question-circle me-1"></i>
+                                AI nhận dạng được thiết bị nhưng không tìm thấy trong DB.
+                                Vui lòng chọn thủ công bên dưới hoặc chụp lại ảnh rõ hơn.
+                            </div>
+                        </div>
+
+                        <!-- DB không kết nối -->
+                        <div id="noDbSection" style="display:none;">
+                            <div class="alert alert-secondary py-2 mb-2 mt-2 small">
+                                <i class="fas fa-server me-1"></i>
+                                Spring Boot chưa chạy → Không thể đối chiếu DB.
+                                Kết quả chỉ từ AI nhận dạng ảnh.
+                            </div>
+                        </div>
+
+                        <!-- Nút dùng kết quả -->
+                        <div class="mt-3 d-flex gap-2 flex-wrap">
+                            <button type="button" class="btn-use-result btn"
+                                    onclick="applyToForm()" id="applyBtn">
+                                <i class="fas fa-magic me-2"></i>Dùng kết quả này
+                            </button>
+                            <small class="opacity-75 align-self-center">→ Tự động điền vào form bên dưới</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================================================
+                     BƯỚC 2: FORM BÁO HỎNG THÔNG THƯỜNG (phần gốc)
+                     Có thể điền thủ công hoặc dùng kết quả scan
+                     ================================================== -->
+                <h6 class="text-muted mb-3">
+                    <i class="fas fa-edit me-2"></i>Bước 2: Điền Thông Tin Báo Hỏng
+                </h6>
+
+                <form id="damageReportForm">
+                    <!-- Chọn thiết bị -->
+                    <div class="mb-3">
+                        <label class="form-label">Thiết bị <span class="text-danger">*</span></label>
+                        <select class="form-select" id="equipment" name="thietBiId" required>
+                            <option value="">-- Chọn thiết bị --</option>
+                            <option value="1" data-name="Máy chiếu Epson EB-X05">Máy chiếu Epson EB-X05</option>
+                            <option value="2" data-name="Laptop Dell Latitude 5420">Laptop Dell Latitude 5420</option>
+                            <option value="3" data-name="Loa JBL EON615">Loa JBL EON615</option>
+                        </select>
+                        <!-- Hiện thông tin thiết bị từ DB sau khi AI scan (nếu có match) -->
+                        <div id="matchHint" class="form-text text-success" style="display:none;">
+                            <i class="fas fa-check-circle me-1"></i>
+                            <span id="matchHintText"></span>
+                        </div>
+                    </div>
+
+                    <!-- Mô tả hư hỏng -->
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả hư hỏng <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="description" name="moTaLoi" rows="4"
+                            placeholder="Mô tả chi tiết tình trạng hư hỏng của thiết bị..." required></textarea>
+                        <small class="text-muted">Mô tả càng chi tiết, AI sẽ phân tích càng chính xác</small>
+                    </div>
+
+                    <!-- Mức độ nghiêm trọng -->
+                    <div class="mb-3">
+                        <label class="form-label">Mức độ nghiêm trọng <span class="text-danger">*</span></label>
+                        <select class="form-select" id="severity" name="mucDoNghiemTrong" required>
+                            <option value="THAP">Thấp - Vẫn sử dụng được</option>
+                            <option value="TRUNG_BINH" selected>Trung bình - Ảnh hưởng một phần</option>
+                            <option value="CAO">Cao - Không sử dụng được</option>
+                            <option value="KHAN_CAP">Khẩn cấp - Cần xử lý ngay</option>
+                        </select>
+                    </div>
+
+                    <!-- Nút phân tích AI theo text (giữ nguyên từ bản cũ) -->
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-info" id="analyzeBtn" onclick="analyzeWithAI()">
+                            <i class="fas fa-robot"></i> Phân tích mô tả bằng AI
+                        </button>
+                        <span class="loading-spinner ms-2" id="loadingSpinner">
+                            <i class="fas fa-spinner fa-spin"></i> Đang phân tích...
+                        </span>
+                    </div>
+
+                    <!-- Kết quả phân tích AI theo text -->
+                    <div class="ai-analysis-box" id="aiAnalysisBox">
+                        <h5><i class="fas fa-robot"></i> Phân Tích Từ AI</h5>
+                        <div class="ai-analysis-content" id="aiAnalysisContent"></div>
+                        <input type="hidden" id="aiAnalysisHidden" name="aiAnalysis">
+                        <input type="hidden" id="aiPriorityHidden" name="aiPriority">
+                    </div>
+
+                    <!-- Submit -->
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-paper-plane"></i> Gửi báo hỏng
+                        </button>
+                        <a href="/admin/bao-hong/list" class="btn btn-secondary ms-2">
+                            <i class="fas fa-times"></i> Hủy
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ============================================================
+        // BIẾN TOÀN CỤC
+        // ============================================================
+        let currentImageBase64 = null;  // Lưu ảnh đang chọn dưới dạng base64
+        let currentImageMime = 'image/jpeg';
+        let cameraStream = null;        // MediaStream từ camera (dùng để tắt camera)
+        let isCameraOn = false;         // Trạng thái camera
+        let lastScanData = null;        // Kết quả scan cuối cùng (dùng cho applyToForm)
+
+        const AI_API_URL = 'http://localhost:5000'; // Flask server
+
+        // ============================================================
+        // PHẦN 1: XỬ LÝ ẢNH (upload file)
+        // ============================================================
+
+        /**
+         * Trigger input file khi click vào vùng preview
+         * (Chỉ khi camera không bật)
+         */
+        function triggerUpload() {
+            if (!isCameraOn) {
+                document.getElementById('imageFileInput').click();
+            }
+        }
+
+        /**
+         * Xử lý khi người dùng chọn file ảnh từ máy/điện thoại
+         * - Đọc file → convert sang base64
+         * - Hiển thị preview
+         * - Bật nút "Quét AI"
+         */
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Chỉ cho phép file ảnh
+            if (!file.type.startsWith('image/')) {
+                alert('Vui lòng chọn file ảnh (JPG, PNG, ...)');
+                return;
+            }
+
+            currentImageMime = file.type;
+
+            // Đọc file thành base64 bằng FileReader
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dataUrl = e.target.result;           // "data:image/jpeg;base64,..."
+                currentImageBase64 = dataUrl;               // Lưu cả data URL (Flask sẽ tự strip prefix)
+
+                // Hiển thị ảnh preview
+                showPreviewImage(dataUrl);
+
+                // Cập nhật info
+                const sizeKB = (file.size / 1024).toFixed(1);
+                document.getElementById('imageInfo').textContent =
+                    `📎 ${file.name} (${sizeKB} KB)`;
+                document.getElementById('imageInfo').style.display = 'block';
+
+                // Bật nút scan
+                document.getElementById('scanBtn').disabled = false;
+
+                // Reset kết quả cũ
+                hideScanResult();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ============================================================
+        // PHẦN 2: XỬ LÝ CAMERA
+        // ============================================================
+
+        /**
+         * Bật/tắt camera
+         * - Bật: gọi getUserMedia() → hiển thị video stream
+         * - Tắt: dừng tất cả track → ẩn video
+         *
+         * getUserMedia() là API HTML5 chuẩn, hoạt động trên:
+         * - Chrome/Edge desktop
+         * - Chrome/Firefox trên Android
+         * - Safari iOS (từ iOS 14.3+)
+         */
+        async function toggleCamera() {
+            if (isCameraOn) {
+                stopCamera();
+            } else {
+                await startCamera();
+            }
+        }
+
+        async function startCamera() {
+            try {
+                // Yêu cầu quyền camera từ trình duyệt
+                // facingMode: 'environment' = camera sau (tốt hơn cho scan thiết bị)
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment',  // Camera sau (Android/PC dùng webcam)
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                });
+
+                const video = document.getElementById('cameraVideo');
+                video.srcObject = cameraStream;
+                video.style.display = 'block';
+
+                // Ẩn placeholder và ảnh preview
+                document.getElementById('previewPlaceholder').style.display = 'none';
+                document.getElementById('previewImg').style.display = 'none';
+
+                // Cập nhật UI
+                isCameraOn = true;
+                document.getElementById('cameraBtn').innerHTML =
+                    '<i class="fas fa-video-slash me-2"></i>Tắt Camera';
+                document.getElementById('cameraBtn').className = 'btn btn-outline-danger';
+                document.getElementById('captureBtn').style.display = 'block';
+                document.getElementById('uploadBtn').disabled = true;
+
+            } catch (err) {
+                // Lỗi phổ biến: người dùng từ chối quyền, hoặc không có camera
+                alert('Không thể mở camera: ' + err.message +
+                      '\n\nHãy đảm bảo:\n- Cho phép quyền camera trong trình duyệt\n- Thiết bị có camera');
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                // Dừng tất cả track của camera stream để tắt đèn camera
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            const video = document.getElementById('cameraVideo');
+            video.style.display = 'none';
+            video.srcObject = null;
+
+            isCameraOn = false;
+            document.getElementById('cameraBtn').innerHTML =
+                '<i class="fas fa-camera me-2"></i>Bật Camera';
+            document.getElementById('cameraBtn').className = 'btn btn-outline-info';
+            document.getElementById('captureBtn').style.display = 'none';
+            document.getElementById('uploadBtn').disabled = false;
+
+            // Nếu không có ảnh preview, hiện placeholder trở lại
+            if (!currentImageBase64) {
+                document.getElementById('previewPlaceholder').style.display = 'block';
+            }
+        }
+
+        /**
+         * Chụp ảnh từ video stream
+         * - Vẽ frame hiện tại của video vào canvas ẩn
+         * - Đọc pixel data → convert sang base64
+         * - Hiển thị ảnh đã chụp, tắt camera
+         */
+        function capturePhoto() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('captureCanvas');
+
+            // Set kích thước canvas = kích thước video thực
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Vẽ frame hiện tại lên canvas
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert canvas → base64 JPEG (quality 0.85 để cân bằng chất lượng/kích thước)
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            currentImageBase64 = dataUrl;
+            currentImageMime = 'image/jpeg';
+
+            // Hiển thị ảnh vừa chụp
+            showPreviewImage(dataUrl);
+
+            // Thông tin ảnh
+            document.getElementById('imageInfo').textContent =
+                `📸 Ảnh chụp ${canvas.width}x${canvas.height}px`;
+            document.getElementById('imageInfo').style.display = 'block';
+
+            // Bật nút scan, tắt camera
+            document.getElementById('scanBtn').disabled = false;
+            stopCamera();
+            hideScanResult();
+        }
+
+        // ============================================================
+        // PHẦN 3: SCAN AI
+        // ============================================================
+
+        /**
+         * Gửi ảnh lên Flask /api/ai/scan-image để nhận dạng thiết bị
+         *
+         * Luồng:
+         * 1. Lấy base64 của ảnh hiện tại
+         * 2. POST lên Flask với { image_base64, image_mime }
+         * 3. Flask gọi Gemini Vision → nhận dạng → đối chiếu DB
+         * 4. Hiển thị kết quả
+         */
+        async function scanWithAI() {
+            if (!currentImageBase64) {
+                alert('Vui lòng chọn ảnh hoặc chụp ảnh trước');
+                return;
+            }
+
+            // Hiện spinner, ẩn nút scan
+            document.getElementById('scanSpinner').style.display = 'block';
+            document.getElementById('scanBtn').disabled = true;
+            hideScanResult();
+
+            try {
+                const response = await fetch(`${AI_API_URL}/api/ai/scan-image`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image_base64: currentImageBase64,
+                        image_mime: currentImageMime
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayScanResult(data);
+                    lastScanData = data;  // Lưu lại để dùng cho applyToForm()
+                } else {
+                    alert('Lỗi scan: ' + (data.error || 'Không xác định'));
+                }
+            } catch (error) {
+                alert('Không thể kết nối Flask server (http://localhost:5000)\n\n' +
+                      'Kiểm tra: python ai_api.py đang chạy chưa?\n\nLỗi: ' + error.message);
+            } finally {
+                document.getElementById('scanSpinner').style.display = 'none';
+                document.getElementById('scanBtn').disabled = false;
+            }
+        }
+
+        /**
+         * Hiển thị kết quả scan từ API - phiên bản cải tiến
+         * 5 phần: A-AI nhận dạng | B-DB info | C-Người mượn | D-Báo hỏng | E-Mượn trả
+         * @param {Object} data - Response từ Flask /api/ai/scan-image
+         */
+        function displayScanResult(data) {
+            const sr = data.scan_result;
+            const md = data.matched_device;
+
+            // ---- PHẦN A: AI nhận dạng từ ảnh ----
+            document.getElementById('detectedName').textContent = sr.detected_name;
+
+            const conf = sr.confidence;
+            const badge = document.getElementById('confidenceBadge');
+            badge.textContent = Math.round(conf * 100) + '%';
+            badge.className = 'confidence-badge ' + (
+                conf >= 0.7 ? 'confidence-high' :
+                conf >= 0.4 ? 'confidence-med' : 'confidence-low'
+            );
+
+            let brandModel = '';
+            if (sr.detected_brand) brandModel += `Hãng: ${sr.detected_brand}`;
+            if (sr.detected_model) brandModel += (brandModel ? ' | ' : '') + `Model: ${sr.detected_model}`;
+            if (sr.detected_type)  brandModel += (brandModel ? ' | ' : '') + `Loại: ${sr.detected_type}`;
+            document.getElementById('detectedBrandModel').textContent = brandModel;
+
+            document.getElementById('detectedCondition').textContent = sr.condition || 'Không xác định';
+
+            if (sr.damage_signs) {
+                document.getElementById('detectedDamage').textContent = sr.damage_signs;
+                document.getElementById('damageSignsRow').style.display = 'block';
+            } else {
+                document.getElementById('damageSignsRow').style.display = 'none';
+            }
+
+            // ---- PHẦN B: Thông tin DB ----
+            if (md) {
+                const devName = md.name || md.tenThietBi || 'Không rõ';
+                const devCode = md.code || md.maThietBi || 'N/A';
+                const devRoom = md.room || md.phong || '—';
+                const devCat  = md.category || md.loai || '—';
+                const status  = md.status || md.trangThai || '';
+
+                document.getElementById('dbDeviceName').textContent = devName;
+                document.getElementById('dbDeviceCode').textContent = devCode;
+                document.getElementById('dbDeviceRoom').textContent = devRoom;
+                document.getElementById('dbDeviceCategory').textContent = devCat;
+
+                const statusEl = document.getElementById('dbDeviceStatus');
+                statusEl.textContent = formatStatus(status);
+                statusEl.className = 'badge ' + getStatusColor(status);
+
+                document.getElementById('matchScoreBadge').textContent =
+                    `Khớp ${Math.round(data.match_score * 100)}%`;
+
+                document.getElementById('matchedDeviceSection').style.display = 'block';
+                document.getElementById('noMatchSection').style.display = 'none';
+                document.getElementById('noDbSection').style.display = 'none';
+
+                // ---- PHẦN C: Ai đang mượn ----
+                const borrower = data.current_borrower;
+                if (borrower) {
+                    document.getElementById('borrowerName').textContent =
+                        borrower.user_name || 'Không rõ';
+                    document.getElementById('borrowDate').textContent =
+                        formatDate(borrower.borrow_date);
+                    document.getElementById('expectedReturn').textContent =
+                        borrower.expected_return ? formatDate(borrower.expected_return) : '—';
+                    document.getElementById('borrowNote').textContent =
+                        borrower.ghi_chu || '—';
+                    document.getElementById('currentBorrowerSection').style.display = 'block';
+                } else {
+                    document.getElementById('currentBorrowerSection').style.display = 'none';
+                }
+
+                // ---- PHẦN D: Lịch sử báo hỏng ----
+                const dmgHistory = data.device_damage_history || [];
+                if (dmgHistory.length > 0) {
+                    const dmgHtml = dmgHistory.map(d => `
+                        <div class="history-row">
+                            <div>
+                                <div class="h-main">${d.description || 'Không có mô tả'}</div>
+                                <div class="h-sub">
+                                    ${d.reporter_name ? 'Báo bởi: ' + d.reporter_name + ' | ' : ''}
+                                    ${formatDate(d.reported_date)}
+                                </div>
+                            </div>
+                            <div class="h-badge">
+                                <span class="badge ${getSeverityColor(d.severity)}">${d.severity || '—'}</span>
+                                <br><span class="badge ${getDamageStatusColor(d.status)} mt-1">${formatDamageStatus(d.status)}</span>
+                            </div>
+                        </div>`).join('');
+                    document.getElementById('damageHistoryList').innerHTML = dmgHtml;
+                    document.getElementById('damageHistorySection').style.display = 'block';
+                } else {
+                    document.getElementById('damageHistorySection').style.display = 'none';
+                }
+
+                // ---- PHẦN E: Lịch sử mượn trả ----
+                const bHistory = data.borrow_history || [];
+                if (bHistory.length > 0) {
+                    const bHtml = bHistory.map(b => `
+                        <div class="history-row">
+                            <div>
+                                <div class="h-main">${b.user_name || 'Không rõ'}</div>
+                                <div class="h-sub">
+                                    Mượn: ${formatDate(b.borrow_date)}
+                                    ${b.actual_return ? ' | Trả: ' + formatDate(b.actual_return) : ''}
+                                </div>
+                            </div>
+                            <div class="h-badge">
+                                <span class="badge ${b.status === 'DA_TRA' ? 'bg-secondary' : 'bg-warning text-dark'}">
+                                    ${b.status === 'DA_TRA' ? 'Đã trả' : 'Đang mượn'}
+                                </span>
+                            </div>
+                        </div>`).join('');
+                    document.getElementById('borrowHistoryList').innerHTML = bHtml;
+                    document.getElementById('borrowHistorySection').style.display = 'block';
+                } else {
+                    document.getElementById('borrowHistorySection').style.display = 'none';
+                }
+
+            } else {
+                // Không match DB
+                document.getElementById('matchedDeviceSection').style.display = 'none';
+                if (data.db_connected) {
+                    document.getElementById('noMatchSection').style.display = 'block';
+                    document.getElementById('noDbSection').style.display = 'none';
+                } else {
+                    document.getElementById('noMatchSection').style.display = 'none';
+                    document.getElementById('noDbSection').style.display = 'block';
+                }
+            }
+
+            document.getElementById('scanResultBox').style.display = 'block';
+        }
+
+        /** Format ngày: 2026-03-10T... → 10/03/2026 */
+        function formatDate(dateStr) {
+            if (!dateStr) return '—';
+            try {
+                const d = new Date(dateStr);
+                return d.toLocaleDateString('vi-VN');
+            } catch { return dateStr; }
+        }
+
+        /** Màu badge mức độ nghiêm trọng */
+        function getSeverityColor(sev) {
+            if (!sev) return 'bg-secondary';
+            const s = sev.toUpperCase();
+            if (s === 'CAO' || s === 'NGHIEM_TRONG') return 'bg-danger';
+            if (s === 'TRUNG_BINH' || s === 'MEDIUM')  return 'bg-warning text-dark';
+            return 'bg-info text-dark';
+        }
+
+        /** Màu badge trạng thái báo hỏng */
+        function getDamageStatusColor(status) {
+            if (!status) return 'bg-secondary';
+            const s = status.toString().toUpperCase();
+            if (s.includes('HOAN_THANH') || s.includes('FIXED')) return 'bg-success';
+            if (s.includes('DANG'))  return 'bg-primary';
+            if (s.includes('CHO'))   return 'bg-warning text-dark';
+            return 'bg-secondary';
+        }
+
+        /** Hiển thị tên trạng thái báo hỏng bằng tiếng Việt */
+        function formatDamageStatus(status) {
+            if (!status) return '—';
+            const map = {
+                'CHO_XU_LY': 'Chờ xử lý',
+                'DANG_XU_LY': 'Đang xử lý',
+                'HOAN_THANH': 'Hoàn thành',
+                'DA_BAO_TRI': 'Đã bảo trì'
+            };
+            return map[status.toString().toUpperCase()] || status;
+        }
+
+        /**
+         * Áp dụng kết quả scan vào form báo hỏng
+         * - Nếu có match trong DB → tìm và select thiết bị trong dropdown
+         * - Điền mô tả hư hỏng từ kết quả AI
+         * - Set mức độ nghiêm trọng
+         */
+        function applyToForm() {
+            if (!lastScanData) return;
+
+            const sr = lastScanData.scan_result;
+            const fs = lastScanData.form_suggestion;
+            const md = lastScanData.matched_device;
+
+            // Điền mô tả hư hỏng (ưu tiên dấu hiệu hư hỏng, fallback về tình trạng chung)
+            const descText = sr.damage_signs
+                ? `[Scan AI] Hư hỏng phát hiện: ${sr.damage_signs}\nTình trạng: ${sr.condition}`
+                : `[Scan AI] Tình trạng quan sát: ${sr.condition}`;
+            document.getElementById('description').value = descText;
+
+            // Set mức độ nghiêm trọng
+            if (fs && fs.severity_hint) {
+                document.getElementById('severity').value = fs.severity_hint;
+            }
+
+            // Tìm và select thiết bị trong dropdown (nếu có match trong DB)
+            let matched = false;
+            if (md) {
+                const matchName = (md.name || md.tenThietBi || '').toLowerCase();
+                const select = document.getElementById('equipment');
+
+                // Duyệt qua các option, tìm option có tên gần nhất
+                for (let opt of select.options) {
+                    const optName = (opt.getAttribute('data-name') || opt.text).toLowerCase();
+                    if (optName.includes(matchName.split(' ')[0]) ||
+                        matchName.includes(optName.split(' ')[0])) {
+                        select.value = opt.value;
+                        matched = true;
+                        break;
+                    }
+                }
+
+                // Hiện hint về thiết bị match từ DB
+                if (matched) {
+                    document.getElementById('matchHint').style.display = 'block';
+                    document.getElementById('matchHintText').textContent =
+                        `Tự động chọn: ${md.name || md.tenThietBi} (${md.code || md.maThietBi})`;
+                }
+            }
+
+            // Thông báo thành công
+            showToast(matched
+                ? `✅ Đã điền thông tin tự động! Vui lòng kiểm tra và bổ sung nếu cần.`
+                : `⚠️ Đã điền mô tả từ AI. Vui lòng chọn thiết bị thủ công.`
+            );
+
+            // Scroll xuống form
+            document.getElementById('equipment').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // ============================================================
+        // PHẦN 4: PHÂN TÍCH AI THEO TEXT (giữ từ bản cũ)
+        // ============================================================
+        async function analyzeWithAI() {
+            const equipmentSelect = document.getElementById('equipment');
+            const description = document.getElementById('description').value;
+            const severity = document.getElementById('severity').value;
+
+            if (!equipmentSelect.value) { alert('Vui lòng chọn thiết bị'); return; }
+            if (!description.trim()) { alert('Vui lòng nhập mô tả hư hỏng'); return; }
+
+            const equipmentName = equipmentSelect.options[equipmentSelect.selectedIndex]
+                                   .getAttribute('data-name');
+
+            document.getElementById('loadingSpinner').style.display = 'inline';
+            document.getElementById('analyzeBtn').disabled = true;
+
+            try {
+                const response = await fetch(`${AI_API_URL}/api/ai/analyze-damage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        equipment_name: equipmentName,
+                        damage_description: description,
+                        severity: severity
+                    })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('aiAnalysisContent').innerHTML =
+                        data.analysis.replace(/\n/g, '<br>');
+                    document.getElementById('aiAnalysisBox').style.display = 'block';
+                    document.getElementById('aiAnalysisHidden').value = data.analysis;
+                    document.getElementById('aiPriorityHidden').value = data.priority;
+                    document.getElementById('aiAnalysisBox').scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    alert('Lỗi: ' + (data.error || 'Không thể phân tích'));
+                }
+            } catch (error) {
+                alert('Lỗi kết nối AI server: ' + error.message);
+            } finally {
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('analyzeBtn').disabled = false;
+            }
+        }
+
+        // ============================================================
+        // PHẦN 5: SUBMIT FORM (giữ từ bản cũ)
+        // ============================================================
+        document.getElementById('damageReportForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            fetch('/admin/bao-hong/create', { method: 'POST', body: formData })
+                .then(response => {
+                    if (response.ok) {
+                        alert('Đã gửi báo hỏng thành công!');
+                        window.location.href = '/admin/bao-hong/list';
+                    } else {
+                        alert('Có lỗi xảy ra!');
+                    }
+                })
+                .catch(error => { alert('Lỗi: ' + error.message); });
+        });
+
+        // ============================================================
+        // UTILS - Hàm tiện ích
+        // ============================================================
+
+        /** Hiển thị ảnh vào khung preview */
+        function showPreviewImage(src) {
+            document.getElementById('previewImg').src = src;
+            document.getElementById('previewImg').style.display = 'block';
+            document.getElementById('previewPlaceholder').style.display = 'none';
+        }
+
+        /** Ẩn kết quả scan */
+        function hideScanResult() {
+            document.getElementById('scanResultBox').style.display = 'none';
+            lastScanData = null;
+        }
+
+        /** Xóa kết quả scan và reset ảnh */
+        function clearScanResult() {
+            hideScanResult();
+        }
+
+        /** Format tên trạng thái thiết bị từ code sang tiếng Việt */
+        function formatStatus(status) {
+            const map = {
+                'TOT': 'Tốt', 'HU_HONG_NHE': 'Hư nhẹ',
+                'HU_HONG_NANG': 'Hư nặng', 'DANG_SUA_CHUA': 'Đang sửa',
+                'BAO_HANH': 'Bảo hành', 'THANH_LY': 'Thanh lý'
+            };
+            return map[status] || status;
+        }
+
+        /** Màu badge theo trạng thái thiết bị */
+        function getStatusColor(status) {
+            const map = {
+                'TOT': 'bg-success', 'HU_HONG_NHE': 'bg-warning text-dark',
+                'HU_HONG_NANG': 'bg-danger', 'DANG_SUA_CHUA': 'bg-info',
+                'THANH_LY': 'bg-secondary'
+            };
+            return map[status] || 'bg-secondary';
+        }
+
+        /** Hiện toast thông báo nhỏ góc trên phải */
+        function showToast(message) {
+            document.getElementById('toastMessage').textContent = message;
+            const toastEl = document.getElementById('notifyToast');
+            const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
+            toast.show();
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+    xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title != null ? title + ' - Giáo viên - QLCSVC-AI' : 'Giáo viên - QLCSVC-AI'}">Giáo viên -
+        QLCSVC-AI</title>
+
+    <!-- Favicon -->
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👨‍🏫</text></svg>">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" th:href="@{/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/giaovien.css}">
+    <!-- AI Chatbot Widget CSS -->
+    <link rel="stylesheet" th:href="@{/css/chatbot-widget.css}">
+    <!-- html5-qrcode for QR scanning -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+      #qr-scan-btn {
+        position:fixed; bottom:100px; right:24px; z-index:1050;
+        width:52px; height:52px; border-radius:50%;
+        background:linear-gradient(135deg,#10b981,#059669);
+        border:none; color:white; cursor:pointer;
+        box-shadow:0 4px 15px rgba(16,185,129,.45);
+        display:flex; align-items:center; justify-content:center;
+        transition:transform .2s, box-shadow .2s;
+      }
+      #qr-scan-btn:hover { transform:scale(1.1); box-shadow:0 6px 20px rgba(16,185,129,.6); }
+      #qr-scan-btn svg { width:22px; height:22px; }
+      #qr-scan-btn .scan-badge {
+        position:absolute; top:-4px; right:-4px;
+        background:#f59e0b; color:white; font-size:9px;
+        font-weight:700; padding:2px 5px; border-radius:10px;
+      }
+    </style>
+</head>
+
+
+<body class="giaovien-theme">
+    <!-- Top Navigation Bar -->
+    <nav class="lms-topbar">
+        <div class="lms-topbar-container">
+            <!-- Logo -->
+            <div class="lms-logo">
+                <div class="logo-icon">
+                    <i data-lucide="graduation-cap"></i>
+                </div>
+                <span class="logo-text">QLCSVC-AI</span>
+            </div>
+
+            <!-- Navigation Menu -->
+            <div class="lms-nav-menu">
+                <a href="/giao-vien" class="lms-nav-link">
+                    <i data-lucide="home"></i>
+                    <span>Trang chủ</span>
+                </a>
+                <a href="/giao-vien/thiet-bi" class="lms-nav-link">
+                    <i data-lucide="monitor"></i>
+                    <span>Thiết bị</span>
+                </a>
+                <a href="/giao-vien/muon-tra" class="lms-nav-link">
+                    <i data-lucide="package"></i>
+                    <span>Mượn học</span>
+                </a>
+                <a href="/giao-vien/bao-hong" class="lms-nav-link">
+                    <i data-lucide="alert-circle"></i>
+                    <span>Báo hỏng</span>
+                </a>
+                <a href="http://localhost:5000/api/ai/scan" target="_blank" class="lms-nav-link">
+                    <i data-lucide="scan"></i>
+                    <span>Scan / AI</span>
+                </a>
+                <a href="http://localhost:5000/api/ai/device-lookup" target="_blank" class="lms-nav-link">
+                    <i data-lucide="search"></i>
+                    <span>Tra cứu</span>
+                </a>
+            </div>
+
+            <!-- Right Side Actions -->
+            <div class="lms-topbar-actions">
+                <!-- Language Selector -->
+                <div class="lms-dropdown">
+                    <button class="lms-action-btn" title="Ngôn ngữ">
+                        Gần đây
+                        <i data-lucide="chevron-down"></i>
+                    </button>
+                </div>
+
+                <!-- Notifications -->
+                <button class="lms-action-btn lms-icon-btn" title="Thông báo">
+                    <i data-lucide="bell"></i>
+                </button>
+
+                <!-- Messages -->
+                <button class="lms-action-btn lms-icon-btn" title="Tin nhắn">
+                    <i data-lucide="message-square"></i>
+                </button>
+
+                <!-- User Menu -->
+                <div class="lms-user-menu">
+                    <a href="/giao-vien/profile" class="lms-user-avatar"
+                        style="text-decoration: none; cursor: pointer;">
+                        <i data-lucide="user"></i>
+                    </a>
+                    <div class="lms-user-dropdown">
+                        <button class="lms-dropdown-toggle">
+                            <i data-lucide="chevron-down"></i>
+                        </button>
+                        <div class="lms-dropdown-menu">
+                            <a href="/giao-vien/profile" class="lms-dropdown-item">
+                                <i data-lucide="user"></i>
+                                Hồ sơ
+                            </a>
+                            <a href="/giao-vien/settings" class="lms-dropdown-item">
+                                <i data-lucide="settings"></i>
+                                Cài đặt
+                            </a>
+                            <div class="lms-dropdown-divider"></div>
+                            <form th:action="@{/logout}" method="post" style="margin: 0;">
+                                <button type="submit" class="lms-dropdown-item">
+                                    <i data-lucide="log-out"></i>
+                                    Đăng xuất
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings -->
+                <button class="lms-action-btn lms-icon-btn" title="Cài đặt">
+                    <i data-lucide="settings"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="lms-main-container">
+        <div class="lms-content-wrapper">
+            <!-- Content from child pages will be inserted here -->
+            <div layout:fragment="content">
+                <!-- Default content if no child page -->
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="lms-footer">
+            <div class="lms-footer-container">
+                <div class="lms-footer-left">
+                    <p>Copyright 2021. All rights reserved.</p>
+                </div>
+                <div class="lms-footer-right">
+                    <a href="#" class="lms-footer-link">Quick links</a>
+                    <a href="#" class="lms-footer-link">Site map</a>
+                    <a href="#" class="lms-footer-link">Contact</a>
+                    <a href="#" class="lms-footer-link">Help</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- AI Chatbot Widget -->
+    <div th:replace="~{fragments/chatbot-widget :: chatbot-widget}" th:with="userRole='GIAO_VIEN'"></div>
+
+    <!-- QR Scanner Floating Button -->
+    <button id="qr-scan-btn" title="Scan QR thiết bị" onclick="openQrScanner()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 18h.01M18 15h.01M21 15h.01M21 18h.01M21 21h.01M18 21h.01M15 21h.01M18 18v.01"/>
+        </svg>
+        <span class="scan-badge">QR</span>
+    </button>
+    <!-- QR Scanner Modal -->
+    <div class="modal fade" id="qrScanModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered" style="max-width:400px">
+        <div class="modal-content">
+          <div class="modal-header" style="background:linear-gradient(135deg,#10b981,#059669);color:white;">
+            <h5 class="modal-title">📷 Scan QR Thiết bị</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="stopQrScanner()"></button>
+          </div>
+          <div class="modal-body p-3" style="background:#0f172a;">
+            <div id="qr-reader" style="width:100%;border-radius:8px;overflow:hidden;"></div>
+            <div id="qr-status" class="mt-2 text-center" style="color:#94a3b8;font-size:0.82rem;">
+              Hướng camera vào mã QR dán trên thiết bị
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/app.js}"></script>
+    <script>
+        lucide.createIcons();
+
+        // Active link highlighting for LMS navigation
+        document.addEventListener('DOMContentLoaded', function () {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.lms-nav-link');
+
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href === currentPath || currentPath.startsWith(href + '/')) {
+                    link.classList.add('active');
+                }
+            });
+
+            // Reinitialize icons after DOM is ready
+            setTimeout(() => {
+                lucide.createIcons();
+            }, 100);
+        });
+    </script>
+
+    <!-- AI Chatbot Widget JS -->
+    <script>window.CHATBOT_USER_ROLE = 'GIAO_VIEN';</script>
+    <script th:src="@{/js/chatbot-widget.js(v=3)}"></script>
+
+    <!-- QR Scanner JS -->
+    <script>
+    let qrScanner = null;
+    function openQrScanner() {
+        const modal = new bootstrap.Modal(document.getElementById('qrScanModal'));
+        modal.show();
+        document.getElementById('qr-status').textContent = 'Đang khởi động camera...';
+        document.getElementById('qrScanModal').addEventListener('shown.bs.modal', function startScan() {
+            document.getElementById('qrScanModal').removeEventListener('shown.bs.modal', startScan);
+            qrScanner = new Html5Qrcode('qr-reader');
+            qrScanner.start(
+                { facingMode: 'environment' },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    document.getElementById('qr-status').innerHTML =
+                        '<span style="color:#10b981;font-weight:700;">✅ Đã nhận diện QR!</span>';
+                    stopQrScanner();
+                    bootstrap.Modal.getInstance(document.getElementById('qrScanModal')).hide();
+                    window.location.href = decodedText.startsWith('http') ? decodedText
+                        : 'http://localhost:5000/api/ai/device-info/' + decodedText;
+                },
+                (_err) => {}
+            ).then(() => {
+                document.getElementById('qr-status').textContent = 'Hướng camera vào mã QR trên thiết bị';
+            }).catch(err => {
+                document.getElementById('qr-status').innerHTML =
+                    '<span style="color:#f87171;">❌ Không truy cập được camera: ' + err + '</span>';
+            });
+        }, { once: true });
+    }
+    function stopQrScanner() {
+        if (qrScanner) { qrScanner.stop().catch(() => {}); qrScanner = null; }
+    }
+    document.getElementById('qrScanModal').addEventListener('hide.bs.modal', stopQrScanner);
+    </script>
+
+    <!-- Page specific scripts -->
+    <th:block layout:fragment="scripts">
+        <!-- Scripts from child pages will be inserted here -->
+    </th:block>
+</body>
+
+</html>

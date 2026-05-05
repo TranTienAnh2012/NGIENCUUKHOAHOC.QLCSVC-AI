@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${title}">Thêm phòng học</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/admin}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/admin/phong-hoc}">Phòng học</a></li>
+                    <li class="breadcrumb-item active">Thêm mới</li>
+                </ol>
+            </nav>
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i data-lucide="plus-circle"></i> Thêm phòng học mới</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="createForm">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="tenPhong" class="form-label">Tên phòng <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="tenPhong" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="maPhong" class="form-label">Mã phòng <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="maPhong" required
+                                            placeholder="VD: P101">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="toaNha" class="form-label">Tòa nhà</label>
+                                        <input type="text" class="form-control" id="toaNha">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="tang" class="form-label">Tầng</label>
+                                        <input type="number" class="form-control" id="tang" min="0">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="sucChua" class="form-label">Sức chứa</label>
+                                        <input type="number" class="form-control" id="sucChua" min="0">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="loaiPhong" class="form-label">Loại phòng <span
+                                                class="text-danger">*</span></label>
+                                        <select class="form-select" id="loaiPhong" required>
+                                            <option value="">-- Chọn loại phòng --</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <a th:href="@{/admin/phong-hoc}" class="btn btn-secondary">
+                                        <i data-lucide="x"></i> Hủy
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i data-lucide="save"></i> Lưu
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', () => {
+                loadLoaiPhong();
+                lucide.createIcons();
+            });
+
+            function loadLoaiPhong() {
+                fetch('/api/admin/loai-phong/all')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            const select = document.getElementById('loaiPhong');
+                            data.data.forEach(item => {
+                                const option = document.createElement('option');
+                                option.value = item.id;
+                                option.textContent = item.tenLoai;
+                                select.appendChild(option);
+                            });
+                        }
+                    });
+            }
+
+            document.getElementById('createForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const form = e.target;
+                if (!form.checkValidity()) {
+                    form.classList.add('was-validated');
+                    return;
+                }
+
+                const data = {
+                    maPhong: document.getElementById('maPhong').value,
+                    tenPhong: document.getElementById('tenPhong').value,
+                    toaNha: document.getElementById('toaNha').value || null,
+                    tang: document.getElementById('tang').value ? parseInt(document.getElementById('tang').value) : null,
+                    sucChua: document.getElementById('sucChua').value ? parseInt(document.getElementById('sucChua').value) : null,
+                    loaiPhong: { id: parseInt(document.getElementById('loaiPhong').value) }
+                };
+
+                fetch('/api/admin/phong-hoc', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Thêm thành công!');
+                            window.location.href = '/admin/phong-hoc';
+                        } else {
+                            alert('Lỗi: ' + (data.message || 'Không thể thêm'));
+                        }
+                    })
+                    .catch(e => {
+                        console.error('Error:', e);
+                        alert('Có lỗi xảy ra');
+                    });
+            });
+        </script>
+    </th:block>
+</body>
+
+</html>

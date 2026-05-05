@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/giaovien-layout}">
+
+<head>
+    <title>Mượn thiết bị mới - Giáo viên</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <!-- Alert Messages -->
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show animate-in" role="alert"
+            style="margin-bottom: 24px;">
+            <i data-lucide="alert-circle" style="width: 20px; height: 20px; margin-right: 8px;"></i>
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Page Header -->
+        <div class="animate-in" style="margin-bottom: 32px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <a th:href="@{/giao-vien/muon-tra}"
+                    style="width: 40px; height: 40px; border-radius: 10px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #64748b; text-decoration: none; transition: all 0.3s;">
+                    <i data-lucide="arrow-left" style="width: 20px; height: 20px;"></i>
+                </a>
+                <div>
+                    <h2
+                        style="font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">
+                        Mượn thiết bị mới
+                    </h2>
+                    <p style="color: #64748b; margin: 0;">
+                        Điền thông tin để tạo phiếu mượn thiết bị
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Form -->
+        <div class="card-modern animate-in" style="animation-delay: 0.1s; max-width: 800px;">
+            <div class="card-header-modern">
+                <h3 class="card-title">
+                    <i data-lucide="book-open" style="width: 24px; height: 24px; margin-right: 8px;"></i>
+                    Thông tin mượn thiết bị
+                </h3>
+            </div>
+
+            <form th:action="@{/giao-vien/muon-tra/create}" method="post" style="padding: 24px;">
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; color: #334155; margin-bottom: 8px;">
+                        Thiết bị <span style="color: #ef4444;">*</span>
+                    </label>
+                    <select name="thietBiId" required
+                        style="width: 100%; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 15px; transition: all 0.3s; cursor: pointer;">
+                        <option value="">-- Chọn thiết bị --</option>
+                        <option th:each="tb : ${thietBis}" th:value="${tb.id}"
+                            th:text="${tb.tenThietBi + ' (' + tb.maThietBi + ')'}">
+                            Máy chiếu Epson (TB001)
+                        </option>
+                    </select>
+                    <small style="color: #94a3b8; font-size: 13px;">Chọn thiết bị bạn muốn mượn</small>
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; color: #334155; margin-bottom: 8px;">
+                        Ngày trả dự kiến <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input type="date" name="ngayTraDuKien" required
+                        th:min="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}"
+                        th:value="${#temporals.format(#temporals.createNow().plusDays(3), 'yyyy-MM-dd')}"
+                        style="width: 100%; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 15px; transition: all 0.3s;">
+                    <small style="color: #94a3b8; font-size: 13px;">Chọn ngày bạn dự kiến trả thiết bị</small>
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; color: #334155; margin-bottom: 8px;">
+                        Ghi chú
+                    </label>
+                    <textarea name="ghiChu" rows="4" placeholder="Mục đích sử dụng, ghi chú thêm..."
+                        style="width: 100%; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 15px; transition: all 0.3s; resize: vertical; font-family: inherit;"></textarea>
+                    <small style="color: #94a3b8; font-size: 13px;">Ghi chú về mục đích sử dụng (không bắt buộc)</small>
+                </div>
+
+                <div style="display: flex; gap: 12px; padding-top: 24px; border-top: 1px solid #f1f5f9;">
+                    <button type="submit"
+                        style="flex: 1; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                        <i data-lucide="check" style="width: 18px; height: 18px; margin-right: 8px;"></i>
+                        Tạo phiếu mượn
+                    </button>
+                    <a th:href="@{/giao-vien/muon-tra}"
+                        style="flex: 1; background: #f1f5f9; color: #64748b; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; text-decoration: none; text-align: center;">
+                        Hủy
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Info Box -->
+        <div class="card-modern animate-in" style="animation-delay: 0.2s; max-width: 800px; margin-top: 24px;">
+            <div
+                style="padding: 20px; background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%); border-radius: 16px;">
+                <h4
+                    style="font-size: 16px; font-weight: 600; color: #334155; margin: 0 0 12px 0; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="info" style="width: 20px; height: 20px; color: #3b82f6;"></i>
+                    Lưu ý khi mượn thiết bị
+                </h4>
+                <ul style="margin: 0; padding-left: 20px; color: #64748b; font-size: 14px; line-height: 1.8;">
+                    <li>Kiểm tra tình trạng thiết bị trước khi mượn</li>
+                    <li>Sử dụng thiết bị đúng mục đích và cẩn thận</li>
+                    <li>Trả thiết bị đúng hạn để tránh ảnh hưởng đến người khác</li>
+                    <li>Báo hỏng ngay nếu phát hiện thiết bị có vấn đề</li>
+                    <li>Liên hệ nhân viên CSVC nếu cần hỗ trợ</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            lucide.createIcons();
+
+            // Input focus effects
+            const inputs = document.querySelectorAll('select, input[type="date"], textarea');
+            inputs.forEach(input => {
+                input.addEventListener('focus', function () {
+                    this.style.borderColor = '#3b82f6';
+                    this.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                });
+                input.addEventListener('blur', function () {
+                    this.style.borderColor = '#e5e7eb';
+                    this.style.boxShadow = 'none';
+                });
+            });
+
+            // Button hover effects
+            const submitBtn = document.querySelector('button[type="submit"]');
+            submitBtn.addEventListener('mouseenter', function () {
+                this.style.transform = 'translateY(-2px)';
+                this.style.boxShadow = '0 12px 24px rgba(59, 130, 246, 0.3)';
+            });
+            submitBtn.addEventListener('mouseleave', function () {
+                this.style.transform = '';
+                this.style.boxShadow = '';
+            });
+        </script>
+    </th:block>
+</body>
+
+</html>

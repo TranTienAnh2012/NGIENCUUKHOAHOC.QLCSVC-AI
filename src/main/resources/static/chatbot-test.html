@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Widget Test</title>
+
+    <!-- AI Chatbot Widget CSS -->
+    <link rel="stylesheet" href="/css/chatbot-widget.css">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .test-info {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="test-info">
+        <h1>Chatbot Widget Test Page</h1>
+        <p>This is a simple test page to verify chatbot widget loading.</p>
+        <p>Check browser console for any errors.</p>
+    </div>
+
+    <!-- AI Chatbot Widget -->
+    <div id="ai-chatbot-widget">
+        <!-- Floating Chat Button -->
+        <button id="chatbot-toggle-btn" class="chatbot-floating-btn" aria-label="Open AI Chatbot">
+            <span>💬</span>
+            <span class="chatbot-badge">AI</span>
+        </button>
+
+        <!-- Chat Container -->
+        <div id="chatbot-container" class="chatbot-container">
+            <div class="chatbot-header">
+                <div class="chatbot-header-content">
+                    <div class="chatbot-avatar">
+                        <span>✨</span>
+                    </div>
+                    <div class="chatbot-header-text">
+                        <h3>Trợ lý AI</h3>
+                        <p class="chatbot-status">
+                            <span class="status-dot"></span>
+                            Đang hoạt động
+                        </p>
+                    </div>
+                </div>
+                <button id="chatbot-minimize-btn" class="chatbot-minimize-btn" aria-label="Minimize chat">
+                    <span>−</span>
+                </button>
+            </div>
+
+            <div id="chatbot-messages" class="chatbot-messages">
+                <div class="chatbot-message ai-message">
+                    <div class="message-avatar">
+                        <span>🤖</span>
+                    </div>
+                    <div class="message-content">
+                        <div class="message-bubble">
+                            <p>Test message</p>
+                        </div>
+                        <span class="message-time">Now</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chatbot-input-container">
+                <form id="chatbot-form" class="chatbot-form">
+                    <input type="text" id="chatbot-input" class="chatbot-input" placeholder="Type a message..." />
+                    <button type="submit" class="chatbot-send-btn">
+                        <span>→</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Chatbot Widget JS -->
+    <script src="/js/chatbot-widget.js"></script>
+</body>
+
+</html>
