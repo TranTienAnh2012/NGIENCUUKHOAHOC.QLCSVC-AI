@@ -95,4 +95,27 @@ public class CSVCViewController {
         model.addAttribute("baoTris", baoTris);
         return "areas/nhanvien_csvc/bao-tri/list";
     }
+    @GetMapping("/thiet-bi")
+    public String thietBi(Model model) {
+        model.addAttribute("title", "Quản lý thiết bị");
+        return "areas/nhanvien_csvc/thiet-bi";
+    }
+
+    @GetMapping("/phong-hoc")
+    public String phongHoc(Model model) {
+        model.addAttribute("title", "Quản lý phòng học");
+        return "areas/nhanvien_csvc/phong-hoc";
+    }
+
+    @GetMapping("/thong-ke")
+    public String thongKe(Model model) {
+        model.addAttribute("title", "Thống kê & Báo cáo");
+        return "areas/nhanvien_csvc/thong-ke";
+    }
+
+    @GetMapping("/profile")
+    public String profile(Model model) {
+        model.addAttribute("title", "Thông tin cá nhân");
+        return "areas/nhanvien_csvc/profile";
+    }
 }
