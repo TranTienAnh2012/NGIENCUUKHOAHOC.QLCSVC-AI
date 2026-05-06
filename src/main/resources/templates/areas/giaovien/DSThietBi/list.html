@@ -459,59 +459,6 @@
                 if (e.key === 'Escape') closeBorrowModal();
             });
 
-            // Voice Search Functionality
-            const voiceSearchBtn = document.getElementById('voiceSearchBtn');
-            const micIcon = document.getElementById('micIcon');
-
-            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                const recognition = new SpeechRecognition();
-                recognition.lang = 'vi-VN';
-                recognition.continuous = false;
-                recognition.interimResults = false;
-
-                let isListening = false;
-
-                voiceSearchBtn.addEventListener('click', () => {
-                    if (isListening) {
-                        recognition.stop();
-                        return;
-                    }
-                    recognition.start();
-                });
-
-                recognition.onstart = function () {
-                    isListening = true;
-                    micIcon.style.color = '#ef4444'; // Red when recording
-                    voiceSearchBtn.classList.add('recording');
-                    searchInput.placeholder = 'Đang nghe...';
-                };
-
-                recognition.onresult = function (event) {
-                    const transcript = event.results[0][0].transcript;
-                    // Remove ending period if exists
-                    const cleanTranscript = transcript.replace(/\.$/, '');
-                    searchInput.value = cleanTranscript;
-                    filterEquipment(); // Trigger search
-                };
-
-                recognition.onerror = function (event) {
-                    console.error("Speech recognition error", event.error);
-                    isListening = false;
-                    micIcon.style.color = '#94a3b8';
-                    searchInput.placeholder = 'Tìm kiếm theo tên, mã thiết bị...';
-                };
-
-                recognition.onend = function () {
-                    isListening = false;
-                    micIcon.style.color = '#94a3b8';
-                    voiceSearchBtn.classList.remove('recording');
-                    searchInput.placeholder = 'Tìm kiếm theo tên, mã thiết bị...';
-                };
-            } else {
-                voiceSearchBtn.style.display = 'none'; // Hide if not supported
-            }
-
             setTimeout(() => { lucide.createIcons(); }, 100);
         </script>
     </th:block>

@@ -49,8 +49,8 @@
                                             <td th:text="${item.thietBi?.tenThietBi}">Máy chiếu</td>
                                             <td>
                                                 <span
-                                                    th:class="'badge ' + ${item.loaiBaoTri == T(com.Tta.QLCSVC.DHNT.entity.BaoTri.LoaiBaoTri).SUA_CHUA ? 'bg-warning' : 
-                                                    item.loaiBaoTri == T(com.Tta.QLCSVC.DHNT.entity.BaoTri.LoaiBaoTri).DINH_KY ? 'bg-info' : 'bg-success'}"
+                                                    th:class="'badge ' + ${item.loaiBaoTri.name() == 'SUA_CHUA' ? 'bg-warning' : 
+                                                    item.loaiBaoTri.name() == 'DINH_KY' ? 'bg-info' : 'bg-success'}"
                                                     th:text="${item.loaiBaoTri}">SUA_CHUA</span>
                                             </td>
                                             <td th:text="${#temporals.format(item.ngayBaoTri, 'dd/MM/yyyy')}">22/01/2026
@@ -61,8 +61,8 @@
                                                 500,000 VNĐ</td>
                                             <td>
                                                 <span th:if="${item.ketQua != null}"
-                                                    th:class="'badge ' + ${item.ketQua == T(com.Tta.QLCSVC.DHNT.entity.BaoTri.KetQuaBaoTri).THANH_CONG ? 'bg-success' : 
-                                                    item.ketQua == T(com.Tta.QLCSVC.DHNT.entity.BaoTri.KetQuaBaoTri).THAT_BAI ? 'bg-danger' : 'bg-warning'}"
+                                                    th:class="'badge ' + ${item.ketQua.name() == 'THANH_CONG' ? 'bg-success' : 
+                                                    item.ketQua.name() == 'THAT_BAI' ? 'bg-danger' : 'bg-warning'}"
                                                     th:text="${item.ketQua}">THANH_CONG</span>
                                                 <span th:if="${item.ketQua == null}" class="badge bg-secondary">Chưa
                                                     thực hiện</span>
@@ -70,9 +70,18 @@
                                             <td>
                                                 <div class="btn-group btn-group-sm">
                                                     <button class="btn btn-info"
-                                                        th:onclick="'viewDetail(' + ${item.id} + ')'"
+                                                        th:data-id="${item.id}"
+                                                        onclick="viewDetail(this.getAttribute('data-id'))"
                                                         title="Xem chi tiết">
                                                         <i data-lucide="eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-primary"
+                                                        th:data-id="${item.id}"
+                                                        th:data-ketqua="${item.ketQua?.name()}"
+                                                        th:data-chiphi="${item.chiPhi}"
+                                                        onclick="openUpdateModal(this.getAttribute('data-id'), this.getAttribute('data-ketqua'), this.getAttribute('data-chiphi'))"
+                                                        title="Cập nhật tiến độ">
+                                                        <i data-lucide="edit-3"></i>
                                                     </button>
                                                 </div>
                                             </td>
@@ -85,6 +94,49 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modal Cập nhật tiến độ -->
+        <div class="modal fade" id="updateProgressModal" tabindex="-1" aria-labelledby="updateProgressModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <form th:action="@{/nhanvien-csvc/bao-tri/update}" method="post">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="updateProgressModalLabel">Cập nhật tiến độ bảo trì</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" name="baoTriId" id="modalBaoTriId">
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Kết quả</label>
+                                <select class="form-select" name="ketQua" id="modalKetQua">
+                                    <option value="">-- Đang thực hiện --</option>
+                                    <option value="THANH_CONG">Thành công</option>
+                                    <option value="THAT_BAI">Thất bại</option>
+                                    <option value="CAN_THAY_THE">Cần thay thế</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Chi phí phát sinh (VNĐ)</label>
+                                <input type="number" class="form-control" name="chiPhi" id="modalChiPhi" step="1000">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Ghi chú thêm</label>
+                                <textarea class="form-control" name="ghiChuThem" rows="3" placeholder="Nhập tiến độ mới..."></textarea>
+                                <small class="text-muted">Ghi chú mới sẽ được nối tiếp vào lịch sử cập nhật.</small>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-primary">Lưu cập nhật</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
     </div>
 
     <th:block layout:fragment="scripts">
@@ -94,8 +146,17 @@
             });
 
             function viewDetail(id) {
-                // TODO: Implement detail view
-                alert('Chi tiết bảo trì #' + id);
+                window.location.href = '/nhanvien-csvc/bao-tri/' + id;
+            }
+
+            function openUpdateModal(id, ketQua, chiPhi) {
+                document.getElementById('modalBaoTriId').value = id;
+                document.getElementById('modalKetQua').value = (ketQua && ketQua !== 'null') ? ketQua : '';
+                document.getElementById('modalChiPhi').value = chiPhi || '';
+                document.querySelector('textarea[name="ghiChuThem"]').value = '';
+                
+                var updateModal = new bootstrap.Modal(document.getElementById('updateProgressModal'));
+                updateModal.show();
             }
         </script>
     </th:block>

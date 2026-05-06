@@ -22,4 +22,6 @@ public interface BaoTriRepository extends JpaRepository<BaoTri, Long> {
 
     @Query("SELECT SUM(b.chiPhi) FROM BaoTri b WHERE b.thietBi.id = :thietBiId")
     Double getTotalMaintenanceCostByThietBi(Long thietBiId);
+
+    List<BaoTri> findTop5ByOrderByNgayBaoTriDesc();
 }

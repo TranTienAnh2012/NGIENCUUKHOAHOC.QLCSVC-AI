@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/nhanvien-layout}">
+
+<head>
+    <title th:text="${title}">Chi tiết bảo trì</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <!-- Header -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-1" th:text="${title}">Chi tiết lịch bảo trì</h4>
+                            <p class="text-muted small mb-0">Thông tin chi tiết về lịch trình và tiến độ</p>
+                        </div>
+                        <a th:href="@{/nhanvien-csvc/bao-tri}" class="btn btn-secondary">
+                            <i data-lucide="arrow-left"></i> Quay lại
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Thông tin chung</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-borderless">
+                                <tbody>
+                                    <tr>
+                                        <th style="width: 30%">Mã lịch:</th>
+                                        <td th:text="'BT-' + ${baoTri.id}">BT-1</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Thiết bị:</th>
+                                        <td th:text="${baoTri.thietBi?.tenThietBi}">Máy chiếu</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Loại bảo trì:</th>
+                                        <td>
+                                            <span th:class="'badge ' + ${baoTri.loaiBaoTri.name() == 'SUA_CHUA' ? 'bg-warning' : (baoTri.loaiBaoTri.name() == 'DINH_KY' ? 'bg-info' : 'bg-success')}"
+                                                  th:text="${baoTri.loaiBaoTri}">SUA_CHUA</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Ngày thực hiện:</th>
+                                        <td th:text="${#temporals.format(baoTri.ngayBaoTri, 'dd/MM/yyyy')}">11/01/2026</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Người thực hiện:</th>
+                                        <td th:text="${baoTri.nguoiThucHien ?: 'Chưa cập nhật'}">Nguyễn Văn Tèo</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Chi phí:</th>
+                                        <td th:text="${baoTri.chiPhi != null ? #numbers.formatDecimal(baoTri.chiPhi, 0, 'COMMA', 0, 'POINT') + ' VNĐ' : 'Chưa cập nhật'}">
+                                            1,500,000 VNĐ
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Trạng thái / Kết quả:</th>
+                                        <td>
+                                            <span th:if="${baoTri.ketQua != null}"
+                                                  th:class="'badge ' + ${baoTri.ketQua.name() == 'THANH_CONG' ? 'bg-success' : (baoTri.ketQua.name() == 'THAT_BAI' ? 'bg-danger' : 'bg-warning')}"
+                                                  th:text="${baoTri.ketQua}">THANH_CONG</span>
+                                            <span th:if="${baoTri.ketQua == null}" class="badge bg-secondary">Đang thực hiện</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">Nội dung công việc & Tiến độ</h5>
+                        </div>
+                        <div class="card-body">
+                            <textarea class="form-control" rows="8" readonly style="background-color: #f8f9fa; color: #000; font-weight: bold; border: 1px solid #ced4da;" th:text="${baoTri.noiDung ?: 'Chưa có ghi chú nào.'}"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div th:if="${baoTri.baoHong != null}" class="card mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0"><i data-lucide="alert-triangle" class="me-2" style="width: 18px;"></i> Nguồn từ Báo Hỏng</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-1"><strong>Mã phiếu báo hỏng:</strong> <span th:text="${baoTri.baoHong.id}">1</span></p>
+                            <p class="mb-1"><strong>Ngày báo:</strong> <span th:text="${#temporals.format(baoTri.baoHong.ngayBao, 'dd/MM/yyyy HH:mm')}"></span></p>
+                            <p class="mb-0"><strong>Mô tả lỗi:</strong> <span th:text="${baoTri.baoHong.moTaLoi}">...</span></p>
+                            <a th:href="@{/nhanvien-csvc/bao-hong/{id}(id=${baoTri.baoHong.id})}" class="btn btn-sm btn-outline-info w-100 mt-3">
+                                Xem chi tiết phiếu báo hỏng
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                lucide.createIcons();
+            });
+        </script>
+    </th:block>
+</body>
+</html>

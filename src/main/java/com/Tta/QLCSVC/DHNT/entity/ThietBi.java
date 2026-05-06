@@ -81,6 +81,10 @@ public class ThietBi {
 
     @OneToMany(mappedBy = "thietBi", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
+    private List<BaoTri> baoTris = new ArrayList<>();
+
+    @OneToMany(mappedBy = "thietBi", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<MuonTraThietBi> muonTras = new ArrayList<>();
 
     public ThietBi() {
@@ -265,5 +269,13 @@ public class ThietBi {
 
     public void setMuonTras(List<MuonTraThietBi> muonTras) {
         this.muonTras = muonTras;
+    }
+
+    public List<BaoTri> getBaoTris() {
+        return baoTris;
+    }
+
+    public void setBaoTris(List<BaoTri> baoTris) {
+        this.baoTris = baoTris;
     }
 }

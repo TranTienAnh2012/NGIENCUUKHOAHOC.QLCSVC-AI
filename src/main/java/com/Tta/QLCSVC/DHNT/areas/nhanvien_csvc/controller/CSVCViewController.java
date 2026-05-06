@@ -14,6 +14,12 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import com.Tta.QLCSVC.DHNT.areas.nhanvien_csvc.service.CSVCThongKeService;
+import com.Tta.QLCSVC.DHNT.areas.nhanvien_csvc.service.CSVCThietBiService;
+import com.Tta.QLCSVC.DHNT.areas.nhanvien_csvc.service.CSVCPhongHocService;
+import com.Tta.QLCSVC.DHNT.entity.ThietBi;
+import com.Tta.QLCSVC.DHNT.entity.PhongHoc;
 
 @Controller
 @RequestMapping("/nhanvien-csvc")
@@ -23,6 +29,9 @@ public class CSVCViewController {
 
     private final CSVCBaoHongService csvcBaoHongService;
     private final CSVCBaoTriService csvcBaoTriService;
+    private final CSVCThongKeService csvcThongKeService;
+    private final CSVCThietBiService csvcThietBiService;
+    private final CSVCPhongHocService csvcPhongHocService;
 
     @GetMapping
     public String dashboard(Model model) {
@@ -52,6 +61,9 @@ public class CSVCViewController {
         if (baoHongId != null) {
             BaoHong baoHong = csvcBaoHongService.getBaoHongById(baoHongId);
             model.addAttribute("baoHong", baoHong);
+        } else {
+            List<ThietBi> thietBis = csvcThietBiService.getAllThietBiWithDetails();
+            model.addAttribute("thietBis", thietBis);
         }
         return "areas/nhanvien_csvc/bao-tri/create";
     }
@@ -95,21 +107,64 @@ public class CSVCViewController {
         model.addAttribute("baoTris", baoTris);
         return "areas/nhanvien_csvc/bao-tri/list";
     }
+
+    @PostMapping("/bao-tri/update")
+    public String updateBaoTriProgress(
+            @RequestParam Long baoTriId,
+            @RequestParam(required = false) String ketQua,
+            @RequestParam(required = false) String ghiChuThem,
+            @RequestParam(required = false) BigDecimal chiPhi,
+            RedirectAttributes redirectAttributes) {
+        try {
+            BaoTri.KetQuaBaoTri ketQuaEnum = null;
+            if (ketQua != null && !ketQua.isEmpty()) {
+                ketQuaEnum = BaoTri.KetQuaBaoTri.valueOf(ketQua);
+            }
+            csvcBaoTriService.updateTienDoBaoTri(baoTriId, ketQuaEnum, ghiChuThem, chiPhi);
+            redirectAttributes.addFlashAttribute("success", "Cập nhật tiến độ thành công!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
+        }
+        return "redirect:/nhanvien-csvc/bao-tri";
+    }
+
+    @GetMapping("/bao-tri/{id}")
+    public String baoTriDetail(@PathVariable Long id, Model model) {
+        model.addAttribute("title", "Chi tiết bảo trì");
+        BaoTri baoTri = csvcBaoTriService.getBaoTriById(id);
+        model.addAttribute("baoTri", baoTri);
+        return "areas/nhanvien_csvc/bao-tri/detail";
+    }
+
     @GetMapping("/thiet-bi")
     public String thietBi(Model model) {
         model.addAttribute("title", "Quản lý thiết bị");
+        List<ThietBi> thietBis = csvcThietBiService.getAllThietBiWithDetails();
+        model.addAttribute("thietBis", thietBis);
         return "areas/nhanvien_csvc/thiet-bi";
+    }
+
+    @GetMapping("/thiet-bi/{id}")
+    public String thietBiDetail(@PathVariable Long id, Model model) {
+        model.addAttribute("title", "Chi tiết thiết bị");
+        ThietBi thietBi = csvcThietBiService.getThietBiById(id);
+        model.addAttribute("thietBi", thietBi);
+        return "areas/nhanvien_csvc/thiet-bi/detail";
     }
 
     @GetMapping("/phong-hoc")
     public String phongHoc(Model model) {
         model.addAttribute("title", "Quản lý phòng học");
+        List<PhongHoc> phongHocs = csvcPhongHocService.getAllPhongHocWithThietBiStats();
+        model.addAttribute("phongHocs", phongHocs);
         return "areas/nhanvien_csvc/phong-hoc";
     }
 
     @GetMapping("/thong-ke")
     public String thongKe(Model model) {
         model.addAttribute("title", "Thống kê & Báo cáo");
+        Map<String, Object> stats = csvcThongKeService.getThongKeTongQuan();
+        model.addAttribute("stats", stats);
         return "areas/nhanvien_csvc/thong-ke";
     }
 

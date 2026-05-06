@@ -34,4 +34,35 @@ public class CSVCThietBiService {
         thietBi.setTrangThai(trangThai);
         return thietBiRepository.save(thietBi);
     }
+
+    @Transactional(readOnly = true)
+    public List<ThietBi> getAllThietBiWithDetails() {
+        List<ThietBi> list = thietBiRepository.findAll();
+        // Force initialization of lazy relationships
+        list.forEach(tb -> {
+            if (tb.getLoaiThietBi() != null) {
+                tb.getLoaiThietBi().getTenLoai();
+            }
+            if (tb.getPhong() != null) {
+                tb.getPhong().getTenPhong();
+            }
+            tb.getBaoHongs().size();
+        });
+        return list;
+    }
+
+    @Transactional(readOnly = true)
+    public ThietBi getThietBiById(Long id) {
+        ThietBi tb = thietBiRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("ThietBi", "id", id));
+        if (tb.getLoaiThietBi() != null) {
+            tb.getLoaiThietBi().getTenLoai();
+        }
+        if (tb.getPhong() != null) {
+            tb.getPhong().getTenPhong();
+        }
+        tb.getBaoHongs().size();
+        tb.getBaoTris().size();
+        return tb;
+    }
 }

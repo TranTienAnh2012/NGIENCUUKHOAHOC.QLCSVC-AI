@@ -23,12 +23,32 @@ public class CSVCBaoTriService {
     private final ThietBiRepository thietBiRepository;
     private final BaoHongRepository baoHongRepository;
 
+    @Transactional(readOnly = true)
     public List<BaoTri> getAllBaoTri() {
-        return baoTriRepository.findAll();
+        List<BaoTri> list = baoTriRepository.findAll();
+        list.forEach(bt -> {
+            if (bt.getThietBi() != null) {
+                bt.getThietBi().getTenThietBi();
+            }
+        });
+        return list;
     }
 
     public List<BaoTri> getBaoTriByThietBi(Long thietBiId) {
         return baoTriRepository.findByThietBiId(thietBiId);
+    }
+
+    @Transactional(readOnly = true)
+    public BaoTri getBaoTriById(Long id) {
+        BaoTri bt = baoTriRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("BaoTri", "id", id));
+        if (bt.getThietBi() != null) {
+            bt.getThietBi().getTenThietBi();
+        }
+        if (bt.getBaoHong() != null) {
+            bt.getBaoHong().getMoTaLoi();
+        }
+        return bt;
     }
 
     @Transactional
@@ -91,5 +111,40 @@ public class CSVCBaoTriService {
         thietBiRepository.save(thietBi);
 
         return baoTriRepository.save(baoTri);
+    }
+    @Transactional
+    public BaoTri updateTienDoBaoTri(Long baoTriId, BaoTri.KetQuaBaoTri ketQua, String ghiChuThem, BigDecimal chiPhi) {
+        BaoTri baoTri = baoTriRepository.findById(baoTriId)
+                .orElseThrow(() -> new ResourceNotFoundException("BaoTri", "id", baoTriId));
+
+        System.out.println("DEBUG UPDATE BAO TRI: ID=" + baoTriId + ", ghiChuThem=" + ghiChuThem + ", ketQua=" + ketQua);
+
+        // FORCE HARDCODE GHI CHÚ ĐỂ KIỂM TRA
+        String timeStamp = "[" + java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) + "] ";
+        String oldGhiChu = baoTri.getNoiDung() != null && !baoTri.getNoiDung().isEmpty() ? baoTri.getNoiDung() + "\n" : "";
+        String ghiChuMoi = (ghiChuThem != null && !ghiChuThem.trim().isEmpty()) ? ghiChuThem.trim() : "KHÔNG NHẬN ĐƯỢC GHI CHÚ TỪ FORM!";
+        baoTri.setNoiDung(oldGhiChu + timeStamp + ghiChuMoi);
+
+        if (chiPhi != null) {
+            baoTri.setChiPhi(chiPhi);
+        }
+
+        if (ketQua != null) {
+            baoTri.setKetQua(ketQua);
+            // Cập nhật trạng thái thiết bị tương ứng
+            ThietBi thietBi = baoTri.getThietBi();
+            if (thietBi != null) {
+                if (ketQua == BaoTri.KetQuaBaoTri.THANH_CONG) {
+                    thietBi.setTrangThai(ThietBi.TrangThaiThietBi.TOT);
+                } else if (ketQua == BaoTri.KetQuaBaoTri.THAT_BAI || ketQua == BaoTri.KetQuaBaoTri.CAN_THAY_THE) {
+                    thietBi.setTrangThai(ThietBi.TrangThaiThietBi.HONG);
+                }
+                thietBiRepository.save(thietBi);
+            }
+        }
+
+        BaoTri saved = baoTriRepository.saveAndFlush(baoTri);
+        System.out.println("DEBUG UPDATE BAO TRI: DB noiDung=" + saved.getNoiDung());
+        return saved;
     }
 }

@@ -31,4 +31,6 @@ public interface ThietBiRepository extends JpaRepository<ThietBi, Long> {
     List<ThietBi> findByPhongId(Long phongId);
 
     List<ThietBi> findByLoaiThietBiId(Long loaiThietBiId);
+
+    long countByTrangThai(ThietBi.TrangThaiThietBi trangThai);
 }

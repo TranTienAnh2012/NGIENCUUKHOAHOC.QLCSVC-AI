@@ -43,6 +43,15 @@
                                     <input type="hidden" name="thietBiId" th:value="${baoHong.thietBi?.id}">
                                 </div>
 
+                                <!-- Chọn thiết bị (nếu tạo trực tiếp) -->
+                                <div th:if="${baoHong == null}" class="mb-3">
+                                    <label for="thietBiId" class="form-label">Thiết bị cần bảo trì <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="thietBiId" name="thietBiId" required>
+                                        <option value="">-- Chọn thiết bị --</option>
+                                        <option th:each="tb : ${thietBis}" th:value="${tb.id}" th:text="${tb.maThietBi + ' - ' + tb.tenThietBi}"></option>
+                                    </select>
+                                </div>
+
                                 <!-- Loại bảo trì -->
                                 <div class="mb-3">
                                     <label for="loaiBaoTri" class="form-label">Loại bảo trì <span

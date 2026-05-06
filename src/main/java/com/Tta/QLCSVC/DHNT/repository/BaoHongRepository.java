@@ -24,4 +24,8 @@ public interface BaoHongRepository extends JpaRepository<BaoHong, Long> {
 
     @Query("SELECT b FROM BaoHong b WHERE b.trangThai = 'CHO_XU_LY' AND (b.mucDoNghiemTrong = 'CAO' OR b.mucDoNghiemTrong = 'KHAN_CAP')")
     List<BaoHong> findUrgentReports();
+
+    long countByTrangThai(BaoHong.TrangThaiBaoHong trangThai);
+
+    List<BaoHong> findTop5ByOrderByNgayBaoDesc();
 }
