@@ -101,12 +101,31 @@
                 }
 
                 items.forEach(item => {
-                    const statusBadge = item.trangThai === 'DANG_MUON' ? 'bg-warning' :
-                        item.trangThai === 'DA_TRA' ? 'bg-success' : 'bg-secondary';
+                    let statusBadge = 'bg-secondary';
+                    if (item.trangThai === 'CHO_DUYET') statusBadge = 'bg-warning text-dark';
+                    else if (item.trangThai === 'DANG_MUON') statusBadge = 'bg-primary';
+                    else if (item.trangThai === 'DA_TRA') statusBadge = 'bg-success';
+                    else if (item.trangThai === 'TU_CHOI') statusBadge = 'bg-danger';
 
                     const ngayTra = item.ngayTraThucTe
                         ? formatDate(item.ngayTraThucTe)
                         : formatDate(item.ngayTraDuKien);
+
+                    // Các nút thao tác mặc định
+                    let actionButtons = `
+                        <a href="/admin/muon-tra/view/${item.id}" class="btn btn-info" title="Xem chi tiết"><i data-lucide="eye"></i></a>
+                        <a href="/admin/muon-tra/edit/${item.id}" class="btn btn-warning" title="Sửa"><i data-lucide="edit"></i></a>
+                        <button class="btn btn-danger" onclick="deleteItem(${item.id})" title="Xóa"><i data-lucide="trash-2"></i></button>
+                    `;
+
+                    // Nếu trạng thái là CHO_DUYET, thêm nút Duyệt và Từ chối
+                    if (item.trangThai === 'CHO_DUYET') {
+                        actionButtons = `
+                            <button class="btn btn-success" onclick="updateStatus(${item.id}, 'DANG_MUON')" title="Duyệt đơn"><i data-lucide="check-circle"></i></button>
+                            <button class="btn btn-secondary" onclick="updateStatus(${item.id}, 'TU_CHOI')" title="Từ chối"><i data-lucide="x-circle"></i></button>
+                            ${actionButtons}
+                        `;
+                    }
 
                     tbody.innerHTML += `<tr>
                         <td>${item.id}</td>
@@ -117,15 +136,33 @@
                         <td><span class="badge ${statusBadge}">${item.trangThai}</span></td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <a href="/admin/muon-tra/view/${item.id}" class="btn btn-info"><i data-lucide="eye"></i></a>
-                                <a href="/admin/muon-tra/edit/${item.id}" class="btn btn-warning"><i data-lucide="edit"></i></a>
-                                <button class="btn btn-danger" onclick="deleteItem(${item.id})"><i data-lucide="trash-2"></i></button>
+                                ${actionButtons}
                             </div>
                         </td>
                     </tr>`;
                 });
 
                 lucide.createIcons();
+            }
+
+            function updateStatus(id, newStatus) {
+                const actionName = newStatus === 'DANG_MUON' ? 'duyệt' : 'từ chối';
+                if (confirm(`Bạn có chắc chắn muốn ${actionName} đơn này?`)) {
+                    fetch(`/api/admin/muon-tra/${id}/status?status=${newStatus}`, { method: 'PUT' })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert(`${actionName.charAt(0).toUpperCase() + actionName.slice(1)} thành công!`);
+                                loadData(currentPage);
+                            } else {
+                                alert(`Lỗi: ` + (data.message || 'Không thể thực hiện thao tác'));
+                            }
+                        })
+                        .catch(e => {
+                            console.error('Error:', e);
+                            alert('Có lỗi xảy ra');
+                        });
+                }
             }
 
             function renderPagination(pageData) {

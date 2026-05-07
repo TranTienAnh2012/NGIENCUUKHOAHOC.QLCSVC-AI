@@ -85,11 +85,11 @@
             }
         }
 
-        // Generate or restore sessionId (unique per browser tab session)
-        sessionId = sessionStorage.getItem('chatbot_session_id');
+        // Generate or restore sessionId (unique per user per browser tab)
+        sessionId = sessionStorage.getItem('chatbot_session_id_' + userId);
         if (!sessionId) {
             sessionId = 'sess-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-            sessionStorage.setItem('chatbot_session_id', sessionId);
+            sessionStorage.setItem('chatbot_session_id_' + userId, sessionId);
         }
 
         // Setup event listeners
@@ -351,7 +351,7 @@
      */
     function saveConversationHistory() {
         try {
-            sessionStorage.setItem('chatbot_history', JSON.stringify(conversationHistory));
+            sessionStorage.setItem('chatbot_history_' + userId, JSON.stringify(conversationHistory));
         } catch (e) {
             console.error('Error saving conversation history:', e);
         }
@@ -362,7 +362,7 @@
      */
     function loadConversationHistory() {
         try {
-            const saved = sessionStorage.getItem('chatbot_history');
+            const saved = sessionStorage.getItem('chatbot_history_' + userId);
             if (saved) {
                 conversationHistory = JSON.parse(saved);
 

@@ -20,8 +20,15 @@ public class DataInitializer {
     }
 
     @Bean
-    public CommandLineRunner initData() {
+    public CommandLineRunner initData(org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
         return args -> {
+            try {
+                // Fix lỗi Data Truncated cho Enum mới thêm bằng cách convert sang VARCHAR(50)
+                jdbcTemplate.execute("ALTER TABLE muon_tra_thiet_bi MODIFY COLUMN trang_thai VARCHAR(50)");
+            } catch (Exception e) {
+                // Bỏ qua nếu bảng chưa tồn tại
+            }
+
             if (!nguoiDungRepository.existsByEmail("admin@example.com")) {
                 NguoiDung admin = new NguoiDung();
                 admin.setHoTen("Admin System");
@@ -31,8 +38,6 @@ public class DataInitializer {
                 admin.setTrangThai(NguoiDung.TrangThaiNguoiDung.ACTIVE);
                 nguoiDungRepository.save(admin);
             } else {
-                // Chỉ đảm bảo user có vai trò ADMIN và ACTIVE
-                // KHÔNG reset matKhau — tránh ghi đè mật khẩu đã đổi
                 nguoiDungRepository.findByEmail("admin@example.com").ifPresent(user -> {
                     user.setVaiTro(NguoiDung.VaiTro.ADMIN);
                     user.setTrangThai(NguoiDung.TrangThaiNguoiDung.ACTIVE);

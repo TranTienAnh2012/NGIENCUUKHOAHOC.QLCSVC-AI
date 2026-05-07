@@ -44,7 +44,7 @@
     <link rel="stylesheet" th:href="@{/css/index.css}">
     <link rel="stylesheet" th:href="@{/css/custom.css}">
     <!-- AI Chatbot Widget CSS -->
-    <link rel="stylesheet" th:href="@{/css/chatbot-widget.css}">
+    <link rel="stylesheet" th:href="@{/css/chatbot-widget.css(v=4)}">
     <!-- html5-qrcode for QR scanning -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
@@ -129,7 +129,7 @@
 
     <!-- AI Chatbot Widget JS -->
     <script>window.CHATBOT_USER_ROLE = 'ADMIN';</script>
-    <script th:src="@{/js/chatbot-widget.js(v=3)}"></script>
+    <script th:src="@{/js/chatbot-widget.js(v=5)}"></script>
 
     <!-- QR Scanner JS -->
     <script>
@@ -179,6 +179,151 @@
     <th:block layout:fragment="scripts">
         <!-- Scripts from child pages will be inserted here -->
     </th:block>
-</body>
+    <!-- Notification System JS -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchNotifications();
+            setInterval(fetchNotifications, 30000); // Poll every 30s
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                const dropdown = document.getElementById('notification-dropdown');
+                const toggle = document.querySelector('.notification-toggle');
+                if (dropdown && dropdown.style.display === 'block') {
+                    if (!dropdown.contains(event.target) && !toggle.contains(event.target)) {
+                        dropdown.style.display = 'none';
+                    }
+                }
+            });
+        });
 
+        function toggleNotificationDropdown() {
+            const dropdown = document.getElementById('notification-dropdown');
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function fetchNotifications() {
+            fetch('/api/notifications?t=' + new Date().getTime(), { cache: 'no-store' })
+                .then(response => {
+                    if (response.ok) return response.json();
+                    throw new Error('Unauthorized');
+                })
+                .then(data => {
+                    updateNotificationUI(data.data.notifications, data.data.unreadCount);
+                })
+                .catch(error => console.log('Notification fetch error:', error));
+        }
+
+        function updateNotificationUI(notifications, unreadCount) {
+            const badge = document.getElementById('notification-badge');
+            const list = document.getElementById('notification-list');
+            if(!badge || !list) return;
+            
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                badge.style.display = 'block';
+                document.getElementById('notification-badge').textContent = unreadCount;
+                document.getElementById('notification-badge').style.display = 'block';
+            } else {
+                document.getElementById('notification-badge').style.display = 'none';
+            }
+            
+            if (!notifications || notifications.length === 0) {
+                list.innerHTML = '<div class="text-center p-3 text-muted small">Không có thông báo mới</div>';
+                return;
+            }
+
+            let html = '';
+            notifications.forEach(n => {
+                const isReadClass = n.daDoc ? 'bg-light text-muted' : 'bg-white fw-bold border-start border-4 border-primary';
+                const timeStr = new Date(n.ngayTao).toLocaleString('vi-VN');
+                html += `
+                    <a href="${n.urlDetail || '#'}" class="list-group-item list-group-item-action ${isReadClass} p-3" onclick="markAsRead(${n.id}, event, '${n.urlDetail}')">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge bg-primary text-white" style="font-size: 0.65rem;">${n.loaiThongBao}</span>
+                            <small class="text-muted" style="font-size: 0.7rem;">${timeStr}</small>
+                        </div>
+                        <p class="mb-1 text-dark" style="font-size: 0.9rem;">${n.tieuDe}</p>
+                        <small class="text-secondary" style="font-size: 0.8rem;">${n.noiDung}</small>
+                    </a>
+                `;
+            });
+            list.innerHTML = html;
+
+            // Tự động phân tích AI nếu có thông báo chưa đọc
+            if (unreadCount > 0) {
+                // Thêm debounce/delay để tránh gọi API quá nhiều lần khi load trang
+                if (!window.aiSummaryTriggered) {
+                    window.aiSummaryTriggered = true;
+                    setTimeout(() => { summarizeNotificationsAI(); }, 500);
+                }
+            } else {
+                const aiContainer = document.getElementById('ai-summary-container');
+                if (aiContainer) aiContainer.style.display = 'none';
+            }
+        }
+
+        function markAsRead(id, event, url) {
+            if (event) event.preventDefault();
+            fetch(`/api/notifications/${id}/read`, { method: 'POST' })
+                .then(() => {
+                    if (url && url !== 'null') window.location.href = url;
+                    else fetchNotifications();
+                });
+        }
+
+        function markAllAsRead() {
+            fetch('/api/notifications/read-all', { method: 'POST' })
+                .then(() => fetchNotifications());
+        }
+
+        function summarizeNotificationsAI() {
+            const list = document.getElementById('notification-list');
+            const unreadMessages = Array.from(list.querySelectorAll('.list-group-item.bg-white p.mb-1')).map(p => p.textContent);
+            
+            if (unreadMessages.length === 0) {
+                alert("Không có thông báo chưa đọc nào để tóm tắt.");
+                return;
+            }
+
+            const aiContainer = document.getElementById('ai-summary-container');
+            if (aiContainer) {
+                aiContainer.style.display = 'block';
+                aiContainer.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm text-warning" role="status"></div><span class="ms-2 small text-muted">AI đang đọc thông báo...</span></div>';
+            }
+
+            const promptText = "Bạn là trợ lý AI quản lý Cơ sở vật chất. Hãy tóm tắt ngắn gọn các thông báo sau thành 1-2 câu, chỉ ra việc gì cần làm gấp nhất cho tôi. Thông báo: " + unreadMessages.join('; ');
+            const userId = window.CHATBOT_USER_ID || 'anonymous';
+            const sessionId = sessionStorage.getItem('chatbot_session_id_' + userId) || ('sess-' + Date.now());
+
+            fetch('http://localhost:5000/api/ai/chatbot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: promptText,
+                    user_id: userId,
+                    session_id: sessionId,
+                    context: { user_role: window.CHATBOT_USER_ROLE || 'ADMIN', is_system_prompt: true }
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && aiContainer) {
+                    aiContainer.innerHTML = `
+                        <div class="m-2 p-2 rounded" style="background-color: #fffbeb; border: 1px solid #fcd34d;">
+                            <strong class="text-warning d-flex align-items-center gap-1 mb-1" style="font-size: 0.85rem;">
+                                <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i> Tóm tắt AI:
+                            </strong>
+                            <div class="small text-dark" style="line-height: 1.5;">${data.response.replace(/\n/g, '<br>')}</div>
+                        </div>
+                    `;
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }
+            })
+            .catch(err => {
+                if (aiContainer) aiContainer.innerHTML = '<div class="text-danger p-2 small text-center">Lỗi kết nối Server AI</div>';
+            });
+        }
+    </script>
+</body>
 </html>

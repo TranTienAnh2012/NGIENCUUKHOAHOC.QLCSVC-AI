@@ -28,6 +28,7 @@ public class GiaoVienMuonTraService {
     private final ThietBiRepository thietBiRepository;
     private final NguoiDungRepository nguoiDungRepository;
     private final HinhAnhThietBiRepository hinhAnhRepository;
+    private final com.Tta.QLCSVC.DHNT.service.NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<MuonTraThietBi> getMyBorrowings() {
@@ -133,6 +134,12 @@ public class GiaoVienMuonTraService {
         if (!activeBorrowings.isEmpty()) {
             throw new InvalidOperationException("Thiết bị đang được mượn");
         }
+        
+        List<MuonTraThietBi> pendingBorrowings = muonTraRepository.findByThietBiIdAndTrangThai(
+                thietBiId, MuonTraThietBi.TrangThaiMuonTra.CHO_DUYET);
+        if (!pendingBorrowings.isEmpty()) {
+            throw new InvalidOperationException("Thiết bị đang có người khác chờ duyệt mượn");
+        }
 
         MuonTraThietBi muonTra = new MuonTraThietBi();
         muonTra.setThietBi(thietBi);
@@ -140,9 +147,20 @@ public class GiaoVienMuonTraService {
         muonTra.setNgayMuon(LocalDateTime.now());
         muonTra.setNgayTraDuKien(ngayTraDuKien);
         muonTra.setGhiChu(ghiChu);
-        muonTra.setTrangThai(MuonTraThietBi.TrangThaiMuonTra.DANG_MUON);
+        muonTra.setTrangThai(MuonTraThietBi.TrangThaiMuonTra.CHO_DUYET);
 
-        return muonTraRepository.save(muonTra);
+        MuonTraThietBi saved = muonTraRepository.save(muonTra);
+        
+        // Notify Admin
+        notificationService.sendToRole(
+                NguoiDung.VaiTro.ADMIN,
+                "Yêu cầu mượn thiết bị mới",
+                "Giảng viên " + currentUser.getHoTen() + " vừa gửi yêu cầu mượn thiết bị " + thietBi.getTenThietBi(),
+                com.Tta.QLCSVC.DHNT.entity.ThongBao.LoaiThongBao.MUON_TRA,
+                "/admin/muon-tra/" + saved.getId()
+        );
+
+        return saved;
     }
 
     @Transactional

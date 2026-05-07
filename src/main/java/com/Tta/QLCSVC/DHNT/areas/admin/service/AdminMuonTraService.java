@@ -3,6 +3,9 @@ package com.Tta.QLCSVC.DHNT.areas.admin.service;
 import com.Tta.QLCSVC.DHNT.entity.MuonTraThietBi;
 import com.Tta.QLCSVC.DHNT.exception.ResourceNotFoundException;
 import com.Tta.QLCSVC.DHNT.repository.MuonTraThietBiRepository;
+import com.Tta.QLCSVC.DHNT.service.NotificationService;
+import com.Tta.QLCSVC.DHNT.entity.ThongBao;
+import com.Tta.QLCSVC.DHNT.entity.NguoiDung;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +20,7 @@ import java.util.List;
 public class AdminMuonTraService {
 
     private final MuonTraThietBiRepository muonTraRepository;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public Page<MuonTraThietBi> getAllMuonTra(Pageable pageable) {
@@ -122,11 +126,35 @@ public class AdminMuonTraService {
     @Transactional
     public MuonTraThietBi updateTrangThai(Long id, MuonTraThietBi.TrangThaiMuonTra trangThai) {
         MuonTraThietBi muonTra = getMuonTraById(id);
+        MuonTraThietBi.TrangThaiMuonTra oldStatus = muonTra.getTrangThai();
+        
         muonTra.setTrangThai(trangThai);
         if (trangThai == MuonTraThietBi.TrangThaiMuonTra.DA_TRA) {
             muonTra.setNgayTraThucTe(LocalDateTime.now());
         }
-        return muonTraRepository.save(muonTra);
+        
+        MuonTraThietBi saved = muonTraRepository.save(muonTra);
+
+        // Gửi thông báo nếu Admin duyệt hoặc từ chối
+        if (oldStatus == MuonTraThietBi.TrangThaiMuonTra.CHO_DUYET && trangThai == MuonTraThietBi.TrangThaiMuonTra.DANG_MUON) {
+            notificationService.sendToUser(
+                    muonTra.getNguoiMuon().getId(),
+                    "Đơn mượn thiết bị đã được duyệt",
+                    "Yêu cầu mượn thiết bị " + muonTra.getThietBi().getTenThietBi() + " của bạn đã được duyệt. Bạn có thể đến nhận thiết bị.",
+                    ThongBao.LoaiThongBao.MUON_TRA,
+                    "/giaovien/muon-tra"
+            );
+        } else if (oldStatus == MuonTraThietBi.TrangThaiMuonTra.CHO_DUYET && trangThai == MuonTraThietBi.TrangThaiMuonTra.TU_CHOI) {
+            notificationService.sendToUser(
+                    muonTra.getNguoiMuon().getId(),
+                    "Đơn mượn thiết bị bị từ chối",
+                    "Yêu cầu mượn thiết bị " + muonTra.getThietBi().getTenThietBi() + " của bạn đã bị từ chối.",
+                    ThongBao.LoaiThongBao.MUON_TRA,
+                    "/giaovien/muon-tra"
+            );
+        }
+
+        return saved;
     }
 
     @Transactional

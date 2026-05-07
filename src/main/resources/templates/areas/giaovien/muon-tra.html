@@ -108,23 +108,30 @@
                                 </span>
                             </td>
                             <td style="padding: 16px 12px;">
+                                <span th:if="${mt.trangThai.name() == 'CHO_DUYET'}"
+                                    style="background: #fef3c7; color: #b45309; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span style="width: 6px; height: 6px; background: #d97706; border-radius: 50%;"></span>
+                                    Chờ duyệt
+                                </span>
                                 <span th:if="${mt.trangThai.name() == 'DANG_MUON'}"
                                     style="background: #dbeafe; color: #1e40af; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                                    <span
-                                        style="width: 6px; height: 6px; background: #3b82f6; border-radius: 50%;"></span>
-                                    Đang mượn
+                                    <span style="width: 6px; height: 6px; background: #3b82f6; border-radius: 50%;"></span>
+                                    <span class="countdown-timer" th:data-endtime="${mt.ngayTraDuKien}">Đang mượn</span>
                                 </span>
                                 <span th:if="${mt.trangThai.name() == 'DA_TRA'}"
                                     style="background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                                    <span
-                                        style="width: 6px; height: 6px; background: #16a34a; border-radius: 50%;"></span>
+                                    <span style="width: 6px; height: 6px; background: #16a34a; border-radius: 50%;"></span>
                                     Đã trả
                                 </span>
                                 <span th:if="${mt.trangThai.name() == 'QUA_HAN'}"
                                     style="background: #fee2e2; color: #991b1b; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                                    <span
-                                        style="width: 6px; height: 6px; background: #dc2626; border-radius: 50%;"></span>
+                                    <span style="width: 6px; height: 6px; background: #dc2626; border-radius: 50%;"></span>
                                     Quá hạn
+                                </span>
+                                <span th:if="${mt.trangThai.name() == 'TU_CHOI'}"
+                                    style="background: #f1f5f9; color: #475569; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                                    <span style="width: 6px; height: 6px; background: #64748b; border-radius: 50%;"></span>
+                                    Từ chối
                                 </span>
                             </td>
                             <td style="padding: 16px 12px;">
@@ -177,6 +184,42 @@
                     bsAlert.close();
                 });
             }, 5000);
+            
+            // Countdown Timer Logic
+            function updateCountdowns() {
+                const timers = document.querySelectorAll('.countdown-timer');
+                timers.forEach(timer => {
+                    const endTimeStr = timer.getAttribute('data-endtime');
+                    if (!endTimeStr) return;
+                    
+                    const endTime = new Date(endTimeStr).getTime();
+                    const now = new Date().getTime();
+                    const distance = endTime - now;
+                    
+                    if (distance < 0) {
+                        timer.innerHTML = "Đã quá hạn!";
+                        timer.style.color = "#dc2626"; // Red color
+                        return;
+                    }
+                    
+                    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                    
+                    let display = "";
+                    if (days > 0) display += days + "d ";
+                    display += ("0" + hours).slice(-2) + ":" + 
+                               ("0" + minutes).slice(-2) + ":" + 
+                               ("0" + seconds).slice(-2);
+                               
+                    timer.innerHTML = "Còn " + display;
+                });
+            }
+            
+            // Update every second
+            setInterval(updateCountdowns, 1000);
+            updateCountdowns(); // Initial call
         </script>
     </th:block>
 </body>

@@ -7,14 +7,49 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import com.Tta.QLCSVC.DHNT.repository.NguoiDungRepository;
+import com.Tta.QLCSVC.DHNT.repository.ThietBiRepository;
+import com.Tta.QLCSVC.DHNT.repository.BaoHongRepository;
+import com.Tta.QLCSVC.DHNT.repository.ThongBaoRepository;
+import com.Tta.QLCSVC.DHNT.entity.ThietBi;
+import com.Tta.QLCSVC.DHNT.entity.BaoHong;
+import lombok.RequiredArgsConstructor;
+
 @Controller
 @RequestMapping("/admin")
 @PreAuthorize("hasRole('ADMIN')")
+@RequiredArgsConstructor
 public class AdminViewController {
+
+    private final NguoiDungRepository nguoiDungRepository;
+    private final ThietBiRepository thietBiRepository;
+    private final BaoHongRepository baoHongRepository;
+    private final ThongBaoRepository thongBaoRepository;
 
     @GetMapping
     public String dashboard(Model model) {
         model.addAttribute("title", "Admin Dashboard");
+
+        long totalUsers = nguoiDungRepository.count();
+        long totalDevices = thietBiRepository.count();
+        
+        long hoatDongTotCount = thietBiRepository.countByTrangThai(ThietBi.TrangThaiThietBi.HOAT_DONG_TOT);
+        long activePercent = totalDevices > 0 ? (hoatDongTotCount * 100 / totalDevices) : 0;
+        
+        long needMaintenance = thietBiRepository.countByTrangThai(ThietBi.TrangThaiThietBi.CAN_BAO_TRI) 
+                               + thietBiRepository.countByTrangThai(ThietBi.TrangThaiThietBi.HONG);
+                               
+        long aiRiskCount = baoHongRepository.countByTrangThai(BaoHong.TrangThaiBaoHong.CHO_XU_LY);
+
+        model.addAttribute("totalUsers", totalUsers);
+        model.addAttribute("totalDevices", totalDevices);
+        model.addAttribute("activePercent", activePercent);
+        model.addAttribute("needMaintenance", needMaintenance);
+        model.addAttribute("aiRiskCount", aiRiskCount);
+        
+        // Hoạt động gần đây (5 thông báo mới nhất)
+        model.addAttribute("recentActivities", thongBaoRepository.findTop5ByOrderByNgayTaoDesc());
+
         return "areas/admin/dashboard";
     }
 

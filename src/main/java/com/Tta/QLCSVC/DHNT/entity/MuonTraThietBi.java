@@ -39,8 +39,8 @@ public class MuonTraThietBi {
     private LocalDateTime ngayTraThucTe;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "trang_thai")
-    private TrangThaiMuonTra trangThai = TrangThaiMuonTra.DANG_MUON;
+    @Column(name = "trang_thai", length = 50)
+    private TrangThaiMuonTra trangThai = TrangThaiMuonTra.CHO_DUYET;
 
     @Column(name = "ghi_chu", columnDefinition = "TEXT")
     private String ghiChu;
@@ -54,8 +54,10 @@ public class MuonTraThietBi {
     }
 
     public enum TrangThaiMuonTra {
+        CHO_DUYET,
         DANG_MUON,
         DA_TRA,
+        TU_CHOI,
         QUA_HAN
     }
 }

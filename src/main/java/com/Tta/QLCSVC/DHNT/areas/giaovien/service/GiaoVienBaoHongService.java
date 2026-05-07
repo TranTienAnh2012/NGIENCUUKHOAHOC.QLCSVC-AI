@@ -24,6 +24,7 @@ public class GiaoVienBaoHongService {
     private final BaoHongRepository baoHongRepository;
     private final ThietBiRepository thietBiRepository;
     private final NguoiDungRepository nguoiDungRepository;
+    private final com.Tta.QLCSVC.DHNT.service.NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<BaoHong> getMyReports() {
@@ -74,7 +75,18 @@ public class GiaoVienBaoHongService {
         thietBi.setTrangThai(ThietBi.TrangThaiThietBi.HONG);
         thietBiRepository.save(thietBi);
 
-        return baoHongRepository.save(baoHong);
+        BaoHong saved = baoHongRepository.save(baoHong);
+
+        // Notify Nhan Vien CSVC
+        notificationService.sendToRole(
+                NguoiDung.VaiTro.NHAN_VIEN_CSVC,
+                "Báo hỏng thiết bị mới",
+                "Giảng viên " + currentUser.getHoTen() + " vừa báo hỏng thiết bị " + thietBi.getTenThietBi(),
+                com.Tta.QLCSVC.DHNT.entity.ThongBao.LoaiThongBao.BAO_HONG,
+                "/nhanvien-csvc/bao-hong"
+        );
+
+        return saved;
     }
 
     private NguoiDung getCurrentUser() {
