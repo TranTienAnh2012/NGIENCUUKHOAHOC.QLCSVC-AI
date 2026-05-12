@@ -86,11 +86,11 @@
         }
 
         // Generate or restore sessionId (unique per browser tab session)
-        sessionId = sessionStorage.getItem('chatbot_session_id');
-        if (!sessionId) {
+        sessionId = sessionStorage.getItem('chatbot_session_id_' + userId);
+        if (!sessionId) {{
             sessionId = 'sess-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-            sessionStorage.setItem('chatbot_session_id', sessionId);
-        }
+            sessionStorage.setItem('chatbot_session_id_' + userId, sessionId);
+        }}
 
         // Setup event listeners
         setupEventListeners();
@@ -358,34 +358,34 @@
     /**
      * Save conversation history to sessionStorage
      */
-    function saveConversationHistory() {
-        try {
-            sessionStorage.setItem('chatbot_history', JSON.stringify(conversationHistory));
-        } catch (e) {
+    function saveConversationHistory() {{
+        try {{
+            sessionStorage.setItem('chatbot_history_' + userId, JSON.stringify(conversationHistory));
+        }} catch (e) {{
             console.error('Error saving conversation history:', e);
-        }
-    }
+        }}
+    }}
 
     /**
      * Load conversation history from sessionStorage
      */
-    function loadConversationHistory() {
-        try {
-            const saved = sessionStorage.getItem('chatbot_history');
-            if (saved) {
+    function loadConversationHistory() {{
+        try {{
+            const saved = sessionStorage.getItem('chatbot_history_' + userId);
+            if (saved) {{
                 conversationHistory = JSON.parse(saved);
 
                 // Restore messages to UI
-                conversationHistory.forEach(msg => {
-                    if (msg.role === 'user' || msg.role === 'ai') {
+                conversationHistory.forEach(msg => {{
+                    if (msg.role === 'user' || msg.role === 'ai') {{
                         addMessage(msg.content, msg.role);
-                    }
-                });
-            }
-        } catch (e) {
+                    }}
+                }});
+            }}
+        }} catch (e) {{
             console.error('Error loading conversation history:', e);
-        }
-    }
+        }}
+    }}
 
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {

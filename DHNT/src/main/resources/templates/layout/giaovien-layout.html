@@ -54,91 +54,57 @@
 
 
 <body class="giaovien-theme">
-    <!-- Top Navigation Bar -->
+    <!-- Top Navigation Bar (Redesigned) -->
     <nav class="lms-topbar">
         <div class="lms-topbar-container">
             <!-- Logo -->
-            <div class="lms-logo">
-                <div class="logo-icon">
-                    <i data-lucide="graduation-cap"></i>
+            <a href="/giao-vien" class="lms-logo">
+                <div class="logo-icon" style="background: #10b981; border-radius: 10px;">
+                    <i data-lucide="monitor"></i>
                 </div>
-                <span class="logo-text">QLCSVC-AI</span>
+                <span class="logo-text" style="font-weight: 800; font-size: 22px;">QLCSVC</span>
+            </a>
+
+            <!-- Search Bar -->
+            <div class="topbar-search" id="trigger-search-modal" style="cursor: pointer;">
+                <div class="search-input-wrapper">
+                    <i data-lucide="search"></i>
+                    <input type="text" placeholder="Tìm kiếm thiết bị..." readonly>
+                    <span class="search-shortcut">⌘ K</span>
+                </div>
             </div>
 
             <!-- Navigation Menu -->
             <div class="lms-nav-menu">
-                <a href="/giao-vien" class="lms-nav-link">
-                    <i data-lucide="home"></i>
-                    <span>Trang chủ</span>
-                </a>
-                <a href="/giao-vien/thiet-bi" class="lms-nav-link">
-                    <i data-lucide="monitor"></i>
-                    <span>Thiết bị</span>
-                </a>
-                <a href="/giao-vien/muon-tra" class="lms-nav-link">
-                    <i data-lucide="package"></i>
-                    <span>Mượn học</span>
-                </a>
-                <a href="/giao-vien/bao-hong" class="lms-nav-link">
-                    <i data-lucide="alert-circle"></i>
-                    <span>Báo hỏng</span>
-                </a>
+                <a href="/giao-vien" class="lms-nav-link">Trang chủ</a>
+                <a href="/giao-vien/thiet-bi" class="lms-nav-link">Thiết bị</a>
+                <a href="/giao-vien/muon-tra" class="lms-nav-link">Lịch sử mượn</a>
+                <a href="/giao-vien/bao-hong" class="lms-nav-link">Báo hỏng</a>
             </div>
 
             <!-- Right Side Actions -->
             <div class="lms-topbar-actions">
-                <!-- Language Selector -->
-                <div class="lms-dropdown">
-                    <button class="lms-action-btn" title="Ngôn ngữ">
-                        Gần đây
-                        <i data-lucide="chevron-down"></i>
-                    </button>
-                </div>
-
                 <!-- Notifications -->
-                <button class="lms-action-btn lms-icon-btn" title="Thông báo">
-                    <i data-lucide="bell"></i>
-                </button>
-
-                <!-- Messages -->
-                <button class="lms-action-btn lms-icon-btn" title="Tin nhắn">
-                    <i data-lucide="message-square"></i>
-                </button>
-
-                <!-- User Menu -->
-                <div class="lms-user-menu">
-                    <a href="/giao-vien/profile" class="lms-user-avatar"
-                        style="text-decoration: none; cursor: pointer;">
-                        <i data-lucide="user"></i>
-                    </a>
-                    <div class="lms-user-dropdown">
-                        <button class="lms-dropdown-toggle">
-                            <i data-lucide="chevron-down"></i>
-                        </button>
-                        <div class="lms-dropdown-menu">
-                            <a href="/giao-vien/profile" class="lms-dropdown-item">
-                                <i data-lucide="user"></i>
-                                Hồ sơ
-                            </a>
-                            <a href="/giao-vien/settings" class="lms-dropdown-item">
-                                <i data-lucide="settings"></i>
-                                Cài đặt
-                            </a>
-                            <div class="lms-dropdown-divider"></div>
-                            <form th:action="@{/logout}" method="post" style="margin: 0;">
-                                <button type="submit" class="lms-dropdown-item">
-                                    <i data-lucide="log-out"></i>
-                                    Đăng xuất
-                                </button>
-                            </form>
-                        </div>
-                    </div>
+                <div class="lms-dropdown position-relative" id="notification-container">
+                    <button class="lms-action-btn" title="Thông báo" id="notification-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i data-lucide="bell"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notification-badge" style="display: none; font-size: 0.6rem;">0</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" id="notification-list" style="width: 320px; max-height: 400px; overflow-y: auto; background-color: #18181b; border-color: rgba(255,255,255,0.1); padding: 0;">
+                        <li><div class="p-3 text-center text-muted">Không có thông báo mới</div></li>
+                    </ul>
                 </div>
 
-                <!-- Settings -->
-                <button class="lms-action-btn lms-icon-btn" title="Cài đặt">
-                    <i data-lucide="settings"></i>
-                </button>
+                <!-- User Profile Badge -->
+                <div class="lms-dropdown">
+                    <a href="/giao-vien/profile" class="user-profile-badge">
+                        <div class="avatar-mini">
+                            <i data-lucide="user" style="width: 14px; height: 14px;"></i>
+                        </div>
+                        <span sec:authentication="name">Đang tải...</span>
+                        <i data-lucide="chevron-down" style="width: 12px; height: 12px; margin-left: 4px; color: var(--gv-text-muted);"></i>
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
@@ -168,6 +134,53 @@
         </footer>
     </div>
 
+    <!-- Search Modal -->
+    <div class="search-modal-overlay" id="search-modal">
+        <div class="search-modal-container">
+            <div class="search-modal-header">
+                <div class="search-input-wrapper" style="flex: 1; height: 48px;">
+                    <i data-lucide="search" class="search-icon"></i>
+                    <input type="text" placeholder="Tìm kiếm thiết bị..." id="search-modal-input">
+                </div>
+                <button class="close-search-modal" id="close-search-modal" style="margin-left: 10px;">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="search-modal-body">
+                <div class="search-modal-label">Tìm kiếm nhanh</div>
+                
+                <div id="search-results-list">
+                    <a href="/giao-vien/thiet-bi" class="search-result-item">
+                        <div class="result-icon"><i data-lucide="monitor"></i></div>
+                        <div class="result-details">
+                            <div class="result-title">Máy chiếu Epson EB-X05</div>
+                            <div class="result-category">MÁY CHIẾU</div>
+                        </div>
+                    </a>
+                    <a href="/giao-vien/thiet-bi" class="search-result-item">
+                        <div class="result-icon"><i data-lucide="laptop"></i></div>
+                        <div class="result-details">
+                            <div class="result-title">Laptop Dell Latitude 5490</div>
+                            <div class="result-category">LAPTOP</div>
+                        </div>
+                    </a>
+                    <a href="/giao-vien/thiet-bi" class="search-result-item">
+                        <div class="result-icon"><i data-lucide="laptop"></i></div>
+                        <div class="result-details">
+                            <div class="result-title">Laptop HP ProBook 450 G8</div>
+                            <div class="result-category">LAPTOP</div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="search-modal-footer">
+                <span>Nhấn <span class="kbd-hint">Enter</span> để tìm kiếm</span>
+                <span style="margin: 0 10px;">•</span>
+                <span>Nhấn <span class="kbd-hint">Esc</span> để đóng</span>
+            </div>
+        </div>
+    </div>
+
     <!-- AI Chatbot Widget -->
     <div th:replace="~{fragments/chatbot-widget :: chatbot-widget}" th:with="userRole='GIAO_VIEN'"></div>
 
@@ -189,6 +202,7 @@
           </div>
           <div class="modal-body p-3" style="background:#0f172a;">
             <div id="qr-reader" style="width:100%;border-radius:8px;overflow:hidden;"></div>
+            <select id="camera-select" class="form-select form-select-sm mt-3" style="background:#1e293b; color:white; border-color:#334155; display:none;"></select>
             <div id="qr-status" class="mt-2 text-center" style="color:#94a3b8;font-size:0.82rem;">
               Hướng camera vào mã QR dán trên thiết bị
             </div>
@@ -230,37 +244,189 @@
     <!-- QR Scanner JS -->
     <script>
     let qrScanner = null;
+    let currentCameras = [];
+
     function openQrScanner() {
         const modal = new bootstrap.Modal(document.getElementById('qrScanModal'));
         modal.show();
         document.getElementById('qr-status').textContent = 'Đang khởi động camera...';
+        
         document.getElementById('qrScanModal').addEventListener('shown.bs.modal', function startScan() {
             document.getElementById('qrScanModal').removeEventListener('shown.bs.modal', startScan);
             qrScanner = new Html5Qrcode('qr-reader');
-            qrScanner.start(
-                { facingMode: 'environment' },
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                (decodedText) => {
+            
+            Html5Qrcode.getCameras().then(devices => {
+                if (devices && devices.length) {
+                    currentCameras = devices;
+                    const cameraSelect = document.getElementById('camera-select');
+                    cameraSelect.innerHTML = '';
+                    cameraSelect.style.display = 'block';
+                    
+                    let defaultCameraId = devices[0].id;
+                    devices.forEach((cam, index) => {
+                        let option = document.createElement('option');
+                        option.value = cam.id;
+                        option.text = cam.label || `Camera ${index + 1}`;
+                        cameraSelect.appendChild(option);
+                        
+                        // Ưu tiên camera laptop/tích hợp, bỏ qua virtual camera nếu có thể
+                        if (cam.label.toLowerCase().includes('integrated') || cam.label.toLowerCase().includes('webcam')) {
+                            defaultCameraId = cam.id;
+                        }
+                    });
+                    
+                    cameraSelect.value = defaultCameraId;
+
+                    // Khi người dùng chọn camera khác trong dropdown
+                    cameraSelect.onchange = function() {
+                        if (qrScanner) {
+                            try {
+                                qrScanner.stop().then(() => {
+                                    startScanningWithId(cameraSelect.value);
+                                }).catch(() => {
+                                    startScanningWithId(cameraSelect.value);
+                                });
+                            } catch(e) {
+                                startScanningWithId(cameraSelect.value);
+                            }
+                        }
+                    };
+
+                    startScanningWithId(defaultCameraId);
+                } else {
                     document.getElementById('qr-status').innerHTML =
-                        '<span style="color:#10b981;font-weight:700;">✅ Đã nhận diện QR!</span>';
-                    stopQrScanner();
-                    bootstrap.Modal.getInstance(document.getElementById('qrScanModal')).hide();
-                    window.location.href = decodedText.startsWith('http') ? decodedText
-                        : 'http://localhost:5000/api/ai/device-info/' + decodedText;
-                },
-                (_err) => {}
-            ).then(() => {
-                document.getElementById('qr-status').textContent = 'Hướng camera vào mã QR trên thiết bị';
+                        '<span style="color:#f87171;">❌ Không tìm thấy camera nào trên thiết bị này!</span>';
+                }
             }).catch(err => {
                 document.getElementById('qr-status').innerHTML =
-                    '<span style="color:#f87171;">❌ Không truy cập được camera: ' + err + '</span>';
+                    '<span style="color:#f87171;">❌ Không truy cập được camera: Vui lòng cấp quyền trong trình duyệt.</span>';
             });
         }, { once: true });
     }
+
+    function startScanningWithId(cameraId) {
+        document.getElementById('qr-status').textContent = 'Đang kết nối camera...';
+        qrScanner.start(
+            cameraId,
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText) => {
+                document.getElementById('qr-status').innerHTML =
+                    '<span style="color:#10b981;font-weight:700;">✅ Đã nhận diện QR!</span>';
+                stopQrScanner();
+                bootstrap.Modal.getInstance(document.getElementById('qrScanModal')).hide();
+                window.location.href = decodedText.startsWith('http') ? decodedText
+                    : 'http://localhost:5000/api/ai/device-info/' + decodedText;
+            },
+            (_err) => {}
+        ).then(() => {
+            document.getElementById('qr-status').textContent = 'Hướng camera vào mã QR trên thiết bị';
+        }).catch(err => {
+            document.getElementById('qr-status').innerHTML =
+                '<span style="color:#f87171;">❌ Lỗi khởi động camera: ' + err + '</span>';
+        });
+    }
+    
     function stopQrScanner() {
-        if (qrScanner) { qrScanner.stop().catch(() => {}); qrScanner = null; }
+        if (qrScanner) {
+            try {
+                qrScanner.stop().catch(() => {});
+            } catch(e) {}
+            qrScanner = null; 
+        }
+        document.getElementById('camera-select').style.display = 'none';
     }
     document.getElementById('qrScanModal').addEventListener('hide.bs.modal', stopQrScanner);
+
+    // Notification Logic
+    function fetchNotifications() {
+        fetch('/api/thong-bao/unread')
+            .then(res => {
+                if(res.ok) return res.json();
+                throw new Error('Unauthorized');
+            })
+            .then(data => {
+                const badge = document.getElementById('notification-badge');
+                const list = document.getElementById('notification-list');
+                if (data.count > 0) {
+                    badge.style.display = 'block';
+                    badge.textContent = data.count;
+                    
+                    let html = '';
+                    data.notifications.forEach(n => {
+                        let date = new Date(n.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                        html += `
+                        <li style="border-bottom: 1px solid #334155;">
+                            <a class="dropdown-item d-flex flex-column align-items-start p-3" href="#" style="white-space: normal; line-height: 1.5; color: #f8fafc;" onclick="markNotificationRead(${n.id}, event)">
+                                <strong style="color: #f87171; font-size: 0.9rem;">${n.tieuDe}</strong>
+                                <span style="font-size: 0.85rem; color: #cbd5e1; margin-top: 4px;">${n.noiDung}</span>
+                                <small style="color: #64748b; font-size: 0.75rem; align-self: flex-end; margin-top: 8px;">${date}</small>
+                            </a>
+                        </li>`;
+                    });
+                    list.innerHTML = html;
+                } else {
+                    badge.style.display = 'none';
+                    list.innerHTML = '<li><div class="p-3 text-center" style="color: #94a3b8;">Không có thông báo mới</div></li>';
+                }
+            }).catch(e => console.log('Notification fetch error:', e));
+    }
+
+    function markNotificationRead(id, event) {
+        event.preventDefault();
+        event.stopPropagation();
+        fetch(`/api/thong-bao/${id}/read`, { method: 'PUT' })
+            .then(() => fetchNotifications());
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchNotifications();
+        setInterval(fetchNotifications, 30000); // Auto refresh every 30 seconds
+
+        // Handle Active Nav State
+        const currentPath = window.location.pathname;
+        const navLinks = document.querySelectorAll('.lms-nav-link');
+        
+        navLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if (currentPath === href || (href !== '/giao-vien' && currentPath.startsWith(href))) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+
+        // Search Modal Logic
+        const searchModal = document.getElementById('search-modal');
+        const triggerSearch = document.getElementById('trigger-search-modal');
+        const closeSearch = document.getElementById('close-search-modal');
+        const searchInput = document.getElementById('search-modal-input');
+
+        const openModal = () => {
+            searchModal.style.display = 'flex';
+            setTimeout(() => searchInput.focus(), 50);
+            document.body.style.overflow = 'hidden';
+        };
+
+        const closeModal = () => {
+            searchModal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        };
+
+        triggerSearch.addEventListener('click', openModal);
+        closeSearch.addEventListener('click', closeModal);
+        searchModal.addEventListener('click', (e) => {
+            if (e.target === searchModal) closeModal();
+        });
+
+        // Shortcuts
+        document.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                openModal();
+            }
+            if (e.key === 'Escape') closeModal();
+        });
+    });
     </script>
 
     <!-- Page specific scripts -->

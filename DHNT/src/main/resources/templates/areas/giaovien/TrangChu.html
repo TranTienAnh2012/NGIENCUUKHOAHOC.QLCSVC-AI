@@ -8,211 +8,163 @@
 
 <body>
     <div layout:fragment="content">
-        <!-- Welcome Section -->
-        <div class="welcome-section animate-in" style="margin-bottom: 32px;">
-            <div
-                style="background: var(--gv-gradient-1); border-radius: 20px; padding: 32px; color: white; box-shadow: var(--gv-shadow-lg);">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <div>
-                        <h1
-                            style="font-family: 'Outfit', sans-serif; font-size: 32px; font-weight: 800; margin: 0 0 8px 0;">
-                            Xin chào, <span sec:authentication="name">Giáo viên</span>! 👋
-                        </h1>
-                        <p style="font-size: 16px; opacity: 0.9; margin: 0;">
-                            Chào mừng bạn quay trở lại hệ thống quản lý cơ sở vật chất
-                        </p>
-                    </div>
-                    <div style="font-size: 64px; opacity: 0.2;">
-                        <i data-lucide="graduation-cap"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Stats Grid - Dữ liệu thật từ DB -->
-        <div class="stats-grid animate-in" style="animation-delay: 0.1s;">
-            <div class="stat-card-modern">
-                <div class="stat-card-icon">
-                    <i data-lucide="package"></i>
-                </div>
-                <div class="stat-card-content">
-                    <h4>Đang mượn</h4>
-                    <div class="stat-number" th:text="${dangMuonCount}">0</div>
-                    <p style="font-size: 13px; color: #64748b; margin: 8px 0 0 0;">Thiết bị hiện tại</p>
-                </div>
-            </div>
-
-            <div class="stat-card-modern">
-                <div class="stat-card-icon"
-                    style="background: var(--gv-gradient-4); box-shadow: 0 8px 16px rgba(245, 158, 11, 0.3);">
-                    <i data-lucide="history"></i>
-                </div>
-                <div class="stat-card-content">
-                    <h4>Lịch sử</h4>
-                    <div class="stat-number" th:text="${lichSuCount}">0</div>
-                    <p style="font-size: 13px; color: #64748b; margin: 8px 0 0 0;">Lượt mượn trả</p>
-                </div>
-            </div>
-
-            <div class="stat-card-modern">
-                <div class="stat-card-icon"
-                    style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);">
-                    <i data-lucide="alert-triangle"></i>
-                </div>
-                <div class="stat-card-content">
-                    <h4>Báo hỏng</h4>
-                    <div class="stat-number" th:text="${baoHongCount}">0</div>
-                    <p style="font-size: 13px; color: #64748b; margin: 8px 0 0 0;">Phiếu đã gửi</p>
-                </div>
-            </div>
-
-            <div class="stat-card-modern">
-                <div class="stat-card-icon"
-                    style="background: var(--gv-gradient-3); box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);">
-                    <i data-lucide="check-circle"></i>
-                </div>
-                <div class="stat-card-content">
-                    <h4>Hoàn thành</h4>
-                    <div class="stat-number" th:text="${hoanThanhCount}">0</div>
-                    <p style="font-size: 13px; color: #64748b; margin: 8px 0 0 0;">Yêu cầu đã xử lý</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="animate-in" style="animation-delay: 0.2s; margin-bottom: 32px;">
-            <h2
-                style="font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 20px;">
-                Thao tác nhanh
-            </h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
-                <a th:href="@{/giao-vien/muon-tra}" class="action-btn">
-                    <div class="action-icon">
-                        <i data-lucide="repeat"></i>
-                    </div>
-                    <div class="action-content">
-                        <h4>Mượn thiết bị</h4>
-                        <p>Đăng ký mượn thiết bị mới</p>
-                    </div>
-                </a>
-
-                <a th:href="@{/giao-vien/bao-hong}" class="action-btn">
-                    <div class="action-icon"
-                        style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);">
-                        <i data-lucide="alert-triangle"></i>
-                    </div>
-                    <div class="action-content">
-                        <h4>Báo hỏng</h4>
-                        <p>Gửi phiếu báo hỏng thiết bị</p>
-                    </div>
-                </a>
-
-                <a th:href="@{/giao-vien/lich-su}" class="action-btn">
-                    <div class="action-icon"
-                        style="background: var(--gv-gradient-4); box-shadow: 0 8px 16px rgba(245, 158, 11, 0.3);">
-                        <i data-lucide="history"></i>
-                    </div>
-                    <div class="action-content">
-                        <h4>Lịch sử</h4>
-                        <p>Xem lịch sử mượn trả</p>
-                    </div>
-                </a>
-
-                <a th:href="@{/giao-vien/thiet-bi}" class="action-btn">
-                    <div class="action-icon"
-                        style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); box-shadow: 0 8px 16px rgba(139, 92, 246, 0.3);">
-                        <i data-lucide="monitor"></i>
-                    </div>
-                    <div class="action-content">
-                        <h4>Thiết bị</h4>
-                        <p>Danh sách thiết bị khả dụng</p>
-                    </div>
-                </a>
-            </div>
-        </div>
-
-        <!-- My Equipment & Activity Timeline -->
-        <div class="animate-in"
-            style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; animation-delay: 0.3s;">
-
-            <!-- My Equipment Cards - Dữ liệu thật -->
-            <div class="card-modern">
-                <div class="card-header-modern">
-                    <h3 class="card-title">Thiết bị đang sử dụng</h3>
-                    <a th:href="@{/giao-vien/muon-tra}"
-                        style="color: var(--gv-primary); font-size: 14px; font-weight: 600; text-decoration: none;">
-                        Xem tất cả →
+        <!-- Hero Banner Section -->
+        <div class="gv-hero-banner animate-in">
+            <div class="hero-content">
+                <h1 style="font-size: 18px; opacity: 0.9; margin-bottom: 4px;">Xin chào,</h1>
+                <h2 sec:authentication="name" style="font-size: 56px; font-weight: 800; margin-bottom: 24px;">Giao vien</h2>
+                <p style="font-size: 16px; opacity: 0.8; margin-bottom: 32px;">Chuc ban mot ngay lam viec hieu qua!</p>
+                <div class="hero-actions">
+                    <a th:href="@{/giao-vien/thiet-bi}" class="hero-search-btn">
+                        <i data-lucide="search"></i>
+                        Tìm thiết bị
+                    </a>
+                    <a th:href="@{/giao-vien/muon-tra}" class="hero-link" style="font-weight: 600;">
+                        Lịch sử mượn
+                        <i data-lucide="arrow-right"></i>
                     </a>
                 </div>
+            </div>
+            <div class="hero-icon-3d">
+                <i data-lucide="hexagon" style="stroke-width: 1;"></i>
+            </div>
+        </div>
 
-                <!-- Equipment Cards Grid - Thymeleaf thật -->
-                <div style="display: grid; gap: 16px;">
-                    <!-- Trường hợp không có thiết bị nào đang mượn -->
-                    <div th:if="${#lists.isEmpty(activeBorrowings)}"
-                        style="text-align: center; padding: 40px 20px; color: #94a3b8;">
-                        <i data-lucide="inbox"
-                            style="width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.4;"></i>
-                        <p style="margin: 0; font-size: 15px;">Bạn chưa mượn thiết bị nào</p>
-                        <a th:href="@{/giao-vien/thiet-bi}"
-                            style="display: inline-block; margin-top: 12px; color: var(--gv-primary); font-weight: 600; text-decoration: none;">
-                            Mượn thiết bị ngay →
-                        </a>
+        <!-- Stats Grid -->
+        <div class="gv-stats-row animate-in" style="animation-delay: 0.1s;">
+            <div class="gv-stat-card">
+                <div class="stat-icon blue">
+                    <i data-lucide="box"></i>
+                </div>
+                <h4>Đang mượn</h4>
+                <div>
+                    <span class="value" th:text="${dangMuonCount}">0</span>
+                    <span class="unit">thiết bị</span>
+                </div>
+            </div>
+
+            <div class="gv-stat-card">
+                <div class="stat-icon orange">
+                    <i data-lucide="clock"></i>
+                </div>
+                <h4>Chờ duyệt</h4>
+                <div>
+                    <span class="value" th:text="${choDuyetCount ?: 0}">0</span>
+                    <span class="unit">yêu cầu</span>
+                </div>
+            </div>
+
+            <div class="gv-stat-card">
+                <div class="stat-icon red">
+                    <i data-lucide="alert-triangle"></i>
+                </div>
+                <h4>Quá hạn</h4>
+                <div>
+                    <span class="value" th:text="${quaHanCount ?: 0}">0</span>
+                    <span class="unit">thiết bị</span>
+                </div>
+            </div>
+
+            <div class="gv-stat-card">
+                <div class="stat-icon green">
+                    <i data-lucide="check-circle"></i>
+                </div>
+                <h4>Đã trả</h4>
+                <div>
+                    <span class="value" th:text="${hoanThanhCount}">0</span>
+                    <span class="unit">tháng này</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions (Muon nhanh) -->
+        <div class="animate-in" style="animation-delay: 0.2s;">
+            <div class="section-header">
+                <h3>Mượn nhanh</h3>
+            </div>
+            <div class="quick-borrow-grid">
+                <a th:href="@{/giao-vien/muon-tra}" class="quick-card">
+                    <div class="quick-icon" style="color: #3b82f6;">
+                        <i data-lucide="projector"></i>
                     </div>
+                    <div class="quick-info">
+                        <h4>Muon may chieu</h4>
+                        <p>Cho bai giang, thuyet trinh</p>
+                    </div>
+                    <i data-lucide="arrow-right" class="quick-arrow"></i>
+                </a>
 
-                    <!-- Danh sách thiết bị đang mượn -->
-                    <div th:each="mt : ${activeBorrowings}" class="equipment-card"
-                        style="display: flex; gap: 16px; padding: 16px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
-                        <div class="equipment-card-image"
-                            style="width: 80px; height: 80px; flex-shrink: 0; position: relative; border-radius: 8px; overflow: hidden; background: #f1f5f9; display: flex; align-items: center; justify-content: center;">
-                            <img th:if="${mt.thietBi != null and mt.thietBi.hinhAnhChinh != null and !#strings.isEmpty(mt.thietBi.hinhAnhChinh)}"
-                                th:src="${mt.thietBi.hinhAnhChinh}" th:alt="${mt.thietBi.tenThietBi}"
-                                style="width: 100%; height: 100%; object-fit: cover;"
-                                onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                            <i data-lucide="monitor"
-                                th:style="${mt.thietBi != null and mt.thietBi.hinhAnhChinh != null and !#strings.isEmpty(mt.thietBi.hinhAnhChinh) ? 'display: none;' : 'display: block; color: #94a3b8;'}"></i>
-                        </div>
-                        <div style="flex: 1; min-width: 0;">
-                            <h4 class="equipment-card-title"
-                                th:text="${mt.thietBi != null ? mt.thietBi.tenThietBi : 'N/A'}">Thiết bị</h4>
-                            <div class="equipment-card-meta">
-                                <div class="equipment-meta-item">
-                                    <i data-lucide="calendar"></i>
-                                    <span>Mượn:
-                                        <th:block
-                                            th:text="${mt.ngayMuon != null ? #temporals.format(mt.ngayMuon, 'dd/MM/yyyy') : '-'}">
-                                        </th:block>
+                <a th:href="@{/giao-vien/muon-tra}" class="quick-card">
+                    <div class="quick-icon" style="color: #8b5cf6;">
+                        <i data-lucide="laptop"></i>
+                    </div>
+                    <div class="quick-info">
+                        <h4>Muon laptop</h4>
+                        <p>Lam viec, soan bai</p>
+                    </div>
+                    <i data-lucide="arrow-right" class="quick-arrow"></i>
+                </a>
+
+                <a th:href="@{/giao-vien/muon-tra}" class="quick-card">
+                    <div class="quick-icon" style="color: #10b981;">
+                        <i data-lucide="monitor"></i>
+                    </div>
+                    <div class="quick-info">
+                        <h4>Muon may tinh</h4>
+                        <p>Phong may, phong hoc</p>
+                    </div>
+                    <i data-lucide="arrow-right" class="quick-arrow"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Two Column Content Area -->
+        <div class="dashboard-row-split animate-in" style="animation-delay: 0.3s;">
+            <!-- Equipment List -->
+            <div class="gv-content-section">
+                <div class="gv-section-header">
+                    <div class="gv-section-title">
+                        <i data-lucide="package"></i>
+                        <span>Thiết bị đang mượn</span>
+                    </div>
+                    <a th:href="@{/giao-vien/muon-tra}" class="gv-link-sm">Xem tất cả</a>
+                </div>
+                
+                <div th:if="${#lists.isEmpty(activeBorrowings)}" class="gv-empty-state-small">
+                    <div class="empty-icon-box">
+                        <i data-lucide="inbox"></i>
+                    </div>
+                    <p>Bạn không có thiết bị nào đang mượn.</p>
+                    <a th:href="@{/giao-vien/thiet-bi}" class="gv-btn-primary-sm">Mượn ngay</a>
+                </div>
+
+                <div th:unless="${#lists.isEmpty(activeBorrowings)}" class="gv-active-list">
+                    <div th:each="mt : ${activeBorrowings}" 
+                         class="gv-active-item animate-in"
+                         th:classappend="${mt.trangThai.name() == 'QUA_HAN' ? 'is-overdue' : ''}">
+                        
+                        <div class="item-main">
+                            <div class="item-icon" th:classappend="${mt.trangThai.name() == 'QUA_HAN' ? 'bg-red' : 'bg-primary'}">
+                                <i th:data-lucide="${mt.trangThai.name() == 'QUA_HAN' ? 'alert-triangle' : 'monitor'}"></i>
+                            </div>
+                            <div class="item-info">
+                                <div class="item-name">
+                                    <span th:text="${mt.thietBi?.tenThietBi}">Thiết bị</span>
+                                    <span th:if="${mt.trangThai.name() == 'QUA_HAN'}" class="overdue-label">Quá hạn</span>
+                                </div>
+                                <div class="item-meta">
+                                    <span class="meta-date">
+                                        <i data-lucide="calendar"></i>
+                                        Hạn: <span th:text="${#temporals.format(mt.ngayTraDuKien, 'dd/MM/yyyy')}">Date</span>
                                     </span>
                                 </div>
-                                <div class="equipment-meta-item">
-                                    <i data-lucide="clock"></i>
-                                    <span>Hạn trả:
-                                        <th:block
-                                            th:text="${mt.ngayTraDuKien != null ? #temporals.format(mt.ngayTraDuKien, 'dd/MM/yyyy') : 'Không có'}">
-                                        </th:block>
-                                    </span>
-                                </div>
-                            </div>
-                            <!-- Progress Bar - tính bằng JS phía client -->
-                            <div th:if="${mt.ngayMuon != null and mt.ngayTraDuKien != null}" style="margin-top: 8px;"
-                                class="borrow-progress-wrap"
-                                th:attr="data-start=${#temporals.format(mt.ngayMuon, 'yyyy-MM-dd')},data-end=${#temporals.format(mt.ngayTraDuKien, 'yyyy-MM-dd')}">
-                                <div class="progress-bar">
-                                    <div class="progress-bar-fill borrow-bar" style="width: 0%;"></div>
-                                </div>
-                                <p class="borrow-days-left" style="font-size: 11px; color: #64748b; margin: 4px 0 0 0;">
-                                    Đang tính...</p>
-                            </div>
-                            <div th:if="${mt.ngayMuon != null and mt.ngayTraDuKien == null}" style="margin-top: 8px;">
-                                <p style="font-size: 11px; color: #64748b; margin: 4px 0 0 0;">Không xác định hạn trả
-                                </p>
                             </div>
                         </div>
-                        <div style="display: flex; align-items: center;">
+
+                        <div class="item-actions">
                             <form th:action="@{/giao-vien/muon-tra/return/{id}(id=${mt.id})}" method="post">
-                                <button type="submit" class="btn-equipment btn-equipment-primary"
-                                    style="padding: 8px 16px;">
-                                    <i data-lucide="corner-up-left" style="width: 16px; height: 16px;"></i>
-                                    Trả
+                                <button type="submit" class="return-btn-circular" title="Trả thiết bị">
+                                    <i data-lucide="rotate-ccw"></i>
                                 </button>
                             </form>
                         </div>
@@ -220,72 +172,41 @@
                 </div>
             </div>
 
-            <!-- Activity Timeline - Dữ liệu thật -->
-            <div class="card-modern">
-                <div class="card-header-modern">
-                    <h3 class="card-title">Hoạt động gần đây</h3>
+            <!-- Recent Activity -->
+            <div class="gv-content-section">
+                <div class="gv-section-header">
+                    <div class="gv-section-title">
+                        <i data-lucide="activity"></i>
+                        <span>Hoạt động gần đây</span>
+                    </div>
                 </div>
-                <div class="timeline">
-                    <!-- Không có hoạt động -->
-                    <div th:if="${#lists.isEmpty(recentBorrowings) and #lists.isEmpty(recentReports)}"
-                        style="text-align: center; padding: 30px 10px; color: #94a3b8;">
-                        <i data-lucide="activity"
-                            style="width: 36px; height: 36px; opacity: 0.4; margin-bottom: 8px;"></i>
-                        <p style="margin: 0; font-size: 13px;">Chưa có hoạt động nào</p>
-                    </div>
+                
+                <div th:if="${#lists.isEmpty(recentBorrowings) and #lists.isEmpty(recentReports)}" class="gv-empty-state-small">
+                    <p>Chưa có hoạt động nào.</p>
+                </div>
 
-                    <!-- Lịch sử mượn/trả gần đây -->
-                    <div th:each="mt : ${recentBorrowings}" class="timeline-item">
-                        <!-- DA_TRA -->
-                        <div th:if="${mt.trangThai.name() == 'DA_TRA'}" class="timeline-marker">
-                            <i data-lucide="check"></i>
-                        </div>
-                        <!-- QUA_HAN -->
-                        <div th:if="${mt.trangThai.name() == 'QUA_HAN'}" class="timeline-marker"
-                            style="border-color: #ef4444;">
-                            <i data-lucide="alert-circle" style="color: #ef4444;"></i>
-                        </div>
-                        <!-- DANG_MUON -->
-                        <div th:if="${mt.trangThai.name() == 'DANG_MUON'}" class="timeline-marker"
-                            style="border-color: #3b82f6;">
-                            <i data-lucide="package" style="color: #3b82f6;"></i>
-                        </div>
-
+                <div th:unless="${#lists.isEmpty(recentBorrowings) and #lists.isEmpty(recentReports)}" class="gv-timeline">
+                    <!-- Borrowing Activities -->
+                    <div th:each="mt : ${recentBorrowings}" class="gv-timeline-item">
+                        <div class="timeline-marker" th:classappend="${mt.trangThai.name() == 'DA_TRA' ? 'marker-success' : mt.trangThai.name() == 'QUA_HAN' ? 'marker-danger' : 'marker-info'}"></div>
                         <div class="timeline-content">
-                            <div class="timeline-header">
-                                <h4 class="timeline-title"
-                                    th:text="${mt.trangThai.name() == 'DA_TRA' ? 'Trả thiết bị' : (mt.trangThai.name() == 'QUA_HAN' ? 'Quá hạn' : 'Mượn thiết bị')}">
-                                    Hoạt động
-                                </h4>
-                                <span class="timeline-time"
-                                    th:text="${(mt.trangThai != null and mt.trangThai.name() == 'DA_TRA' and mt.ngayTraThucTe != null) ? #temporals.format(mt.ngayTraThucTe, 'dd/MM/yyyy') : (mt.ngayMuon != null ? #temporals.format(mt.ngayMuon, 'dd/MM/yyyy') : '-')}">
-                                    Ngày
-                                </span>
+                            <div class="timeline-title">
+                                <span th:text="${mt.trangThai.name() == 'DA_TRA' ? 'Đã trả ' : mt.trangThai.name() == 'QUA_HAN' ? 'Quá hạn ' : 'Đã mượn '}">Action</span>
+                                <strong th:text="${mt.thietBi?.tenThietBi}">Thiết bị</strong>
                             </div>
-                            <p class="timeline-description"
-                                th:text="${(mt.trangThai.name() == 'DA_TRA' ? 'Đã trả ' : 'Mượn ') + (mt.thietBi != null ? mt.thietBi.tenThietBi : 'thiết bị')}">
-                                Mô tả
-                            </p>
+                            <div class="timeline-time" th:text="${#temporals.format(mt.ngayMuon, 'dd/MM/yyyy HH:mm')}">Date</div>
                         </div>
                     </div>
 
-                    <!-- Báo hỏng gần đây -->
-                    <div th:each="bh : ${recentReports}" class="timeline-item">
-                        <div class="timeline-marker" style="border-color: var(--gv-warning);">
-                            <i data-lucide="alert-circle" style="color: var(--gv-warning);"></i>
-                        </div>
+                    <!-- Report Activities -->
+                    <div th:each="bh : ${recentReports}" class="gv-timeline-item">
+                        <div class="timeline-marker marker-warning"></div>
                         <div class="timeline-content">
-                            <div class="timeline-header">
-                                <h4 class="timeline-title">Báo hỏng</h4>
-                                <span class="timeline-time"
-                                    th:text="${bh.ngayBao != null ? #temporals.format(bh.ngayBao, 'dd/MM/yyyy') : '-'}">
-                                    Ngày
-                                </span>
+                            <div class="timeline-title">
+                                <span>Đã báo hỏng </span>
+                                <strong th:text="${bh.thietBi?.tenThietBi}">Thiết bị</strong>
                             </div>
-                            <p class="timeline-description"
-                                th:text="${'Gửi phiếu báo hỏng ' + (bh.thietBi != null ? bh.thietBi.tenThietBi : 'thiết bị')}">
-                                Mô tả
-                            </p>
+                            <div class="timeline-time" th:text="${#temporals.format(bh.ngayBao, 'dd/MM/yyyy HH:mm')}">Date</div>
                         </div>
                     </div>
                 </div>

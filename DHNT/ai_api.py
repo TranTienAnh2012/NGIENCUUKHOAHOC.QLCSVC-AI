@@ -127,12 +127,10 @@ Trả lời bằng tiếng Việt, có cấu trúc rõ ràng.
 MAINTENANCE_SUGGESTION_PROMPT = """
 Bạn là chuyên gia bảo trì thiết bị.
 Dựa trên lịch sử bảo trì và tình trạng hiện tại, hãy đề xuất:
-1. Lịch bảo trì tiếp theo (ngày cụ thể)
-2. Loại bảo trì cần thực hiện
-3. Các công việc cần làm
-4. Vật tư cần chuẩn bị
-5. Lưu ý đặc biệt
+1. Nguyên nhân hoặc Tình trạng hiện tại
+2. Hướng xử lý (nếu thiết bị hỏng) HOẶC Lịch bảo trì (nếu bình thường)
 
+Yêu cầu: Trả lời RẤT NGẮN GỌN (tối đa 4-5 dòng), đi thẳng vào vấn đề chính để tiết kiệm thời gian đọc.
 Trả lời bằng tiếng Việt, chuyên nghiệp.
 """
 
@@ -285,6 +283,11 @@ def chatbot():
             all_borrows_response = requests.get(f"{SPRING_BOOT_API}/borrows/all?limit=50", headers=INTERNAL_HEADERS, timeout=2)
             if all_borrows_response.status_code == 200:
                 real_data['all_borrows'] = all_borrows_response.json()
+            
+            # Lấy toàn bộ phiếu bảo trì (50 gần nhất)
+            maint_response = requests.get(f"{SPRING_BOOT_API}/maintenance/all?limit=50", headers=INTERNAL_HEADERS, timeout=2)
+            if maint_response.status_code == 200:
+                real_data['all_maintenances'] = maint_response.json()
                 
         except requests.exceptions.RequestException as e:
             print(f"Warning: Could not fetch data from Spring Boot API: {e}")
@@ -373,10 +376,11 @@ THỐNG KÊ TỔNG QUAN:
 - Tổng số thiết bị: {stats.get('total_devices', 0)}
 - Thiết bị đang sẵn sàng: {stats.get('available_devices', 0)}
 - Thiết bị đang được mượn: {stats.get('active_borrows', 0)} lượt
-- Thiết bị đang bảo trì: {stats.get('maintenance_devices', 0)}
-- Thiết bị hư hỏng: {stats.get('damaged_devices', 0)}
+- Thiết bị hiện đang bảo trì (đang hỏng/sửa): {stats.get('maintenance_devices', 0)}
+- Thiết bị hư hỏng (chờ xử lý): {stats.get('damaged_devices', 0)}
 - Tổng số lượt mượn: {stats.get('total_borrows', 0)}
 - Tổng số báo hỏng: {stats.get('total_damages', 0)}
+- Tổng số phiếu bảo trì trong hệ thống: {stats.get('total_maintenances', 0)}
 """)
     
     # Thiết bị cần bảo trì - LIỆT KÊ CHI TIẾT
@@ -454,6 +458,17 @@ LỊCH SỬ THIẾT BỊ ĐÃ TRẢ GẦN ĐÂY ({len(real_data['returned_borrow
         context_parts.append(f"""
 TOÀN BỘ LỊCH SỬ MƯỢN TRẢ ({len(real_data['all_borrows'])} bản ghi, mượn gần nhất trước):
 {all_list}
+""")
+    
+    # Phiếu bảo trì thực tế - LIỆT KÊ CHI TIẾT
+    if 'all_maintenances' in real_data and real_data['all_maintenances']:
+        maint_list = "\n".join([
+            f"  {i+1}. {m.get('device_name','?')} (Mã: {m.get('device_code','?')}) - Loại: {m.get('type','N/A')} - Ngày: {m.get('date','N/A')} - Người thực hiện: {m.get('performer','N/A')} - Chi phí: {m.get('cost','N/A')} - Kết quả: {m.get('result','N/A')}"
+            for i, m in enumerate(real_data['all_maintenances'])
+        ])
+        context_parts.append(f"""
+TOÀN BỘ PHIẾU BẢO TRÌ ({len(real_data['all_maintenances'])} phiếu, gần nhất trước):
+{maint_list}
 """)
     
     return "\n".join(context_parts)
@@ -581,13 +596,13 @@ def suggest_maintenance():
     try:
         data = request.get_json()
         
-        if not data or 'equipment_name' not in data:
+        if not data or ('equipment_name' not in data and 'device_name' not in data):
             return jsonify({
                 "error": "Missing required fields",
                 "success": False
             }), 400
         
-        equipment_name = data['equipment_name']
+        equipment_name = data.get('equipment_name') or data.get('device_name') or 'Khong ro'
         maintenance_history = data.get('maintenance_history', [])
         current_status = data.get('current_status', 'TOT')
         
@@ -1648,18 +1663,21 @@ def device_info_page(device_id):
       method: 'POST',
       headers: {{ 'Content-Type': 'application/json' }},
       body: JSON.stringify({{
-        device_name: '{dev_name}',
+        equipment_name: '{dev_name}',
         device_id:   {device_id},
+        current_status: '{status_raw}',
         status:      '{status_label}',
         category:    '{dev_cat}',
-        room:        '{dev_room}'
+        room:        '{dev_room}',
+        maintenance_history: {json.dumps(damages)}
       }})
     }});
     const data = await r.json();
     loadEl.style.display = 'none';
-    const msg = data.suggestion || data.response || data.message || JSON.stringify(data);
+    let msgRaw = data.recommendations || data.suggestion || data.response || data.message || JSON.stringify(data);
+    let msg = typeof msgRaw === 'string' ? msgRaw.replace(/\\n/g, '<br/>').replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>') : JSON.stringify(msgRaw);
     // Determine health color
-    const txt = msg.toLowerCase();
+    const txt = msg.toString().toLowerCase();
     const isGood = txt.includes('tốt') || txt.includes('bình thường') || txt.includes('không cần');
     const isWarn = txt.includes('lưu ý') || txt.includes('chú ý') || txt.includes('theo dõi');
     const color  = isGood ? '#16a34a' : isWarn ? '#f59e0b' : '#ef4444';
@@ -1697,7 +1715,7 @@ function openAIVerify() {{
   status.innerHTML = '<span style="color:#f59e0b;">📷 Đang khởi động camera...</span>';
 
   navigator.mediaDevices.getUserMedia({{ 
-    video: {{ facingMode: 'environment', width: {{ ideal: 1280 }}, height: {{ ideal: 720 }} }}
+    video: {{ width: {{ ideal: 1280 }}, height: {{ ideal: 720 }} }}
   }}).then(stream => {{
     verifyStream = stream;
     video.srcObject = stream;
@@ -2833,11 +2851,13 @@ def scan_page():
   </div>
 
   <div class="panel {qr_hidden}" id="panelQR">
+    <select id="camera-select" style="display:none; width:100%; padding:10px; margin-bottom:12px; border-radius:8px; background:#1e293b; color:#fff; border:1px solid #334155; font-size:0.9rem;"></select>
     <div id="qr-reader"></div>
     <div class="status" id="qr-status">Đang khởi động camera...</div>
   </div>
 
   <div class="panel {ai_hidden}" id="panelAI">
+    <select id="camera-select-ai" style="display:none; width:100%; padding:10px; margin-bottom:12px; border-radius:8px; background:#1e293b; color:#fff; border:1px solid #334155; font-size:0.9rem;"></select>
     <div class="camera-wrap">
       <video id="aiVideo" autoplay playsinline muted></video>
       <canvas id="aiCanvas" style="display:none;"></canvas>
@@ -2872,28 +2892,58 @@ function switchTab(tab) {{
   if (tab === 'ai') {{ stopQR(); startAICamera(); }}
 }}
 
-function startQR() {{
+function startQR(preferredCamId = null) {{
   if (qrScanner) return;
   try {{
-    qrScanner = new Html5Qrcode('qr-reader');
-    qrScanner.start(
-      {{ facingMode: 'environment' }},
-      {{ fps:10, qrbox:{{ width:220, height:220 }} }},
-      (decoded) => {{
-        document.getElementById('qr-status').innerHTML =
-          '<span style="color:#10b981;font-weight:700;">✅ Đã scan! Đang chuyển...</span>';
-        qrScanner.stop().then(() => {{
-          qrScanner = null;
-          window.location.href = decoded.startsWith('http') ? decoded
-            : HOST + '/api/ai/device-info/' + decoded;
+    Html5Qrcode.getCameras().then(devices => {{
+      if (devices && devices.length > 0) {{
+        const cameraSelect = document.getElementById('camera-select');
+        cameraSelect.style.display = 'block';
+        cameraSelect.innerHTML = '';
+        
+        let defaultCameraId = devices[0].id;
+        devices.forEach((cam, index) => {{
+          let option = document.createElement('option');
+          option.value = cam.id;
+          option.text = cam.label || `Camera ${{index + 1}}`;
+          cameraSelect.appendChild(option);
+          
+          let label = cam.label.toLowerCase();
+          if (label.includes('integrated') || label.includes('webcam') || label.includes('back') || label.includes('sau')) {{
+            defaultCameraId = cam.id;
+          }}
         }});
-      }},
-      () => {{}}
-    ).then(() => {{
-      document.getElementById('qr-status').textContent = 'Hướng camera vào mã QR trên thiết bị';
-    }}).catch(() => {{
-      document.getElementById('qr-status').innerHTML =
-        '<span style="color:#f87171;">❌ Không truy cập camera</span>';
+        
+        let camId = preferredCamId || defaultCameraId;
+        cameraSelect.value = camId;
+        cameraSelect.onchange = (e) => {{
+          stopQR();
+          setTimeout(() => startQR(e.target.value), 300);
+        }};
+
+        qrScanner = new Html5Qrcode('qr-reader');
+        qrScanner.start(
+          camId,
+          {{ fps:10, qrbox:{{ width:220, height:220 }} }},
+          (decoded) => {{
+            document.getElementById('qr-status').innerHTML =
+              '<span style="color:#10b981;font-weight:700;">✅ Đã scan! Đang chuyển...</span>';
+            qrScanner.stop().then(() => {{
+              qrScanner = null;
+              window.location.href = decoded.startsWith('http') ? decoded : HOST + '/api/ai/device-info/' + decoded;
+            }});
+          }},
+          () => {{}}
+        ).then(() => {{
+          document.getElementById('qr-status').textContent = 'Hướng camera vào mã QR trên thiết bị';
+        }}).catch(() => {{
+          document.getElementById('qr-status').innerHTML = '<span style="color:#f87171;">❌ Không truy cập camera</span>';
+        }});
+      }} else {{
+        document.getElementById('qr-status').innerHTML = '<span style="color:#f87171;">❌ Không tìm thấy camera</span>';
+      }}
+    }}).catch(err => {{
+      document.getElementById('qr-status').innerHTML = '<span style="color:#f87171;">❌ Lỗi quyền Camera: ' + err + '</span>';
     }});
   }} catch(e) {{ console.error(e); }}
 }}
@@ -2902,18 +2952,53 @@ function stopQR() {{
   if (qrScanner) {{ qrScanner.stop().catch(() => {{}}); qrScanner = null; }}
 }}
 
-function startAICamera() {{
-  if (cameraStarted) return;
+function startAICamera(preferredCamId = null) {{
+  if (cameraStarted && !preferredCamId) return;
   const video = document.getElementById('aiVideo');
   const status = document.getElementById('ai-status');
   status.innerHTML = '<span style="color:#f59e0b;">📷 Đang mở camera...</span>';
-  navigator.mediaDevices.getUserMedia({{
-    video: {{ facingMode: 'environment', width: {{ ideal:1280 }}, height: {{ ideal:720 }} }}
-  }}).then(stream => {{
-    aiStream = stream; video.srcObject = stream; cameraStarted = true;
-    status.innerHTML = '<span style="color:#22c55e;">✅ Sẵn sàng — Hướng vào thiết bị rồi nhấn Chụp</span>';
+  
+  Html5Qrcode.getCameras().then(devices => {{
+    if (devices && devices.length > 0) {{
+      const cameraSelect = document.getElementById('camera-select-ai');
+      cameraSelect.style.display = 'block';
+      
+      let defaultCameraId = devices[0].id;
+      if (cameraSelect.options.length === 0) {{
+        devices.forEach((cam, index) => {{
+          let option = document.createElement('option');
+          option.value = cam.id;
+          option.text = cam.label || `Camera ${{index + 1}}`;
+          cameraSelect.appendChild(option);
+          
+          let label = cam.label.toLowerCase();
+          if (label.includes('integrated') || label.includes('webcam') || label.includes('back') || label.includes('sau')) {{
+            defaultCameraId = cam.id;
+          }}
+        }});
+        cameraSelect.onchange = (e) => {{
+          stopAICamera();
+          setTimeout(() => startAICamera(e.target.value), 300);
+        }};
+      }}
+      
+      let camId = preferredCamId || defaultCameraId;
+      if (!preferredCamId && cameraSelect.value) camId = cameraSelect.value;
+      cameraSelect.value = camId;
+      
+      navigator.mediaDevices.getUserMedia({{
+        video: {{ deviceId: {{ exact: camId }}, width: {{ ideal:1280 }}, height: {{ ideal:720 }} }}
+      }}).then(stream => {{
+        aiStream = stream; video.srcObject = stream; cameraStarted = true;
+        status.innerHTML = '<span style="color:#22c55e;">✅ Sẵn sàng — Hướng vào thiết bị rồi nhấn Chụp</span>';
+      }}).catch(err => {{
+        status.innerHTML = '<span style="color:#f87171;">❌ ' + err.message + '</span>';
+      }});
+    }} else {{
+      status.innerHTML = '<span style="color:#f87171;">❌ Không tìm thấy camera</span>';
+    }}
   }}).catch(err => {{
-    status.innerHTML = '<span style="color:#f87171;">❌ ' + err.message + '</span>';
+    status.innerHTML = '<span style="color:#f87171;">❌ Lỗi quyền Camera: ' + err + '</span>';
   }});
 }}
 

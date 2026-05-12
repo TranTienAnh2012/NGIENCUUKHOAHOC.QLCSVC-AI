@@ -56,6 +56,8 @@ public class SecurityConfig {
                                 "ADMIN",
                                 "GIAO_VIEN",
                                 "NHAN_VIEN_CSVC")
+                        // AI Chatbot endpoint công khai từ Flask
+                        .requestMatchers("/api/ai/**").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/fonts/**", "/assets/**", "/webjars/**",
                                 "/uploads/**")
                         .permitAll()
@@ -112,7 +114,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:8080"));
+        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:8080", "http://localhost:5000", "http://127.0.0.1:5000"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

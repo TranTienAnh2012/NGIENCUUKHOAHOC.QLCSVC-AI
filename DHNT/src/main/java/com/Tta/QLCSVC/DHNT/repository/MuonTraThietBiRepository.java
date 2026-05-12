@@ -22,17 +22,15 @@ public interface MuonTraThietBiRepository extends JpaRepository<MuonTraThietBi, 
     List<MuonTraThietBi> findByNguoiMuonIdAndTrangThai(@Param("nguoiMuonId") Long nguoiMuonId,
             @Param("trangThai") MuonTraThietBi.TrangThaiMuonTra trangThai);
 
-    // Giữ lại cho tương thích nhưng đánh dấu dùng method Spring Data thay thế
-    @Query("SELECT m FROM MuonTraThietBi m LEFT JOIN FETCH m.thietBi LEFT JOIN FETCH m.nguoiMuon WHERE m.nguoiMuon.id = :nguoiMuonId AND m.trangThai = :trangThai ORDER BY m.ngayMuon DESC")
-    List<MuonTraThietBi> findActiveBorrowingsByNguoiMuon(@Param("nguoiMuonId") Long nguoiMuonId,
-            @Param("trangThai") MuonTraThietBi.TrangThaiMuonTra trangThai);
+    @Query("SELECT m FROM MuonTraThietBi m LEFT JOIN FETCH m.thietBi LEFT JOIN FETCH m.nguoiMuon WHERE m.nguoiMuon.id = :nguoiMuonId AND (m.trangThai = com.Tta.QLCSVC.DHNT.entity.MuonTraThietBi$TrangThaiMuonTra.DANG_MUON OR m.trangThai = com.Tta.QLCSVC.DHNT.entity.MuonTraThietBi$TrangThaiMuonTra.QUA_HAN) ORDER BY m.ngayMuon DESC")
+    List<MuonTraThietBi> findMyCurrentBorrowings(@Param("nguoiMuonId") Long nguoiMuonId);
 
     List<MuonTraThietBi> findByThietBiId(Long thietBiId);
 
     @Query("SELECT m FROM MuonTraThietBi m LEFT JOIN FETCH m.thietBi tb LEFT JOIN FETCH tb.hinhAnhs LEFT JOIN FETCH m.nguoiMuon WHERE m.trangThai = :trangThai")
     List<MuonTraThietBi> findByTrangThai(@Param("trangThai") MuonTraThietBi.TrangThaiMuonTra trangThai);
 
-    @Query("SELECT m FROM MuonTraThietBi m LEFT JOIN FETCH m.thietBi tb LEFT JOIN FETCH tb.hinhAnhs LEFT JOIN FETCH m.nguoiMuon WHERE m.trangThai = 'DANG_MUON' AND m.ngayTraDuKien < :now")
+    @Query("SELECT m FROM MuonTraThietBi m LEFT JOIN FETCH m.thietBi tb LEFT JOIN FETCH tb.hinhAnhs LEFT JOIN FETCH m.nguoiMuon WHERE m.trangThai = com.Tta.QLCSVC.DHNT.entity.MuonTraThietBi$TrangThaiMuonTra.DANG_MUON AND m.ngayTraDuKien < :now")
     List<MuonTraThietBi> findOverdueRecords(@Param("now") LocalDateTime now);
 
     List<MuonTraThietBi> findByThietBiIdAndTrangThai(Long thietBiId, MuonTraThietBi.TrangThaiMuonTra trangThai);

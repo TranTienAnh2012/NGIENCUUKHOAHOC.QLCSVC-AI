@@ -192,6 +192,28 @@ public class AiDataController {
     }
 
     /**
+     * Get all maintenance records (Phiếu bảo trì)
+     */
+    @GetMapping("/maintenance/all")
+    public ResponseEntity<List<Map<String, Object>>> getAllMaintenances(
+            @RequestParam(defaultValue = "50") int limit) {
+        List<BaoTri> maintenances = baoTriRepository.findAll().stream()
+                .sorted((a, b) -> {
+                    if (a.getCreatedAt() == null) return 1;
+                    if (b.getCreatedAt() == null) return -1;
+                    return b.getCreatedAt().compareTo(a.getCreatedAt());
+                })
+                .limit(limit)
+                .collect(Collectors.toList());
+
+        List<Map<String, Object>> result = maintenances.stream()
+                .map(this::mapMaintenanceToSimple)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(result);
+    }
+
+    /**
      * POST /api/ai-data/report-damage
      * Tiep nhan bao cao hong tu Flask QR form (khong can JWT - dung InternalApiKey).
      * Reporter la nguoi dung khong co tai khoan (khach, hoc sinh, GV chua dang nhap).
@@ -289,6 +311,20 @@ public class AiDataController {
         map.put("severity", damage.getMucDoNghiemTrong());
         map.put("reported_date", damage.getCreatedAt());
         map.put("reporter_name", damage.getNguoiBao() != null ? damage.getNguoiBao().getHoTen() : null);
+        return map;
+    }
+
+    private Map<String, Object> mapMaintenanceToSimple(BaoTri maintenance) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", maintenance.getId());
+        map.put("device_name", maintenance.getThietBi() != null ? maintenance.getThietBi().getTenThietBi() : null);
+        map.put("device_code", maintenance.getThietBi() != null ? maintenance.getThietBi().getMaThietBi() : null);
+        map.put("type", maintenance.getLoaiBaoTri());
+        map.put("date", maintenance.getNgayBaoTri() != null ? maintenance.getNgayBaoTri().toString() : null);
+        map.put("performer", maintenance.getNguoiThucHien());
+        map.put("cost", maintenance.getChiPhi());
+        map.put("result", maintenance.getKetQua());
+        map.put("description", maintenance.getNoiDung());
         return map;
     }
 }

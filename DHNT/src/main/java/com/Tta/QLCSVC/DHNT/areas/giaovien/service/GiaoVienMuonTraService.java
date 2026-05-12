@@ -46,11 +46,8 @@ public class GiaoVienMuonTraService {
     @Transactional(readOnly = true)
     public List<MuonTraThietBi> getMyActiveBorrowings() {
         NguoiDung currentUser = getCurrentUser();
-        // Dùng Spring Data derived method — enum được xử lý đúng, kô có vấn đề string
-        // literal
-        List<MuonTraThietBi> active = muonTraRepository.findByNguoiMuonIdAndTrangThai(
-                currentUser.getId(), MuonTraThietBi.TrangThaiMuonTra.DANG_MUON);
-        // Force init lazy thietBi (trong cùng transaction nên an toàn)
+        List<MuonTraThietBi> active = muonTraRepository.findMyCurrentBorrowings(currentUser.getId());
+        // Force init lazy thietBi
         active.forEach(mt -> {
             if (mt.getThietBi() != null)
                 mt.getThietBi().getTenThietBi();
@@ -62,8 +59,7 @@ public class GiaoVienMuonTraService {
     @Transactional(readOnly = true)
     public long getMyActiveBorrowingsCount() {
         NguoiDung currentUser = getCurrentUser();
-        return muonTraRepository.findByNguoiMuonIdAndTrangThai(
-                currentUser.getId(), MuonTraThietBi.TrangThaiMuonTra.DANG_MUON).size();
+        return muonTraRepository.findMyCurrentBorrowings(currentUser.getId()).size();
     }
 
     @Transactional(readOnly = true)
@@ -150,8 +146,9 @@ public class GiaoVienMuonTraService {
         MuonTraThietBi muonTra = muonTraRepository.findById(muonTraId)
                 .orElseThrow(() -> new ResourceNotFoundException("MuonTraThietBi", "id", muonTraId));
 
-        if (muonTra.getTrangThai() != MuonTraThietBi.TrangThaiMuonTra.DANG_MUON) {
-            throw new InvalidOperationException("Thiết bị đã được trả");
+        if (muonTra.getTrangThai() != MuonTraThietBi.TrangThaiMuonTra.DANG_MUON && 
+            muonTra.getTrangThai() != MuonTraThietBi.TrangThaiMuonTra.QUA_HAN) {
+            throw new InvalidOperationException("Thiết bị không ở trạng thái có thể trả");
         }
 
         muonTra.setNgayTraThucTe(LocalDateTime.now());
