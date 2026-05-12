@@ -3,102 +3,54 @@
 
 <body>
     <!-- Sidebar Fragment for Giao Vien -->
-    <aside class="giaovien-sidebar" th:fragment="sidebar">
-        <div class="sidebar-header-modern">
+    <aside class="giaovien-sidebar" th:fragment="sidebar" style="display: block !important; background: #09090b; border-right: 1px solid rgba(255,255,255,0.05);">
+        <div class="sidebar-header-modern" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding: 24px;">
             <div class="logo-container">
-                <div class="logo-icon">
-                    <i data-lucide="graduation-cap"></i>
+                <div class="logo-icon" style="background: #10b981; border-radius: 8px;">
+                    <i data-lucide="monitor"></i>
                 </div>
                 <div class="logo-text">
-                    <h2>QLCSVC-AI</h2>
-                    <span class="role-badge giaovien-badge">Giáo viên</span>
+                    <h2 style="color: white; font-size: 20px; font-weight: 700;">QLCSVC</h2>
+                    <span class="role-badge giaovien-badge" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: none;">Giáo viên</span>
                 </div>
             </div>
         </div>
 
-        <nav class="sidebar-nav-modern">
-            <ul>
+        <nav class="sidebar-nav-modern" style="padding: 20px 16px;">
+            <ul style="list-style: none; padding: 0;">
                 <li class="nav-item">
-                    <a th:href="@{/giao-vien}" class="nav-link-modern">
-                        <div class="nav-icon">
-                            <i data-lucide="layout-dashboard"></i>
-                        </div>
+                    <a th:href="@{/giao-vien}" class="nav-link-modern" style="color: #a1a1aa; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; text-decoration: none;">
+                        <i data-lucide="layout-dashboard" style="width: 20px;"></i>
                         <span>Dashboard</span>
-                        <div class="nav-indicator"></div>
                     </a>
                 </li>
 
-                <li class="nav-divider-modern">
-                    <span>Quản lý thiết bị</span>
+                <li class="nav-divider-modern" style="padding: 24px 16px 12px;">
+                    <span style="font-size: 11px; text-transform: uppercase; color: #52525b; letter-spacing: 1px; font-weight: 700;">Hoạt động</span>
                 </li>
 
                 <li class="nav-item">
-                    <a th:href="@{/giao-vien/muon-tra}" class="nav-link-modern">
-                        <div class="nav-icon">
-                            <i data-lucide="repeat"></i>
-                        </div>
-                        <span>Mượn trả thiết bị</span>
-                        <div class="nav-indicator"></div>
+                    <a th:href="@{/giao-vien/muon-tra}" class="nav-link-modern" style="color: #a1a1aa; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; text-decoration: none;">
+                        <i data-lucide="repeat" style="width: 20px;"></i>
+                        <span>Mượn trả</span>
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a th:href="@{/giao-vien/lich-su}" class="nav-link-modern">
-                        <div class="nav-icon">
-                            <i data-lucide="history"></i>
-                        </div>
-                        <span>Lịch sử mượn trả</span>
-                        <div class="nav-indicator"></div>
+                    <a th:href="@{/giao-vien/bao-hong}" class="nav-link-modern" style="color: #a1a1aa; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; text-decoration: none;">
+                        <i data-lucide="alert-triangle" style="width: 20px;"></i>
+                        <span>Báo hỏng</span>
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a th:href="@{/giao-vien/bao-hong}" class="nav-link-modern">
-                        <div class="nav-icon">
-                            <i data-lucide="alert-triangle"></i>
-                        </div>
-                        <span>Báo hỏng thiết bị</span>
-                        <div class="nav-indicator"></div>
-                    </a>
-                </li>
-
-                <li class="nav-divider-modern">
-                    <span>Thông tin</span>
-                </li>
-
-                <li class="nav-item">
-                    <a th:href="@{/giao-vien/thiet-bi}" class="nav-link-modern">
-                        <div class="nav-icon">
-                            <i data-lucide="monitor"></i>
-                        </div>
-                        <span>Danh sách thiết bị</span>
-                        <div class="nav-indicator"></div>
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a th:href="@{/giao-vien/profile}" class="nav-link-modern">
-                        <div class="nav-icon">
-                            <i data-lucide="user"></i>
-                        </div>
-                        <span>Thông tin cá nhân</span>
-                        <div class="nav-indicator"></div>
+                    <a th:href="@{/giao-vien/thiet-bi}" class="nav-link-modern" style="color: #a1a1aa; border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; text-decoration: none;">
+                        <i data-lucide="monitor" style="width: 20px;"></i>
+                        <span>Thiết bị</span>
                     </a>
                 </li>
             </ul>
         </nav>
-
-        <div class="sidebar-footer-modern">
-            <div class="quick-stats">
-                <div class="stat-item">
-                    <i data-lucide="package"></i>
-                    <div>
-                        <span class="stat-label">Đang mượn</span>
-                        <span class="stat-value">0</span>
-                    </div>
-                </div>
-            </div>
-        </div>
     </aside>
 </body>
 

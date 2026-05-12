@@ -79,18 +79,42 @@ public class AdminMuonTraService {
         if (muonTra.getTrangThai() == null) {
             muonTra.setTrangThai(MuonTraThietBi.TrangThaiMuonTra.DANG_MUON);
         }
+        // Kiểm tra nếu tạo phiếu DANG_MUON thì không được có conflict
+        if (muonTra.getTrangThai() == MuonTraThietBi.TrangThaiMuonTra.DANG_MUON
+                && muonTra.getThietBi() != null) {
+            Long thietBiId = muonTra.getThietBi().getId();
+            var existing = muonTraRepository.findByThietBiIdAndTrangThai(
+                    thietBiId, MuonTraThietBi.TrangThaiMuonTra.DANG_MUON);
+            if (!existing.isEmpty()) {
+                throw new com.Tta.QLCSVC.DHNT.exception.InvalidOperationException(
+                        "Thiết bị đang được mượn bởi người khác, không thể tạo phiếu mới");
+            }
+        }
         return muonTraRepository.save(muonTra);
     }
 
     @Transactional
     public MuonTraThietBi updateMuonTra(Long id, MuonTraThietBi muonTraDetails) {
         MuonTraThietBi muonTra = getMuonTraById(id);
-        muonTra.setThietBi(muonTraDetails.getThietBi());
-        muonTra.setNguoiMuon(muonTraDetails.getNguoiMuon());
-        muonTra.setNgayMuon(muonTraDetails.getNgayMuon());
-        muonTra.setNgayTraDuKien(muonTraDetails.getNgayTraDuKien());
+        // Chỉ update field nào được gửi lên (non-null), giữ nguyên các field còn lại
+        if (muonTraDetails.getThietBi() != null) {
+            muonTra.setThietBi(muonTraDetails.getThietBi());
+        }
+        if (muonTraDetails.getNguoiMuon() != null) {
+            muonTra.setNguoiMuon(muonTraDetails.getNguoiMuon());
+        }
+        if (muonTraDetails.getNgayMuon() != null) {
+            muonTra.setNgayMuon(muonTraDetails.getNgayMuon());
+        }
+        if (muonTraDetails.getNgayTraDuKien() != null) {
+            muonTra.setNgayTraDuKien(muonTraDetails.getNgayTraDuKien());
+        }
+        // ngayTraThucTe có thể set null (khi chưa trả) hoặc có giá trị
         muonTra.setNgayTraThucTe(muonTraDetails.getNgayTraThucTe());
-        muonTra.setTrangThai(muonTraDetails.getTrangThai());
+        if (muonTraDetails.getTrangThai() != null) {
+            muonTra.setTrangThai(muonTraDetails.getTrangThai());
+        }
+        // ghiChu: cho phép set rỗng
         muonTra.setGhiChu(muonTraDetails.getGhiChu());
         return muonTraRepository.save(muonTra);
     }

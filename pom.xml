@@ -19,7 +19,7 @@
 		<lombok.version>1.18.34</lombok.version>
 	</properties>
 	
-	<dependencies>
+	<dependencies>xác 
 		<!-- Spring Boot Web -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

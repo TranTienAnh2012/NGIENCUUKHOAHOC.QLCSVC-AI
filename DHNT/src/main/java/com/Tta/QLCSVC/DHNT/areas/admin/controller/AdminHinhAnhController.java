@@ -65,6 +65,12 @@ public class AdminHinhAnhController {
 
         HinhAnhThietBi saved = hinhAnhRepository.save(hinhAnh);
 
+        // Nếu là ảnh chính → cập nhật luôn hình_anh_chinh của thiết bị
+        if ("HINH_ANH_CHINH".equals(loaiHinhAnh)) {
+            thietBi.setHinhAnhChinh("/uploads/" + filename);
+            thietBiRepository.save(thietBi);
+        }
+
         return ResponseEntity.ok(ApiResponse.success("Upload hình ảnh thành công", saved));
     }
 
@@ -103,7 +109,7 @@ public class AdminHinhAnhController {
     }
 
     @PutMapping("/{id}/loai")
-    @Operation(summary = "Cập nhật loại hình ảnh", description = "Cập nhật loại hình ảnh (QR_CODE, KIEM_TRA_TINH_TRANG, BAO_HONG, MUON_TRA)")
+    @Operation(summary = "Cập nhật loại hình ảnh", description = "Cập nhật loại hình ảnh (QR_CODE, HINH_ANH_CHINH, KIEM_TRA_TINH_TRANG)")
     public ResponseEntity<ApiResponse<HinhAnhThietBi>> updateImageType(
             @PathVariable Long id,
             @RequestParam String loaiHinhAnh) {

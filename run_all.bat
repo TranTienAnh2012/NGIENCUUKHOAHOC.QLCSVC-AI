@@ -8,11 +8,11 @@ echo ========================================================
 echo.
 
 echo [1/2] Dang khoi dong AI API (Python Flask - Port 5000)...
-start "AI API (Flask)" cmd /k "python ai_api.py"
+start "AI API (Flask)" cmd /k "cd DHNT && python ai_api.py"
 
 echo.
 echo [2/2] Dang khoi dong Backend (Spring Boot - Port 8080)...
-start "Spring Boot" cmd /k ".\mvnw.cmd spring-boot:run"
+start "Spring Boot" cmd /k "cd DHNT && .\mvnw.cmd spring-boot:run"
 
 echo.
 echo ========================================================

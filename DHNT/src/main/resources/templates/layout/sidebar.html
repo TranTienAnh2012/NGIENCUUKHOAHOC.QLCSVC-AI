@@ -67,6 +67,11 @@
                     </a>
                 </li>
                 <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                    <a href="http://localhost:5000/api/ai/qr-print" target="_blank" class="nav-link">
+                        <i data-lucide="qr-code"></i> Mã QR Thiết bị
+                    </a>
+                </li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
                     <a th:href="@{/admin/iot}" class="nav-link">
                         <i data-lucide="activity"></i> Giám sát IoT
                     </a>
@@ -118,6 +123,21 @@
                 <li class="nav-item" sec:authorize="hasRole('NHAN_VIEN_CSVC')">
                     <a th:href="@{/nhanvien-csvc/bao-tri}" class="nav-link">
                         <i data-lucide="tool"></i> Bảo trì
+                    </a>
+                </li>
+
+                <!-- Công cụ QR — hiện cho TẤT CẢ roles -->
+                <li class="nav-divider">
+                    <span>Công cụ QR</span>
+                </li>
+                <li class="nav-item">
+                    <a href="http://localhost:5000/api/ai/scan" target="_blank" class="nav-link">
+                        <i data-lucide="scan"></i> Scan / AI
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="http://localhost:5000/api/ai/device-lookup" target="_blank" class="nav-link">
+                        <i data-lucide="search"></i> Tra cứu thiết bị
                     </a>
                 </li>
             </ul>

@@ -2,7 +2,10 @@
 <html xmlns:th="http://www.thymeleaf.org">
 
 <!-- AI Chatbot Widget Fragment -->
-<div th:fragment="chatbot-widget" id="ai-chatbot-widget">
+<div th:fragment="chatbot-widget" id="ai-chatbot-widget" th:attr="data-user-id=${#authentication.name},
+              data-user-name=${currentUser != null ? currentUser.hoTen : #authentication.name},
+              data-user-email=${currentUser != null ? currentUser.email : #authentication.name}">
+
     <!-- Floating Chat Button -->
     <button id="chatbot-toggle-btn" class="chatbot-floating-btn" aria-label="Open AI Chatbot">
         <i data-lucide="message-circle" class="chatbot-icon"></i>

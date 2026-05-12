@@ -56,6 +56,12 @@ public class AdminNguoiDungService {
         nguoiDung.setVaiTro(nguoiDungDetails.getVaiTro());
         nguoiDung.setTrangThai(nguoiDungDetails.getTrangThai());
 
+        // Chỉ đổi mật khẩu nếu admin nhập vào (không để trống)
+        String newPassword = nguoiDungDetails.getMatKhau();
+        if (newPassword != null && !newPassword.isBlank()) {
+            nguoiDung.setMatKhau(passwordEncoder.encode(newPassword));
+        }
+
         return nguoiDungRepository.save(nguoiDung);
     }
 

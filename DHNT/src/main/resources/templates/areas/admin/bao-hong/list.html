@@ -49,6 +49,31 @@
                 </div>
             </div>
         </div>
+
+        <!-- AI Analysis Modal (outside script block) -->
+        <div class="modal fade" id="aiModal" tabindex="-1">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header" style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:white;">
+                <h5 class="modal-title">🤖 AI Phân tích báo hỏng</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <div id="aiModalDevice" class="mb-2 text-muted small fw-bold"></div>
+                <div id="aiModalDesc" class="mb-3 p-3 bg-light rounded fst-italic small"></div>
+                <div id="aiModalLoading" class="text-center py-3">
+                  <div class="spinner-border text-primary" role="status"></div>
+                  <div class="mt-2 text-muted small">AI đang phân tích...</div>
+                </div>
+                <div id="aiModalResult" style="display:none;"></div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
     </div>
     <th:block layout:fragment="scripts">
         <script th:inline="javascript">
@@ -92,11 +117,13 @@
                             item.trangThai === 'HOAN_THANH' ? 'bg-success' : 'bg-dark';
 
                     const moTa = item.moTaLoi ? (item.moTaLoi.length > 50 ? item.moTaLoi.substring(0, 50) + '...' : item.moTaLoi) : '-';
+                    const moTaSafe = (item.moTaLoi || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,' ').substring(0,200);
+                    const tenTB = (item.thietBi && item.thietBi.tenThietBi) ? item.thietBi.tenThietBi.replace(/'/g,"\\'") : '';
 
                     tbody.innerHTML += `<tr>
                         <td>${item.id}</td>
                         <td>${item.thietBi?.tenThietBi || '-'}</td>
-                        <td>${item.nguoiBao?.hoTen || '-'}</td>
+                        <td>${item.nguoiBao?.hoTen || (item.ghiChu ? '<span class="text-muted small">' + item.ghiChu.substring(0,30) + '</span>' : '-')}</td>
                         <td title="${item.moTaLoi || ''}">${moTa}</td>
                         <td>${new Date(item.ngayBao).toLocaleDateString('vi-VN')}</td>
                         <td><span class="badge ${severityBadge}">${item.mucDoNghiemTrong}</span></td>
@@ -106,6 +133,7 @@
                                 <a href="/admin/bao-hong/view/${item.id}" class="btn btn-info"><i data-lucide="eye"></i></a>
                                 <a href="/admin/bao-hong/edit/${item.id}" class="btn btn-warning"><i data-lucide="edit"></i></a>
                                 <button class="btn btn-danger" onclick="deleteItem(${item.id})"><i data-lucide="trash-2"></i></button>
+                                <button class="btn btn-secondary" title="AI Phân tích" onclick="aiAnalyzeDamage(${item.id}, '${moTaSafe}', '${tenTB}')"><i data-lucide="sparkles"></i></button>
                             </div>
                         </td>
                     </tr>`;
@@ -124,6 +152,40 @@
                         <a class="page-link" href="#" onclick="loadData(${i});return false;">${i + 1}</a>
                     </li>`;
                 }
+            }
+
+            // ===== AI ANALYZE FEATURE =====
+            function aiAnalyzeDamage(id, moTa, tenThietBi) {
+                document.getElementById('aiModalDevice').textContent = '🖥️ Thiết bị: ' + (tenThietBi || 'Không rõ');
+                document.getElementById('aiModalDesc').textContent = 'Mô tả: ' + (moTa || '(không có mô tả)');
+                document.getElementById('aiModalLoading').style.display = 'block';
+                document.getElementById('aiModalResult').style.display = 'none';
+                const modal = new bootstrap.Modal(document.getElementById('aiModal'));
+                modal.show();
+
+                fetch('http://localhost:5000/api/ai/analyze-damage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        description: moTa || 'Thiết bị hỏng - không có mô tả chi tiết',
+                        device_name: tenThietBi || ''
+                    })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('aiModalLoading').style.display = 'none';
+                    const res = document.getElementById('aiModalResult');
+                    const msg = data.analysis || data.response || data.message || JSON.stringify(data);
+                    res.innerHTML = '<div class="alert alert-info"><strong>✅ Kết quả phân tích AI:</strong><br><br>' +
+                        msg.replace(/\n/g,'<br>') + '</div>';
+                    res.style.display = 'block';
+                })
+                .catch(err => {
+                    document.getElementById('aiModalLoading').style.display = 'none';
+                    const res = document.getElementById('aiModalResult');
+                    res.innerHTML = '<div class="alert alert-danger">❌ Không kết nối được Flask AI (port 5000). Kiểm tra Flask đang chạy.</div>';
+                    res.style.display = 'block';
+                });
             }
 
             function deleteItem(id) {

@@ -54,6 +54,25 @@
             let currentPage = 0;
             const pageSize = 10;
 
+            // Java có thể serialize LocalDate/LocalDateTime thành array [year, month, day, ...]
+            function parseDate(val) {
+                if (!val) return null;
+                if (Array.isArray(val)) {
+                    // [year, month, day] hoặc [year, month, day, hour, minute, second, nano]
+                    const [y, m, d] = val;
+                    return new Date(y, m - 1, d);
+                }
+                // Nếu là string ISO
+                const d = new Date(val);
+                return isNaN(d.getTime()) ? null : d;
+            }
+
+            function formatDate(val) {
+                const d = parseDate(val);
+                if (!d) return '-';
+                return d.toLocaleDateString('vi-VN');
+            }
+
             document.addEventListener('DOMContentLoaded', () => {
                 loadData(0);
                 lucide.createIcons();
@@ -85,15 +104,15 @@
                     const statusBadge = item.trangThai === 'DANG_MUON' ? 'bg-warning' :
                         item.trangThai === 'DA_TRA' ? 'bg-success' : 'bg-secondary';
 
-                    const ngayTra = item.ngayTraThucTe ?
-                        new Date(item.ngayTraThucTe).toLocaleDateString('vi-VN') :
-                        (item.ngayTraDuKien ? new Date(item.ngayTraDuKien).toLocaleDateString('vi-VN') : '-');
+                    const ngayTra = item.ngayTraThucTe
+                        ? formatDate(item.ngayTraThucTe)
+                        : formatDate(item.ngayTraDuKien);
 
                     tbody.innerHTML += `<tr>
                         <td>${item.id}</td>
                         <td>${item.nguoiMuon?.hoTen || '-'}</td>
                         <td>${item.thietBi?.tenThietBi || '-'}</td>
-                        <td>${new Date(item.ngayMuon).toLocaleDateString('vi-VN')}</td>
+                        <td>${formatDate(item.ngayMuon)}</td>
                         <td>${ngayTra}</td>
                         <td><span class="badge ${statusBadge}">${item.trangThai}</span></td>
                         <td>

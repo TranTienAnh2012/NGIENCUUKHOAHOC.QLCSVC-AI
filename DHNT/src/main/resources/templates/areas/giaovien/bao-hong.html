@@ -17,128 +17,88 @@
         </div>
 
         <!-- Page Header -->
-        <div class="animate-in" style="margin-bottom: 32px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-                <div>
-                    <h2
-                        style="font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0;">
-                        Báo hỏng thiết bị
-                    </h2>
-                    <p style="color: #64748b; margin: 0;">
-                        Quản lý các báo cáo hỏng hóc thiết bị của bạn
-                    </p>
-                </div>
-                <a th:href="@{/giao-vien/bao-hong/create}"
-                    style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; padding: 14px 24px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
-                    <i data-lucide="alert-triangle" style="width: 20px; height: 20px;"></i>
+        <div class="gv-page-header">
+            <div class="gv-page-header-content">
+                <h2 class="gv-page-title">Báo hỏng thiết bị</h2>
+                <p class="gv-page-subtitle">Quản lý và theo dõi các báo cáo sự cố thiết bị của bạn</p>
+            </div>
+            
+            <div class="gv-header-actions">
+                <a th:href="@{/giao-vien/bao-hong/create}" class="gv-btn-danger-sm" style="padding: 12px 24px; font-size: 15px;">
+                    <i data-lucide="alert-circle"></i>
                     Báo hỏng mới
                 </a>
             </div>
         </div>
 
         <!-- Damage Reports List -->
-        <div class="card-modern animate-in" style="animation-delay: 0.1s;">
-            <div class="card-header-modern">
-                <h3 class="card-title">
-                    <i data-lucide="clipboard-list" style="width: 24px; height: 24px; margin-right: 8px;"></i>
-                    Danh sách báo hỏng
-                </h3>
-                <span style="color: #64748b; font-size: 14px;">
-                    Tổng: <strong th:text="${#lists.size(baoHongs)}">0</strong> báo cáo
-                </span>
+        <div class="gv-content-section animate-in" style="animation-delay: 0.1s;">
+            <div class="gv-section-header">
+                <div class="gv-section-title">
+                    <i data-lucide="clipboard-list"></i>
+                    <span>Danh sách báo hỏng</span>
+                </div>
+                <div class="gv-section-meta">
+                    Tổng cộng: <strong th:text="${#lists.size(baoHongs)}" style="color: white;">0</strong> báo cáo
+                </div>
             </div>
 
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse;">
+            <div class="gv-table-container">
+                <table class="gv-modern-table">
                     <thead>
-                        <tr style="border-bottom: 2px solid #f1f5f9; text-align: left;">
-                            <th
-                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                                Thiết bị
-                            </th>
-                            <th
-                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                                Mô tả lỗi
-                            </th>
-                            <th
-                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                                Mức độ
-                            </th>
-                            <th
-                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                                Trạng thái
-                            </th>
-                            <th
-                                style="padding: 16px 12px; color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                                Ngày báo
-                            </th>
+                        <tr>
+                            <th>Thiết bị</th>
+                            <th>Mô tả lỗi</th>
+                            <th>Mức độ</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày báo</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr th:each="bh : ${baoHongs}" style="border-bottom: 1px solid #f1f5f9; transition: all 0.3s;"
-                            onmouseenter="this.style.background='#f8fafc'" onmouseleave="this.style.background=''">
-                            <td style="padding: 16px 12px;">
-                                <div style="font-weight: 600; color: #0f172a; margin-bottom: 4px;"
-                                    th:text="${bh.thietBi?.tenThietBi}">
-                                    Máy chiếu Epson
-                                </div>
-                                <div style="font-size: 13px; color: #94a3b8;">
-                                    <code th:text="${bh.thietBi?.maThietBi}">TB001</code>
-                                </div>
-                            </td>
-                            <td style="padding: 16px 12px; max-width: 300px;">
-                                <div style="color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                                    th:text="${bh.moTaLoi}" th:title="${bh.moTaLoi}">
-                                    Không chiếu được hình ảnh
+                        <tr th:each="bh : ${baoHongs}">
+                            <td>
+                                <div class="table-device-info">
+                                    <div class="device-icon" style="color: #ef4444; background: rgba(239, 68, 68, 0.1);">
+                                        <i data-lucide="wrench"></i>
+                                    </div>
+                                    <div class="device-details">
+                                        <div class="device-name" th:text="${bh.thietBi?.tenThietBi}">Thiết bị</div>
+                                        <div class="device-code" th:text="${bh.thietBi?.maThietBi}">TB001</div>
+                                    </div>
                                 </div>
                             </td>
-                            <td style="padding: 16px 12px;">
-                                <span th:if="${bh.mucDoNghiemTrong.name() == 'THAP'}"
-                                    style="background: #dbeafe; color: #1e40af; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">
-                                    Thấp
-                                </span>
-                                <span th:if="${bh.mucDoNghiemTrong.name() == 'TRUNG_BINH'}"
-                                    style="background: #fef3c7; color: #92400e; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">
-                                    Trung bình
-                                </span>
-                                <span th:if="${bh.mucDoNghiemTrong.name() == 'CAO'}"
-                                    style="background: #fed7aa; color: #9a3412; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">
-                                    Cao
-                                </span>
-                                <span th:if="${bh.mucDoNghiemTrong.name() == 'KHAN_CAP'}"
-                                    style="background: #fee2e2; color: #991b1b; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">
-                                    Khẩn cấp
-                                </span>
+                            <td>
+                                <div class="table-description" th:text="${bh.moTaLoi}" th:title="${bh.moTaLoi}">
+                                    Mô tả lỗi
+                                </div>
                             </td>
-                            <td style="padding: 16px 12px;">
-                                <span th:if="${bh.trangThai.name() == 'CHO_XU_LY'}"
-                                    style="background: #fef3c7; color: #92400e; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                                    <span
-                                        style="width: 6px; height: 6px; background: #f59e0b; border-radius: 50%;"></span>
-                                    Chờ xử lý
-                                </span>
-                                <span th:if="${bh.trangThai.name() == 'DANG_XU_LY'}"
-                                    style="background: #dbeafe; color: #1e40af; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                                    <span
-                                        style="width: 6px; height: 6px; background: #3b82f6; border-radius: 50%;"></span>
-                                    Đang xử lý
-                                </span>
-                                <span th:if="${bh.trangThai.name() == 'HOAN_THANH'}"
-                                    style="background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                                    <span
-                                        style="width: 6px; height: 6px; background: #16a34a; border-radius: 50%;"></span>
+                            <td>
+                                <div class="gv-severity-tag" th:classappend="${bh.mucDoNghiemTrong.name() == 'KHAN_CAP' ? 'sev-critical' : bh.mucDoNghiemTrong.name() == 'CAO' ? 'sev-high' : bh.mucDoNghiemTrong.name() == 'TRUNG_BINH' ? 'sev-medium' : 'sev-low'}">
+                                    <span th:if="${bh.mucDoNghiemTrong.name() == 'THAP'}">Thấp</span>
+                                    <span th:if="${bh.mucDoNghiemTrong.name() == 'TRUNG_BINH'}">Trung bình</span>
+                                    <span th:if="${bh.mucDoNghiemTrong.name() == 'CAO'}">Cao</span>
+                                    <span th:if="${bh.mucDoNghiemTrong.name() == 'KHAN_CAP'}">Khẩn cấp</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div th:if="${bh.trangThai.name() == 'DANG_XU_LY' or bh.trangThai.name() == 'CHO_XU_LY'}" class="status-active-text" th:style="${bh.trangThai.name() == 'CHO_XU_LY' ? 'color: #f59e0b' : 'color: #3b82f6'}">
+                                    <span class="pulse-dot" th:style="${bh.trangThai.name() == 'CHO_XU_LY' ? 'background: #f59e0b' : 'background: #3b82f6'}"></span>
+                                    <span th:text="${bh.trangThai.name() == 'CHO_XU_LY' ? 'Chờ xử lý' : 'Đang xử lý'}">Status</span>
+                                </div>
+                                <div th:if="${bh.trangThai.name() == 'HOAN_THANH'}" class="table-date status-done">
+                                    <i data-lucide="check-circle"></i>
                                     Hoàn thành
-                                </span>
-                                <span th:if="${bh.trangThai.name() == 'HUY'}"
-                                    style="background: #f1f5f9; color: #64748b; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
-                                    <span
-                                        style="width: 6px; height: 6px; background: #94a3b8; border-radius: 50%;"></span>
-                                    Hủy
-                                </span>
+                                </div>
+                                <div th:if="${bh.trangThai.name() == 'HUY'}" class="table-date" style="color: var(--gv-text-muted);">
+                                    <i data-lucide="x-circle"></i>
+                                    Đã hủy
+                                </div>
                             </td>
-                            <td style="padding: 16px 12px; color: #64748b; font-size: 14px;"
-                                th:text="${#temporals.format(bh.ngayBao, 'dd/MM/yyyy HH:mm')}">
-                                22/01/2026 10:30
+                            <td>
+                                <div class="table-date">
+                                    <i data-lucide="calendar"></i>
+                                    <span th:text="${#temporals.format(bh.ngayBao, 'dd/MM/yyyy HH:mm')}">Date</span>
+                                </div>
                             </td>
                         </tr>
                     </tbody>

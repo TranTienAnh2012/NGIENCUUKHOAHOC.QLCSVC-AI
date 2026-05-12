@@ -18,8 +18,16 @@ public interface ThietBiRepository extends JpaRepository<ThietBi, Long> {
     @Query("SELECT DISTINCT tb FROM ThietBi tb " +
             "LEFT JOIN FETCH tb.loaiThietBi " +
             "LEFT JOIN FETCH tb.phong " +
+            "LEFT JOIN FETCH tb.hinhAnhs " +
             "WHERE tb.trangThai = :trangThai")
     List<ThietBi> findByTrangThaiWithDetails(@Param("trangThai") ThietBi.TrangThaiThietBi trangThai);
+
+    @Query("SELECT tb FROM ThietBi tb " +
+            "LEFT JOIN FETCH tb.loaiThietBi " +
+            "LEFT JOIN FETCH tb.phong " +
+            "LEFT JOIN FETCH tb.hinhAnhs " +
+            "WHERE tb.id = :id")
+    Optional<ThietBi> findByIdWithDetails(@Param("id") Long id);
 
     List<ThietBi> findByPhongId(Long phongId);
 

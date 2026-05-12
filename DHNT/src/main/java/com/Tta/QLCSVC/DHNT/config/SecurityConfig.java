@@ -34,6 +34,7 @@ public class SecurityConfig {
 
     private final CustomUserDetailsService customUserDetailsService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final InternalApiKeyFilter internalApiKeyFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -47,7 +48,16 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints & Static resources
                         .requestMatchers("/api/auth/**", "/login", "/register", "/auth/**").permitAll()
-                        .requestMatchers("/api/ai-data/**").permitAll() // Allow Flask AI to access data
+
+                        // AI Data API: chỉ cho phép Flask (INTERNAL_SERVICE) hoặc users đã login
+                        // Flask dùng header X-Internal-API-Key, user dùng JWT session
+                        .requestMatchers("/api/ai-data/**").hasAnyRole(
+                                "INTERNAL_SERVICE", // Flask AI server
+                                "ADMIN",
+                                "GIAO_VIEN",
+                                "NHAN_VIEN_CSVC")
+                        // AI Chatbot endpoint công khai từ Flask
+                        .requestMatchers("/api/ai/**").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/fonts/**", "/assets/**", "/webjars/**",
                                 "/uploads/**")
                         .permitAll()
@@ -76,6 +86,8 @@ public class SecurityConfig {
                         .logoutSuccessUrl("/login?logout")
                         .permitAll())
                 .authenticationProvider(authenticationProvider())
+                // InternalApiKeyFilter chạy trước JWT filter để Flask được xác thực sớm
+                .addFilterBefore(internalApiKeyFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -102,7 +114,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:8080"));
+        configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:8080", "http://localhost:5000", "http://127.0.0.1:5000"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
