@@ -267,4 +267,32 @@ public class AdminViewController {
         model.addAttribute("title", "Quản lý hình ảnh");
         return "areas/admin/hinh-anh/list";
     }
+
+    // Linh kiện CRUD routes
+    @GetMapping("/linh-kien")
+    public String linhKienList(Model model) {
+        model.addAttribute("title", "Danh sách linh kiện");
+        return "areas/admin/linh-kien/list";
+    }
+
+    @GetMapping("/linh-kien/create")
+    public String linhKienCreate(Model model) {
+        model.addAttribute("title", "Thêm linh kiện mới");
+        return "areas/admin/linh-kien/create";
+    }
+
+    @GetMapping("/linh-kien/edit/{id}")
+    public String linhKienEdit(@PathVariable Long id, Model model) {
+        model.addAttribute("title", "Sửa linh kiện");
+        model.addAttribute("id", id);
+        return "areas/admin/linh-kien/edit";
+    }
+
+    @GetMapping("/linh-kien/view/{id}")
+    public String linhKienView(@PathVariable Long id, Model model) {
+        model.addAttribute("title", "Chi tiết linh kiện");
+        model.addAttribute("id", id);
+        return "areas/admin/linh-kien/view";
+    }
 }
+

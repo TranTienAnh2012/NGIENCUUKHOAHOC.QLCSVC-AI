@@ -31,6 +31,12 @@ public class BaoTri {
     @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler", "thietBi" })
     private BaoHong baoHong;
 
+    // Track component being maintained/replaced (optional)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "linh_kien_id")
+    @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler", "thietBi" })
+    private LinhKien linhKien;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "loai_bao_tri", nullable = false)
     private LoaiBaoTri loaiBaoTri;

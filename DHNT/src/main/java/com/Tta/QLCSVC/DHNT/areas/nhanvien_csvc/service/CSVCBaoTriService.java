@@ -27,6 +27,11 @@ public class CSVCBaoTriService {
         return baoTriRepository.findAll();
     }
 
+    public BaoTri getBaoTriById(Long id) {
+        return baoTriRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("BaoTri", "id", id));
+    }
+
     public List<BaoTri> getBaoTriByThietBi(Long thietBiId) {
         return baoTriRepository.findByThietBiId(thietBiId);
     }

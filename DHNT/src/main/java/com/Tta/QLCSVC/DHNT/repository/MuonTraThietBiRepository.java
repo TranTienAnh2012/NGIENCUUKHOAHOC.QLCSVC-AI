@@ -34,4 +34,11 @@ public interface MuonTraThietBiRepository extends JpaRepository<MuonTraThietBi, 
     List<MuonTraThietBi> findOverdueRecords(@Param("now") LocalDateTime now);
 
     List<MuonTraThietBi> findByThietBiIdAndTrangThai(Long thietBiId, MuonTraThietBi.TrangThaiMuonTra trangThai);
+
+    // Phiếu sắp đến hạn trả (trong vòng [now, deadline])
+    @Query("SELECT m FROM MuonTraThietBi m LEFT JOIN FETCH m.thietBi LEFT JOIN FETCH m.nguoiMuon WHERE m.trangThai = com.Tta.QLCSVC.DHNT.entity.MuonTraThietBi$TrangThaiMuonTra.DANG_MUON AND m.ngayTraDuKien BETWEEN :now AND :deadline")
+    List<MuonTraThietBi> findDueSoonRecords(@Param("now") LocalDateTime now, @Param("deadline") LocalDateTime deadline);
+
+    // Đếm tổng phiếu đang mượn
+    long countByTrangThai(MuonTraThietBi.TrangThaiMuonTra trangThai);
 }

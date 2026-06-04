@@ -66,6 +66,9 @@
                                     <dt class="col-sm-4 text-muted">Ngày mua</dt>
                                     <dd class="col-sm-8" id="display-ngay-mua">-</dd>
 
+                                    <dt class="col-sm-4 text-muted">Hạn bảo hành</dt>
+                                    <dd class="col-sm-8" id="display-han-bao-hanh">-</dd>
+
                                     <dt class="col-sm-4 text-muted">Mô tả</dt>
                                     <dd class="col-sm-8" id="display-mo-ta">-</dd>
 
@@ -83,6 +86,61 @@
                             </a>
                         </div>
                     </div>
+
+                    <!-- ============ DANH SÁCH LINH KIỆN ============ -->
+                    <div class="card shadow-sm mt-4">
+                        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i data-lucide="cpu"></i> Linh kiện thiết bị</h5>
+                            <a th:href="@{/admin/linh-kien/create}" class="btn btn-sm btn-light text-success">
+                                <i data-lucide="plus"></i> Thêm linh kiện
+                            </a>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Tên linh kiện</th>
+                                            <th>Đã dùng / Tuổi thọ</th>
+                                            <th>Tình trạng</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-linhkien">
+                                        <!-- Render by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ============ LỊCH SỬ BẢO TRÌ ============ -->
+                    <div class="card shadow-sm mt-4 mb-4">
+                        <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i data-lucide="wrench"></i> Lịch sử bảo trì</h5>
+                            <a th:href="@{/admin/bao-tri/create}" class="btn btn-sm btn-light text-warning">
+                                <i data-lucide="plus"></i> Tạo bảo trì
+                            </a>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Ngày bảo trì</th>
+                                            <th>Loại</th>
+                                            <th>Chi phí</th>
+                                            <th>Trạng thái</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-baotri">
+                                        <!-- Render by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -91,6 +149,16 @@
     <th:block layout:fragment="scripts">
         <script th:inline="javascript">
             const id = /*[[${id}]]*/ 0;
+            
+            function parseDate(val) {
+                if (!val) return null;
+                if (Array.isArray(val)) {
+                    const [y, m, d, h=0, min=0, sec=0] = val;
+                    return new Date(y, m - 1, d, h, min, sec);
+                }
+                const d = new Date(val);
+                return isNaN(d.getTime()) ? null : d;
+            }
 
             document.addEventListener('DOMContentLoaded', function () {
                 loadThietBiData();
@@ -117,20 +185,31 @@
                             document.getElementById('display-trang-thai').innerHTML =
                                 `<span class="badge ${statusBadge}">${item.trangThai}</span>`;
 
+                            const ngayMua = parseDate(item.ngayMua);
                             document.getElementById('display-ngay-mua').textContent =
-                                item.ngayMua ? new Date(item.ngayMua).toLocaleDateString('vi-VN') : 'Chưa có thông tin';
+                                ngayMua ? ngayMua.toLocaleDateString('vi-VN') : 'Chưa có thông tin';
+
+                            const hanBaoHanh = parseDate(item.hanBaoHanh);
+                            document.getElementById('display-han-bao-hanh').textContent =
+                                hanBaoHanh ? hanBaoHanh.toLocaleDateString('vi-VN') : 'Không có bảo hành';
 
                             document.getElementById('display-mo-ta').textContent = item.moTa || 'Không có mô tả';
 
+                            const createdAt = parseDate(item.createdAt);
                             document.getElementById('display-created').textContent =
-                                new Date(item.createdAt).toLocaleString('vi-VN');
+                                createdAt ? createdAt.toLocaleString('vi-VN') : 'Không có';
 
+                            const updatedAt = parseDate(item.updatedAt);
                             document.getElementById('display-updated').textContent =
-                                new Date(item.updatedAt).toLocaleString('vi-VN');
+                                updatedAt ? updatedAt.toLocaleString('vi-VN') : 'Không có';
 
                             // Show data, hide loading
                             document.getElementById('loadingState').style.display = 'none';
                             document.getElementById('dataDisplay').style.display = 'block';
+
+                            // Tải thêm dữ liệu liên quan
+                            loadLinhKien(id);
+                            loadBaoTri(id);
 
                             lucide.createIcons();
                         } else {
@@ -141,6 +220,63 @@
                     .catch(error => {
                         console.error('Error:', error);
                         alert('Có lỗi xảy ra khi tải dữ liệu');
+                    });
+            }
+
+            function loadLinhKien(thietBiId) {
+                fetch(`/api/admin/linh-kien/thiet-bi/${thietBiId}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            const tbody = document.getElementById('tbody-linhkien');
+                            if (data.data.length === 0) {
+                                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Không có linh kiện nào</td></tr>';
+                                return;
+                            }
+                            tbody.innerHTML = '';
+                            data.data.forEach(item => {
+                                const statusClass = item.trangThai === 'CAN_THAY_THE' || item.trangThai === 'DA_HU_HONG' ? 'bg-danger' : 'bg-success';
+                                const percentage = item.tuoiThoToiDa > 0 ? ((item.thoiGianDaSuDung / item.tuoiThoToiDa) * 100).toFixed(1) : 0;
+                                tbody.innerHTML += `<tr>
+                                    <td>${item.tenLinhKien}</td>
+                                    <td>${item.thoiGianDaSuDung} / ${item.tuoiThoToiDa || '-'} ${item.donViTinh || ''} (${percentage}%)</td>
+                                    <td><span class="badge ${statusClass}">${item.trangThai}</span></td>
+                                    <td>
+                                        <a href="/admin/linh-kien/edit/${item.id}" class="btn btn-sm btn-warning"><i data-lucide="edit"></i> Sửa</a>
+                                    </td>
+                                </tr>`;
+                            });
+                            lucide.createIcons();
+                        }
+                    });
+            }
+
+            function loadBaoTri(thietBiId) {
+                fetch(`/api/admin/bao-tri/thiet-bi/${thietBiId}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            const tbody = document.getElementById('tbody-baotri');
+                            if (data.data.length === 0) {
+                                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Không có lịch sử bảo trì</td></tr>';
+                                return;
+                            }
+                            tbody.innerHTML = '';
+                            data.data.forEach(item => {
+                                const ngayBT = parseDate(item.ngayBaoTri);
+                                const statusClass = item.ketQua === 'THANH_CONG' ? 'bg-success' : 'bg-warning text-dark';
+                                tbody.innerHTML += `<tr>
+                                    <td>${ngayBT ? ngayBT.toLocaleDateString('vi-VN') : ''}</td>
+                                    <td>${item.loaiBaoTri || '-'}</td>
+                                    <td>${item.chiPhi ? item.chiPhi.toLocaleString('vi-VN') + ' đ' : '0 đ'}</td>
+                                    <td><span class="badge ${statusClass}">${item.ketQua || 'ĐANG_XU_LY'}</span></td>
+                                    <td>
+                                        <a href="/admin/bao-tri/edit/${item.id}" class="btn btn-sm btn-warning"><i data-lucide="edit"></i> Sửa</a>
+                                    </td>
+                                </tr>`;
+                            });
+                            lucide.createIcons();
+                        }
                     });
             }
 

@@ -3,8 +3,8 @@ package com.Tta.QLCSVC.DHNT.api;
 import com.Tta.QLCSVC.DHNT.entity.NguoiDung;
 import com.Tta.QLCSVC.DHNT.entity.ThongBao;
 import com.Tta.QLCSVC.DHNT.repository.NguoiDungRepository;
-import com.Tta.QLCSVC.DHNT.service.NotificationService;
 import com.Tta.QLCSVC.DHNT.service.AiNotificationScheduler;
+import com.Tta.QLCSVC.DHNT.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -31,11 +31,9 @@ public class NotificationApiController {
     }
 
     @GetMapping
-    public ResponseEntity<com.Tta.QLCSVC.DHNT.dto.ApiResponse<Map<String, Object>>> getNotifications() {
+    public ResponseEntity<Map<String, Object>> getNotifications() {
         NguoiDung user = getCurrentUser();
-        if (user == null) {
-            return ResponseEntity.status(401).build();
-        }
+        if (user == null) return ResponseEntity.status(401).build();
 
         List<ThongBao> notifications = notificationService.getUserNotifications(user.getId(), user.getVaiTro());
         long unreadCount = notificationService.getUnreadCount(user.getId(), user.getVaiTro());
@@ -43,8 +41,9 @@ public class NotificationApiController {
         Map<String, Object> responseData = new HashMap<>();
         responseData.put("notifications", notifications);
         responseData.put("unreadCount", unreadCount);
+        responseData.put("success", true);
 
-        return ResponseEntity.ok(com.Tta.QLCSVC.DHNT.dto.ApiResponse.success(responseData));
+        return ResponseEntity.ok(responseData);
     }
 
     @PostMapping("/{id}/read")
@@ -63,13 +62,15 @@ public class NotificationApiController {
     }
 
     @PostMapping("/trigger-ai-prediction")
-    public ResponseEntity<com.Tta.QLCSVC.DHNT.dto.ApiResponse<String>> triggerAiPrediction() {
+    public ResponseEntity<Map<String, Object>> triggerAiPrediction() {
         NguoiDung user = getCurrentUser();
         if (user == null || user.getVaiTro() != NguoiDung.VaiTro.ADMIN) {
             return ResponseEntity.status(403).build();
         }
-        
         aiNotificationScheduler.triggerManualPrediction();
-        return ResponseEntity.ok(com.Tta.QLCSVC.DHNT.dto.ApiResponse.success("Đã kích hoạt AI phân tích hệ thống thành công. Hệ thống đã tự động gửi cảnh báo (nếu có)."));
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("message", "Đã kích hoạt AI phân tích hệ thống thành công.");
+        return ResponseEntity.ok(result);
     }
 }

@@ -75,6 +75,22 @@
                             <span class="user-role">Nhân viên CSVC</span>
                         </div>
                     </div>
+                    <!-- Notification Bell (Nhân viên) -->
+                    <div class="position-relative" style="margin-right: 4px;">
+                        <button id="nv-notif-btn" data-bs-toggle="dropdown" aria-expanded="false" title="Thông báo"
+                            style="background:none;border:none;padding:6px 8px;cursor:pointer;color:#64748b;position:relative;border-radius:8px;transition:background .15s;"
+                            onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='none'">
+                            <i data-lucide="bell" style="width:20px;height:20px;display:block;"></i>
+                            <span id="nv-notif-badge"
+                                style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;font-size:0.55rem;font-weight:700;padding:1px 4px;border-radius:999px;min-width:16px;text-align:center;line-height:1.4;">0</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" id="nv-notif-list" style="width:340px;max-height:420px;overflow-y:auto;padding:0;box-shadow:0 10px 40px rgba(0,0,0,.25);border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:#1e293b;">
+                            <li id="nv-ai-summary-container" style="display:none;border-bottom:1px solid rgba(255,255,255,0.08);">
+                                <div id="nv-ai-summary-content" style="padding:10px 14px;background:linear-gradient(135deg,#064e3b,#065f46);font-size:0.82rem;color:#6ee7b7;line-height:1.6;border-radius:11px 11px 0 0;"></div>
+                            </li>
+                            <li><div class="p-3 text-center" style="color:#64748b;">Không có thông báo mới</div></li>
+                        </ul>
+                    </div>
                     <form th:action="@{/logout}" method="post" style="margin: 0;">
                         <button type="submit" class="btn-logout" title="Đăng xuất">
                             <i data-lucide="log-out"></i>
@@ -95,31 +111,14 @@
     <!-- AI Chatbot Widget -->
     <div th:replace="~{fragments/chatbot-widget :: chatbot-widget}" th:with="userRole='NHAN_VIEN_CSVC'"></div>
 
-    <!-- QR Scanner Floating Button -->
-    <button id="qr-scan-btn" title="Scan QR thiết bị" onclick="openQrScanner()">
+    <!-- Redirect to Flask AI Scan page -->
+    <button id="qr-scan-btn" title="Scan QR thiết bị" onclick="window.location.href='http://localhost:5000/api/ai/scan'">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round"
             d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 18h.01M18 15h.01M21 15h.01M21 18h.01M21 21h.01M18 21h.01M15 21h.01M18 18v.01"/>
         </svg>
-        <span class="scan-badge">QR</span>
+        <span class="scan-badge">AI</span>
     </button>
-    <!-- QR Scanner Modal -->
-    <div class="modal fade" id="qrScanModal" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered" style="max-width:400px">
-        <div class="modal-content">
-          <div class="modal-header" style="background:linear-gradient(135deg,#10b981,#059669);color:white;">
-            <h5 class="modal-title">📷 Scan QR Thiết bị</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="stopQrScanner()"></button>
-          </div>
-          <div class="modal-body p-3" style="background:#0f172a;">
-            <div id="qr-reader" style="width:100%;border-radius:8px;overflow:hidden;"></div>
-            <div id="qr-status" class="mt-2 text-center" style="color:#94a3b8;font-size:0.82rem;">
-              Hướng camera vào mã QR dán trên thiết bị
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -144,41 +143,69 @@
     <script>window.CHATBOT_USER_ROLE = 'NHAN_VIEN_CSVC';</script>
     <script th:src="@{/js/chatbot-widget.js(v=3)}"></script>
 
-    <!-- QR Scanner JS -->
+    <!-- Notification + AI Summary for Nhan Vien -->
     <script>
-    let qrScanner = null;
-    function openQrScanner() {
-        const modal = new bootstrap.Modal(document.getElementById('qrScanModal'));
-        modal.show();
-        document.getElementById('qr-status').textContent = 'Đang khởi động camera...';
-        document.getElementById('qrScanModal').addEventListener('shown.bs.modal', function startScan() {
-            document.getElementById('qrScanModal').removeEventListener('shown.bs.modal', startScan);
-            qrScanner = new Html5Qrcode('qr-reader');
-            qrScanner.start(
-                { facingMode: 'environment' },
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                (decodedText) => {
-                    document.getElementById('qr-status').innerHTML =
-                        '<span style="color:#10b981;font-weight:700;">✅ Đã nhận diện QR!</span>';
-                    stopQrScanner();
-                    bootstrap.Modal.getInstance(document.getElementById('qrScanModal')).hide();
-                    window.location.href = decodedText.startsWith('http') ? decodedText
-                        : 'http://localhost:5000/api/ai/device-info/' + decodedText;
-                },
-                (_err) => {}
-            ).then(() => {
-                document.getElementById('qr-status').textContent = 'Hướng camera vào mã QR trên thiết bị';
-            }).catch(err => {
-                document.getElementById('qr-status').innerHTML =
-                    '<span style="color:#f87171;">❌ Không truy cập được camera: ' + err + '</span>';
-            });
-        }, { once: true });
-    }
-    function stopQrScanner() {
-        if (qrScanner) { qrScanner.stop().catch(() => {}); qrScanner = null; }
-    }
-    document.getElementById('qrScanModal').addEventListener('hide.bs.modal', stopQrScanner);
+    (function() {
+        let nvAiDone = false;
+
+        function summarizeNvAI(notifications) {
+            if (!notifications || !notifications.length) return;
+            const container = document.getElementById('nv-ai-summary-container');
+            const content = document.getElementById('nv-ai-summary-content');
+            if (!container || !content) return;
+            content.innerHTML = '✨ <strong>AI đang phân tích...</strong>';
+            container.style.display = 'block';
+            const texts = notifications.map(n => `- ${n.tieuDe}: ${n.noiDung}`).join('\n');
+            fetch('/api/ai/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: `Tóm tắt ngắn gọn (2-3 dòng) các thông báo sau theo góc nhìn Nhân viên CSVC:\n${texts}`, role: 'NHAN_VIEN_CSVC' })
+            }).then(r => r.json()).then(d => {
+                content.innerHTML = '✨ <strong>AI Tóm tắt:</strong> ' + (d.response || d.reply || d.message || 'N/A');
+            }).catch(() => { container.style.display = 'none'; });
+        }
+
+        function fetchNvNotifications() {
+            fetch('/api/thong-bao/unread').then(r => r.ok ? r.json() : null).then(data => {
+                if (!data) return;
+                const badge = document.getElementById('nv-notif-badge');
+                const list = document.getElementById('nv-notif-list');
+                if (data.count > 0) {
+                    badge.style.display = 'block';
+                    badge.textContent = data.count;
+                    let html = '<li id="nv-ai-summary-container" style="display:none;border-bottom:1px solid #e2e8f0;"><div id="nv-ai-summary-content" style="padding:10px 14px;background:linear-gradient(135deg,#064e3b,#065f46);font-size:0.82rem;color:#6ee7b7;line-height:1.6;"></div></li>';
+                    data.notifications.forEach(n => {
+                        function parseDate(v) {
+                            if (!v) return null;
+                            if (Array.isArray(v)) return new Date(v[0], v[1]-1, v[2], v[3]||0, v[4]||0, v[5]||0);
+                            return new Date(v);
+                        }
+                        const dt = parseDate(n.createdAt);
+                        const d = dt ? dt.toLocaleDateString('vi-VN', {hour:'2-digit',minute:'2-digit'}) : '';
+                        html += `<li style="border-bottom:1px solid #f1f5f9;">
+                            <a class="dropdown-item d-flex flex-column p-3" href="#" style="white-space:normal;" onclick="event.preventDefault();fetch('/api/thong-bao/${n.id}/read',{method:'PUT'}).then(()=>fetchNvNotifications())">
+                                <strong style="color:#059669;font-size:0.9rem;">${n.tieuDe}</strong>
+                                <span style="font-size:0.82rem;color:#64748b;margin-top:4px;">${n.noiDung}</span>
+                                <small style="color:#94a3b8;font-size:0.72rem;align-self:flex-end;margin-top:6px;">${d}</small>
+                            </a></li>`;
+                    });
+                    list.innerHTML = html;
+                    if (!nvAiDone) { nvAiDone = true; setTimeout(() => summarizeNvAI(data.notifications), 600); }
+                } else {
+                    badge.style.display = 'none';
+                    list.innerHTML = '<li><div class="p-3 text-center text-muted">Không có thông báo mới</div></li>';
+                }
+            }).catch(() => {});
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchNvNotifications();
+            setInterval(fetchNvNotifications, 30000);
+        });
+    })();
     </script>
+
+    <!-- QR Scanner logic removed - using Flask AI Scan page -->
 
     <!-- Page specific scripts -->
     <th:block layout:fragment="scripts">

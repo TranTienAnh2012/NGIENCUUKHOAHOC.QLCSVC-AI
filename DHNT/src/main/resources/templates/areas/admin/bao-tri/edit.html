@@ -42,6 +42,13 @@
                                         </select>
                                     </div>
                                 </div>
+                                <div class="mb-3">
+                                    <label for="linhKienId" class="form-label">Linh kiện thay thế / bảo trì (Tuỳ chọn)</label>
+                                    <select class="form-select" id="linhKienId">
+                                        <option value="">-- Không có linh kiện --</option>
+                                    </select>
+                                    <small class="text-muted">Nếu phiếu này sửa/thay linh kiện, hãy chọn để hệ thống tự reset tuổi thọ khi thành công.</small>
+                                </div>
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label for="nguoiThucHien" class="form-label">Người thực hiện</label>
@@ -97,6 +104,12 @@
                             document.getElementById('ketQua').value = item.ketQua || '';
                             // Store thietBi info
                             window.currentThietBi = item.thietBi;
+                            
+                            // Load LinhKien
+                            if (item.thietBi) {
+                                loadLinhKienByThietBi(item.thietBi.id, item.linhKien ? item.linhKien.id : null);
+                            }
+
                             document.getElementById('loadingState').style.display = 'none';
                             document.getElementById('editForm').style.display = 'block';
                         } else {
@@ -110,8 +123,35 @@
                     });
             }
 
+            function loadLinhKienByThietBi(thietBiId, selectedLinhKienId) {
+                const linhKienSelect = document.getElementById('linhKienId');
+                linhKienSelect.innerHTML = '<option value="">-- Không có linh kiện --</option>';
+                
+                if (!thietBiId) return;
+                
+                fetch(`/api/admin/linh-kien/thiet-bi/${thietBiId}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success && data.data.length > 0) {
+                            data.data.forEach(lk => {
+                                const opt = document.createElement('option');
+                                opt.value = lk.id;
+                                let warning = lk.trangThai === 'CAN_THAY_THE' || lk.trangThai === 'DA_HU_HONG' ? ' ⚠️' : '';
+                                opt.textContent = lk.tenLinhKien + warning;
+                                
+                                if (selectedLinhKienId && lk.id === selectedLinhKienId) {
+                                    opt.selected = true;
+                                }
+                                
+                                linhKienSelect.appendChild(opt);
+                            });
+                        }
+                    });
+            }
+
             document.getElementById('editForm').addEventListener('submit', function (e) {
                 e.preventDefault();
+                const linhKienId = document.getElementById('linhKienId').value;
                 const data = {
                     ngayBaoTri: document.getElementById('ngayBaoTri').value,
                     loaiBaoTri: document.getElementById('loaiBaoTri').value,
@@ -119,7 +159,8 @@
                     chiPhi: document.getElementById('chiPhi').value ? parseFloat(document.getElementById('chiPhi').value) : null,
                     noiDung: document.getElementById('noiDung').value,
                     ketQua: document.getElementById('ketQua').value || null,
-                    thietBi: window.currentThietBi
+                    thietBi: window.currentThietBi,
+                    linhKien: linhKienId ? { id: parseInt(linhKienId) } : null
                 };
                 fetch(`/api/admin/bao-tri/${id}`, {
                     method: 'PUT',

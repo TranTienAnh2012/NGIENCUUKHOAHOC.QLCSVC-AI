@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${title}">Danh sách linh kiện</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <!-- Header Section -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-1" th:text="${title}">Danh sách linh kiện</h4>
+                            <p class="text-muted small mb-0">Quản lý linh kiện bên trong từng thiết bị (bóng đèn, mực, filter...)</p>
+                        </div>
+                        <a th:href="@{/admin/linh-kien/create}" class="btn btn-primary">
+                            <i data-lucide="plus"></i> Thêm linh kiện mới
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <select class="form-select" id="filterTrangThai" onchange="loadLinhKien()">
+                        <option value="">-- Tất cả trạng thái --</option>
+                        <option value="HOAT_DONG">Hoạt động</option>
+                        <option value="CAN_THAY_THE">Cần thay thế</option>
+                        <option value="DANG_BAO_HANH">Đang bảo hành</option>
+                        <option value="DA_HU_HONG">Đã hư hỏng</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Table Section -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="linhKienTable">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Mã LK</th>
+                                            <th>Tên linh kiện</th>
+                                            <th>Thiết bị</th>
+                                            <th>Tuổi thọ</th>
+                                            <th>Bảo hành</th>
+                                            <th>Trạng thái</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Data loaded via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function () {
+                loadLinhKien();
+                lucide.createIcons();
+            });
+
+            function loadLinhKien() {
+                fetch('/api/admin/linh-kien')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            let items = data.data;
+                            const filter = document.getElementById('filterTrangThai').value;
+                            if (filter) {
+                                items = items.filter(lk => lk.trangThai === filter);
+                            }
+                            renderTable(items);
+                        }
+                    })
+                    .catch(err => console.error('Error:', err));
+            }
+
+            function renderTable(items) {
+                const tbody = document.querySelector('#linhKienTable tbody');
+                tbody.innerHTML = '';
+
+                if (items.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Chưa có linh kiện nào</td></tr>';
+                    return;
+                }
+
+                items.forEach(item => {
+                    const statusMap = {
+                        'HOAT_DONG': { badge: 'bg-success', label: 'Hoạt động' },
+                        'CAN_THAY_THE': { badge: 'bg-warning text-dark', label: 'Cần thay thế' },
+                        'DANG_BAO_HANH': { badge: 'bg-info', label: 'Đang bảo hành' },
+                        'DA_HU_HONG': { badge: 'bg-danger', label: 'Đã hư hỏng' }
+                    };
+                    const st = statusMap[item.trangThai] || { badge: 'bg-secondary', label: item.trangThai };
+
+                    // Thanh progress tuổi thọ
+                    let usageHtml = '-';
+                    if (item.tuoiThoToiDa && item.tuoiThoToiDa > 0) {
+                        const used = item.thoiGianDaSuDung || 0;
+                        const pct = Math.min(100, Math.round((used / item.tuoiThoToiDa) * 100));
+                        const barColor = pct >= 90 ? 'bg-danger' : pct >= 70 ? 'bg-warning' : 'bg-success';
+                        usageHtml = `
+                            <div class="d-flex flex-column" style="min-width:120px;">
+                                <small class="text-muted mb-1">${used}/${item.tuoiThoToiDa} ${item.donViTinh || ''}</small>
+                                <div class="progress" style="height:6px;">
+                                    <div class="progress-bar ${barColor}" style="width:${pct}%"></div>
+                                </div>
+                            </div>`;
+                    }
+
+                    // Bảo hành
+                    let warrantyHtml = '<span class="text-muted">-</span>';
+                    if (item.hanBaoHanh) {
+                        const today = new Date();
+                        const expiry = new Date(item.hanBaoHanh);
+                        if (expiry < today) {
+                            warrantyHtml = `<span class="badge bg-secondary">Hết hạn</span>`;
+                        } else {
+                            warrantyHtml = `<span class="badge bg-success">Còn hạn</span><br><small>${item.hanBaoHanh}</small>`;
+                        }
+                    }
+
+                    const row = `
+                    <tr>
+                        <td>${item.id}</td>
+                        <td><code>${item.maLinhKien}</code></td>
+                        <td class="fw-medium">${item.tenLinhKien}</td>
+                        <td>${item.thietBi?.tenThietBi || '-'}</td>
+                        <td>${usageHtml}</td>
+                        <td>${warrantyHtml}</td>
+                        <td><span class="badge ${st.badge}">${st.label}</span></td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="/admin/linh-kien/view/${item.id}" class="btn btn-info" title="Xem"><i data-lucide="eye"></i></a>
+                                <a href="/admin/linh-kien/edit/${item.id}" class="btn btn-warning" title="Sửa"><i data-lucide="edit"></i></a>
+                                <button class="btn btn-danger" onclick="deleteLinhKien(${item.id})" title="Xóa"><i data-lucide="trash-2"></i></button>
+                            </div>
+                        </td>
+                    </tr>`;
+                    tbody.innerHTML += row;
+                });
+
+                lucide.createIcons();
+            }
+
+            function deleteLinhKien(id) {
+                if (confirm('Bạn có chắc chắn muốn xóa linh kiện này?')) {
+                    fetch(`/api/admin/linh-kien/${id}`, { method: 'DELETE' })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert('Xóa thành công!');
+                                loadLinhKien();
+                            } else {
+                                alert('Lỗi: ' + (data.message || 'Không thể xóa'));
+                            }
+                        })
+                        .catch(err => alert('Có lỗi xảy ra'));
+                }
+            }
+        </script>
+    </th:block>
+</body>
+</html>

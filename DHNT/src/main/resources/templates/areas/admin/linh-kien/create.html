@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${title}">Thêm linh kiện mới</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-1" th:text="${title}">Thêm linh kiện mới</h4>
+                            <p class="text-muted small mb-0">Gắn linh kiện vào một thiết bị cụ thể</p>
+                        </div>
+                        <a th:href="@{/admin/linh-kien}" class="btn btn-secondary">
+                            <i data-lucide="arrow-left"></i> Quay lại
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-body">
+                            <form id="createForm">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Mã linh kiện <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="maLinhKien" required placeholder="VD: LK-BONG-001">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Tên linh kiện <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="tenLinhKien" required placeholder="VD: Bóng đèn máy chiếu">
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Thiết bị gắn vào <span class="text-danger">*</span></label>
+                                        <select class="form-select" id="thietBiId" required>
+                                            <option value="">-- Chọn thiết bị --</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Đơn vị tính tuổi thọ</label>
+                                        <select class="form-select" id="donViTinh">
+                                            <option value="Giờ">Giờ</option>
+                                            <option value="Trang">Trang (in)</option>
+                                            <option value="Tháng">Tháng</option>
+                                            <option value="Lần">Lần sử dụng</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Tuổi thọ tối đa</label>
+                                        <input type="number" class="form-control" id="tuoiThoToiDa" placeholder="VD: 3000">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Ngày mua</label>
+                                        <input type="date" class="form-control" id="ngayMua">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Hạn bảo hành</label>
+                                        <input type="date" class="form-control" id="hanBaoHanh">
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Thông số kỹ thuật</label>
+                                    <textarea class="form-control" id="thongSoKyThuat" rows="3" placeholder="VD: Bóng Osram 230W, tuổi thọ 3000h..."></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">
+                                    <i data-lucide="save"></i> Lưu linh kiện
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Guide Panel -->
+                <div class="col-md-4">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0"><i data-lucide="info" class="me-2" style="width:16px;"></i> Hướng dẫn</h6>
+                        </div>
+                        <div class="card-body small">
+                            <p><strong>Linh kiện</strong> là thành phần con bên trong thiết bị, có vòng đời bảo hành và tuổi thọ riêng biệt với thiết bị mẹ.</p>
+                            <hr>
+                            <p class="mb-1"><strong>Ví dụ:</strong></p>
+                            <ul class="mb-0">
+                                <li>Máy chiếu → Bóng đèn (3000h)</li>
+                                <li>Máy in → Hộp mực (10000 trang)</li>
+                                <li>Điều hòa → Bộ lọc (6 tháng)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', function () {
+                lucide.createIcons();
+                loadThietBiOptions();
+            });
+
+            function loadThietBiOptions() {
+                fetch('/api/admin/thiet-bi?page=0&size=1000')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            const select = document.getElementById('thietBiId');
+                            data.data.content.forEach(tb => {
+                                const opt = document.createElement('option');
+                                opt.value = tb.id;
+                                opt.textContent = `${tb.maThietBi} - ${tb.tenThietBi}`;
+                                select.appendChild(opt);
+                            });
+                        }
+                    });
+            }
+
+            document.getElementById('createForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const thietBiId = document.getElementById('thietBiId').value;
+                if (!thietBiId) {
+                    alert('Vui lòng chọn thiết bị');
+                    return;
+                }
+
+                const payload = {
+                    maLinhKien: document.getElementById('maLinhKien').value,
+                    tenLinhKien: document.getElementById('tenLinhKien').value,
+                    donViTinh: document.getElementById('donViTinh').value,
+                    tuoiThoToiDa: document.getElementById('tuoiThoToiDa').value ? parseInt(document.getElementById('tuoiThoToiDa').value) : null,
+                    ngayMua: document.getElementById('ngayMua').value || null,
+                    hanBaoHanh: document.getElementById('hanBaoHanh').value || null,
+                    thongSoKyThuat: document.getElementById('thongSoKyThuat').value || null,
+                    thoiGianDaSuDung: 0
+                };
+
+                fetch(`/api/admin/linh-kien?thietBiId=${thietBiId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Tạo linh kiện thành công!');
+                            window.location.href = '/admin/linh-kien';
+                        } else {
+                            alert('Lỗi: ' + (data.message || 'Không thể tạo linh kiện'));
+                        }
+                    })
+                    .catch(err => alert('Có lỗi xảy ra: ' + err.message));
+            });
+        </script>
+    </th:block>
+</body>
+</html>

@@ -15,6 +15,15 @@ public class CSVCThietBiService {
 
     private final ThietBiRepository thietBiRepository;
 
+    public List<ThietBi> getAllThietBi() {
+        return thietBiRepository.findAll();
+    }
+
+    public ThietBi getThietBiById(Long id) {
+        return thietBiRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("ThietBi", "id", id));
+    }
+
     public List<ThietBi> getThietBiByTrangThai(ThietBi.TrangThaiThietBi trangThai) {
         return thietBiRepository.findByTrangThai(trangThai);
     }

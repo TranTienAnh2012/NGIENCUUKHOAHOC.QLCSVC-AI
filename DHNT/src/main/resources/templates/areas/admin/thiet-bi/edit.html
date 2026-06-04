@@ -185,7 +185,7 @@
                                 </div>
 
                                 <div class="row">
-                                    <div class="col-md-6 mb-3">
+                                    <div class="col-md-4 mb-3">
                                         <label for="trangThai" class="form-label">Trạng thái</label>
                                         <select class="form-select" id="trangThai">
                                             <option value="TOT">Tốt</option>
@@ -194,9 +194,13 @@
                                             <option value="THANH_LY">Thanh lý</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-6 mb-3">
+                                    <div class="col-md-4 mb-3">
                                         <label for="ngayMua" class="form-label">Ngày mua</label>
                                         <input type="date" class="form-control" id="ngayMua">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="hanBaoHanh" class="form-label">Hạn bảo hành</label>
+                                        <input type="date" class="form-control" id="hanBaoHanh">
                                     </div>
                                 </div>
 
@@ -296,6 +300,24 @@
         <script th:inline="javascript">
             const id = /*[[${id}]]*/ 0;
 
+            function parseDate(val) {
+                if (!val) return null;
+                if (Array.isArray(val)) {
+                    const [y, m, d, h=0, min=0, sec=0] = val;
+                    return new Date(y, m - 1, d, h, min, sec);
+                }
+                const d = new Date(val);
+                return isNaN(d.getTime()) ? null : d;
+            }
+
+            function formatDateForInput(val) {
+                const d = parseDate(val);
+                if (!d) return '';
+                const m = (d.getMonth() + 1).toString().padStart(2, '0');
+                const day = d.getDate().toString().padStart(2, '0');
+                return `${d.getFullYear()}-${m}-${day}`;
+            }
+
             document.addEventListener('DOMContentLoaded', function () {
                 loadLoaiThietBi();
                 loadPhongHoc();
@@ -348,7 +370,8 @@
                             document.getElementById('loaiThietBiId').value = item.loaiThietBi?.id || '';
                             document.getElementById('phongId').value = item.phong?.id || '';
                             document.getElementById('trangThai').value = item.trangThai;
-                            document.getElementById('ngayMua').value = item.ngayMua || '';
+                            document.getElementById('ngayMua').value = formatDateForInput(item.ngayMua);
+                            document.getElementById('hanBaoHanh').value = formatDateForInput(item.hanBaoHanh);
                             document.getElementById('ghiChu').value = item.ghiChu || '';
 
                             document.getElementById('loadingState').style.display = 'none';
@@ -546,6 +569,7 @@
                     maThietBi: document.getElementById('maThietBi').value,
                     trangThai: document.getElementById('trangThai').value,
                     ngayMua: document.getElementById('ngayMua').value || null,
+                    hanBaoHanh: document.getElementById('hanBaoHanh').value || null,
                     ghiChu: document.getElementById('ghiChu').value
                 };
 

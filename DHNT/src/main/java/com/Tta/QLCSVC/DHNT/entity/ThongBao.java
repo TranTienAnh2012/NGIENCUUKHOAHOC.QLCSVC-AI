@@ -18,9 +18,15 @@ public class ThongBao {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Gửi cho 1 người cụ thể (nullable nếu gửi theo role)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "nguoi_dung_id", nullable = false)
+    @JoinColumn(name = "nguoi_dung_id")
     private NguoiDung nguoiDung;
+
+    // Gửi broadcast cho cả 1 role (nullable nếu gửi cho cá nhân)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role_nhan")
+    private NguoiDung.VaiTro roleNhan;
 
     @Column(name = "tieu_de", nullable = false)
     private String tieuDe;
@@ -32,7 +38,10 @@ public class ThongBao {
     private boolean daDoc = false;
 
     @Column(name = "loai_thong_bao")
-    private String loaiThongBao; // e.g., "OVERDUE", "SYSTEM"
+    private String loaiThongBao; // e.g., "OVERDUE", "SYSTEM", "BAO_HONG", "BAO_TRI", "MUON_TRA"
+
+    @Column(name = "url_detail")
+    private String urlDetail;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

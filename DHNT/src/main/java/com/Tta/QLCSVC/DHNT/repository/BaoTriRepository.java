@@ -13,6 +13,8 @@ public interface BaoTriRepository extends JpaRepository<BaoTri, Long> {
 
     List<BaoTri> findByThietBiId(Long thietBiId);
 
+    List<BaoTri> findTop5ByOrderByNgayBaoTriDesc();
+
     List<BaoTri> findByLoaiBaoTri(BaoTri.LoaiBaoTri loaiBaoTri);
 
     List<BaoTri> findByNgayBaoTriBetween(LocalDate startDate, LocalDate endDate);

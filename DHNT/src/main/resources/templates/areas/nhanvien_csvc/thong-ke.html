@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/nhanvien-layout}">
+
+<head>
+    <title th:text="${title}">Thống kê &amp; Báo cáo</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <!-- Header -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h4 class="mb-1" th:text="${title}">Thống kê &amp; Báo cáo</h4>
+                    <p class="text-muted small mb-0">Tổng quan tình hình cơ sở vật chất và bảo trì</p>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-white-50">Tổng thiết bị</h6>
+                                    <h2 class="mb-0" th:text="${stats.tongThietBi}">0</h2>
+                                </div>
+                                <i data-lucide="monitor" class="opacity-50" style="width: 48px; height: 48px;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-white-50">Sẵn sàng (Tốt)</h6>
+                                    <h2 class="mb-0" th:text="${stats.thietBiTot}">0</h2>
+                                </div>
+                                <i data-lucide="check-circle" class="opacity-50" style="width: 48px; height: 48px;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-dark h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-dark-50">Đang bảo trì/Chờ xử lý</h6>
+                                    <h2 class="mb-0" th:text="${stats.thietBiBaoTri + stats.baoHongChoXuLy}">0</h2>
+                                </div>
+                                <i data-lucide="tool" class="opacity-50" style="width: 48px; height: 48px;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-white-50">Thiết bị hỏng</h6>
+                                    <h2 class="mb-0" th:text="${stats.thietBiHong}">0</h2>
+                                </div>
+                                <i data-lucide="alert-triangle" class="opacity-50" style="width: 48px; height: 48px;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Báo hỏng gần đây -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Báo hỏng gần đây</h5>
+                            <a th:href="@{/nhanvien-csvc/bao-hong}" class="btn btn-sm btn-outline-primary">Xem tất cả</a>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Thiết bị</th>
+                                            <th>Mức độ</th>
+                                            <th>Trạng thái</th>
+                                            <th>Ngày báo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="bh : ${stats.recentBaoHongs}">
+                                            <td th:text="${bh.thietBi?.tenThietBi}">Máy chiếu</td>
+                                            <td>
+                                                <span th:class="'badge ' + ${bh.mucDoNghiemTrong.name() == 'KHAN_CAP' ? 'bg-danger' : (bh.mucDoNghiemTrong.name() == 'CAO' ? 'bg-warning' : 'bg-info')}"
+                                                      th:text="${bh.mucDoNghiemTrong}">CAO</span>
+                                            </td>
+                                            <td>
+                                                <span th:class="'badge ' + ${bh.trangThai.name() == 'CHO_XU_LY' ? 'bg-warning' : (bh.trangThai.name() == 'HOAN_THANH' ? 'bg-success' : 'bg-info')}"
+                                                      th:text="${bh.trangThai}">CHO_XU_LY</span>
+                                            </td>
+                                            <td th:text="${#temporals.format(bh.ngayBao, 'dd/MM/yyyy')}">01/01/2026</td>
+                                        </tr>
+                                        <tr th:if="${#lists.isEmpty(stats.recentBaoHongs)}">
+                                            <td colspan="4" class="text-center text-muted py-3">Không có báo hỏng nào.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lịch bảo trì gần đây -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Bảo trì gần đây</h5>
+                            <a th:href="@{/nhanvien-csvc/bao-tri}" class="btn btn-sm btn-outline-primary">Xem tất cả</a>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Thiết bị</th>
+                                            <th>Loại</th>
+                                            <th>Kết quả</th>
+                                            <th>Ngày bảo trì</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="bt : ${stats.recentBaoTris}">
+                                            <td th:text="${bt.thietBi?.tenThietBi}">Máy chiếu</td>
+                                            <td>
+                                                <span class="badge bg-secondary" th:text="${bt.loaiBaoTri}">SUA_CHUA</span>
+                                            </td>
+                                            <td>
+                                                <span th:if="${bt.ketQua != null}"
+                                                      th:class="'badge ' + ${bt.ketQua.name() == 'THANH_CONG' ? 'bg-success' : 'bg-danger'}"
+                                                      th:text="${bt.ketQua}">THANH_CONG</span>
+                                                <span th:if="${bt.ketQua == null}" class="badge bg-warning">Chưa xong</span>
+                                            </td>
+                                            <td th:text="${#temporals.format(bt.ngayBaoTri, 'dd/MM/yyyy')}">01/01/2026</td>
+                                        </tr>
+                                        <tr th:if="${#lists.isEmpty(stats.recentBaoTris)}">
+                                            <td colspan="4" class="text-center text-muted py-3">Không có lịch bảo trì nào.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            setTimeout(() => { lucide.createIcons(); }, 100);
+        </script>
+    </div>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tra cứu thiết bị — QLCSVC</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
+    background:linear-gradient(160deg,#0f172a 0%,#1e293b 100%);
+    min-height:100vh; padding:24px 16px; color:white;
+  }
+  .container { max-width:1100px; margin:0 auto; }
+  .header { text-align:center; margin-bottom:28px; }
+  .header h1 { font-size:1.6rem; font-weight:800; margin-bottom:4px; }
+  .header p { font-size:0.85rem; color:#94a3b8; }
+  .search-box {
+    width:100%; padding:14px 20px; border-radius:14px;
+    border:1.5px solid #334155; background:#1e293b; color:white;
+    font-size:0.95rem; margin-bottom:20px; outline:none;
+    transition:border-color .2s;
+  }
+  .search-box:focus { border-color:#3b82f6; }
+  .search-box::placeholder { color:#64748b; }
+  .card {
+    background:rgba(30,41,59,0.8); border:1.5px solid #334155;
+    border-radius:16px; overflow:hidden; backdrop-filter:blur(20px);
+  }
+  table { width:100%; border-collapse:collapse; font-size:0.8rem; }
+  th {
+    background:#0f172a; color:#94a3b8; padding:12px 10px;
+    text-align:left; font-weight:600; font-size:0.72rem;
+    text-transform:uppercase; letter-spacing:.05em;
+    position:sticky; top:0; z-index:2;
+  }
+  td { padding:10px; border-top:1px solid #1e293b; color:#cbd5e1; }
+  tr:hover td { background:#1e293b80; }
+  .no-result {
+    text-align:center; padding:40px; color:#64748b; font-size:0.9rem;
+    display:none;
+  }
+  .info-banner {
+    background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2);
+    border-radius:12px; padding:14px 18px; margin-bottom:20px;
+    font-size:0.82rem; color:#93c5fd; line-height:1.6;
+  }
+  .info-banner strong { color:#60a5fa; }
+  .btn-group { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+  .btn {
+    padding:10px 20px; border-radius:10px; font-size:0.82rem;
+    font-weight:600; text-decoration:none; border:1.5px solid #334155;
+    color:#94a3b8; background:#1e293b; cursor:pointer; transition:all .2s;
+  }
+  .btn:hover { background:#334155; color:white; }
+  .btn-primary { background:#2563eb; color:white; border-color:#2563eb; }
+  .btn-primary:hover { background:#1d4ed8; }
+  .count { font-size:0.75rem; color:#64748b; margin-bottom:10px; padding:0 10px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>🔍 Tra cứu thiết bị</h1>
+    <p>Tìm thiết bị theo tên, mã, phòng, hãng SX — In lại QR khi mất nhãn</p>
+  </div>
+
+  <div class="info-banner">
+    <strong>💡 Khi nào dùng trang này?</strong><br>
+    • Mã QR trên thiết bị bị mất, hỏng, hoặc không quét được<br>
+    • Cần xác minh thiết bị nào ứng với mã QR nào<br>
+    • Nhân viên bảo trì cần tìm nhanh thiết bị theo phòng/loại
+  </div>
+
+  <div class="btn-group">
+    <a href="{{ host }}/api/ai/scan" class="btn btn-primary">📷 Quét QR</a>
+    <a href="{{ host }}/api/ai/qr-print" class="btn">🖨️ In tất cả QR</a>
+    <a href="javascript:history.back()" class="btn">← Quay lại</a>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-bottom:20px;">
+    <input type="text" class="search-box" id="searchInput" style="margin-bottom:0;flex:1;"
+      placeholder="🔍 Tìm theo tên thiết bị, mã, phòng, hãng sản xuất...">
+    <button id="voiceBtn" onclick="startVoice()" title="Tìm bằng giọng nói" style="
+      min-width:52px; height:52px; border-radius:14px; border:1.5px solid #334155;
+      background:linear-gradient(135deg,#1e293b,#0f172a); color:#94a3b8;
+      font-size:1.4rem; cursor:pointer; transition:all .3s; display:flex;
+      align-items:center; justify-content:center;
+    ">🎤</button>
+  </div>
+  <div id="voiceStatus" style="font-size:0.75rem;color:#64748b;margin:-12px 0 12px 4px;min-height:18px;"></div>
+
+  <div class="count" id="resultCount">Tìm thấy {{ devices|length }} thiết bị</div>
+
+  <div class="card">
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Tên thiết bị</th><th>Mã</th><th>Phòng</th>
+            <th>Loại</th><th>Hãng SX</th><th>Model</th><th>Trạng thái</th><th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="deviceTable">
+          {{ device_rows | safe }}
+        </tbody>
+      </table>
+    </div>
+    <div class="no-result" id="noResult">
+      😔 Không tìm thấy thiết bị nào khớp
+    </div>
+  </div>
+</div>
+
+<script>
+  const input = document.getElementById('searchInput');
+  const rows = document.querySelectorAll('.dev-row');
+  const noResult = document.getElementById('noResult');
+  const countEl = document.getElementById('resultCount');
+
+  input.addEventListener('input', function() {
+    const q = this.value.toLowerCase().trim();
+    let visible = 0;
+    rows.forEach(row => {
+      const match = !q || row.dataset.search.includes(q);
+      row.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    noResult.style.display = visible === 0 ? 'block' : 'none';
+    countEl.textContent = `Tìm thấy ${visible} thiết bị`;
+  });
+
+  input.focus();
+
+  // === VOICE SEARCH (Web Speech API) ===
+  let recognition = null;
+  let isListening = false;
+
+  function startVoice() {
+    const btn = document.getElementById('voiceBtn');
+    const status = document.getElementById('voiceStatus');
+
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      status.innerHTML = '<span style="color:#f87171;">❌ Trình duyệt không hỗ trợ giọng nói. Dùng Chrome/Edge.</span>';
+      return;
+    }
+
+    if (isListening && recognition) {
+      recognition.stop();
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.lang = 'vi-VN';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      isListening = true;
+      btn.style.background = 'linear-gradient(135deg,#dc2626,#b91c1c)';
+      btn.style.color = 'white';
+      btn.style.borderColor = '#dc2626';
+      btn.innerHTML = '🔴';
+      status.innerHTML = '<span style="color:#f59e0b;">🎙️ Đang nghe... Nói tên thiết bị, phòng, hoặc hãng sản xuất</span>';
+    };
+
+    recognition.onresult = (e) => {
+      let transcript = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        transcript += e.results[i][0].transcript;
+      }
+      input.value = transcript;
+      input.dispatchEvent(new Event('input'));
+      if (e.results[e.results.length - 1].isFinal) {
+        status.innerHTML = `<span style="color:#22c55e;">✅ Đã nhận: "${transcript}"</span>`;
+      }
+    };
+
+    recognition.onerror = (e) => {
+      isListening = false;
+      btn.style.background = 'linear-gradient(135deg,#1e293b,#0f172a)';
+      btn.style.color = '#94a3b8';
+      btn.style.borderColor = '#334155';
+      btn.innerHTML = '🎤';
+      if (e.error === 'no-speech') {
+        status.innerHTML = '<span style="color:#f59e0b;">⚠️ Không nghe thấy gì. Nhấn 🎤 và nói lại.</span>';
+      } else if (e.error === 'not-allowed') {
+        status.innerHTML = '<span style="color:#f87171;">❌ Cho phép quyền microphone rồi thử lại.</span>';
+      } else {
+        status.innerHTML = `<span style="color:#f87171;">❌ Lỗi: ${e.error}</span>`;
+      }
+    };
+
+    recognition.onend = () => {
+      isListening = false;
+      btn.style.background = 'linear-gradient(135deg,#1e293b,#0f172a)';
+      btn.style.color = '#94a3b8';
+      btn.style.borderColor = '#334155';
+      btn.innerHTML = '🎤';
+    };
+
+    recognition.start();
+  }
+</script>
+</body>
+</html>

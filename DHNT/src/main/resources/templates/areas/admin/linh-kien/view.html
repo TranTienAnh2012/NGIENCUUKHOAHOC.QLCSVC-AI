@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${title}">Chi tiết linh kiện</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-1" th:text="${title}">Chi tiết linh kiện</h4>
+                            <p class="text-muted small mb-0">Xem thông tin chi tiết, tuổi thọ và trạng thái bảo hành</p>
+                        </div>
+                        <div>
+                            <a id="btnEdit" href="#" class="btn btn-warning me-2">
+                                <i data-lucide="edit"></i> Sửa
+                            </a>
+                            <a th:href="@{/admin/linh-kien}" class="btn btn-secondary">
+                                <i data-lucide="arrow-left"></i> Quay lại
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row" id="detailContent">
+                <!-- Left Column: Info -->
+                <div class="col-md-7">
+                    <div class="card mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0 text-primary"><i data-lucide="cpu" class="me-2" style="width:18px;"></i>Thông tin linh kiện</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-borderless mb-0">
+                                <tbody>
+                                    <tr><th style="width:35%">Mã linh kiện:</th><td id="vMaLinhKien"></td></tr>
+                                    <tr><th>Tên linh kiện:</th><td id="vTenLinhKien" class="fw-bold"></td></tr>
+                                    <tr><th>Thiết bị:</th><td id="vThietBi"></td></tr>
+                                    <tr><th>Thông số kỹ thuật:</th><td id="vThongSo"></td></tr>
+                                    <tr><th>Trạng thái:</th><td id="vTrangThai"></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Usage & Warranty -->
+                <div class="col-md-5">
+                    <!-- Tuổi thọ -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0 text-warning"><i data-lucide="activity" class="me-2" style="width:18px;"></i>Tuổi thọ sử dụng</h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <div id="usageBlock">
+                                <div class="display-5 fw-bold" id="vUsagePercent">-</div>
+                                <p class="text-muted" id="vUsageDetail"></p>
+                                <div class="progress mb-3" style="height:12px;">
+                                    <div class="progress-bar" id="vUsageBar" style="width:0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bảo hành -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0 text-success"><i data-lucide="shield-check" class="me-2" style="width:18px;"></i>Bảo hành linh kiện</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-borderless mb-0">
+                                <tbody>
+                                    <tr><th style="width:40%">Ngày mua:</th><td id="vNgayMua"></td></tr>
+                                    <tr><th>Hạn bảo hành:</th><td id="vHanBaoHanh"></td></tr>
+                                    <tr><th>Tình trạng:</th><td id="vWarrantyStatus"></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Quick Action: Cập nhật sử dụng -->
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0"><i data-lucide="clock" class="me-2" style="width:16px;"></i> Cập nhật số giờ sử dụng</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="soGioThem" placeholder="Số giờ/trang thêm" min="1">
+                                <button class="btn btn-primary" onclick="capNhatSuDung()">Cộng thêm</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            const linhKienId = [[${id}]];
+
+            document.addEventListener('DOMContentLoaded', function () {
+                lucide.createIcons();
+                loadDetail();
+                document.getElementById('btnEdit').href = `/admin/linh-kien/edit/${linhKienId}`;
+            });
+
+            function loadDetail() {
+                fetch(`/api/admin/linh-kien/${linhKienId}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!data.success) return;
+                        const lk = data.data;
+
+                        document.getElementById('vMaLinhKien').innerHTML = `<code>${lk.maLinhKien}</code>`;
+                        document.getElementById('vTenLinhKien').textContent = lk.tenLinhKien;
+                        document.getElementById('vThietBi').textContent = lk.thietBi?.tenThietBi || '-';
+                        document.getElementById('vThongSo').textContent = lk.thongSoKyThuat || 'Chưa cập nhật';
+
+                        // Trạng thái
+                        const stMap = {
+                            'HOAT_DONG': { badge: 'bg-success', label: 'Hoạt động' },
+                            'CAN_THAY_THE': { badge: 'bg-warning text-dark', label: 'Cần thay thế' },
+                            'DANG_BAO_HANH': { badge: 'bg-info', label: 'Đang bảo hành' },
+                            'DA_HU_HONG': { badge: 'bg-danger', label: 'Đã hư hỏng' }
+                        };
+                        const st = stMap[lk.trangThai] || { badge: 'bg-secondary', label: lk.trangThai };
+                        document.getElementById('vTrangThai').innerHTML = `<span class="badge ${st.badge}">${st.label}</span>`;
+
+                        // Tuổi thọ
+                        if (lk.tuoiThoToiDa && lk.tuoiThoToiDa > 0) {
+                            const used = lk.thoiGianDaSuDung || 0;
+                            const pct = Math.min(100, Math.round((used / lk.tuoiThoToiDa) * 100));
+                            const barColor = pct >= 90 ? 'bg-danger' : pct >= 70 ? 'bg-warning' : 'bg-success';
+                            document.getElementById('vUsagePercent').textContent = pct + '%';
+                            document.getElementById('vUsageDetail').textContent = `${used} / ${lk.tuoiThoToiDa} ${lk.donViTinh || ''}`;
+                            const bar = document.getElementById('vUsageBar');
+                            bar.style.width = pct + '%';
+                            bar.className = 'progress-bar ' + barColor;
+                        } else {
+                            document.getElementById('vUsagePercent').textContent = '-';
+                            document.getElementById('vUsageDetail').textContent = 'Chưa thiết lập tuổi thọ';
+                        }
+
+                        // Bảo hành
+                        document.getElementById('vNgayMua').textContent = lk.ngayMua || 'Chưa cập nhật';
+                        document.getElementById('vHanBaoHanh').textContent = lk.hanBaoHanh || 'Chưa cập nhật';
+                        if (lk.hanBaoHanh) {
+                            const today = new Date();
+                            const expiry = new Date(lk.hanBaoHanh);
+                            if (expiry < today) {
+                                document.getElementById('vWarrantyStatus').innerHTML = '<span class="badge bg-secondary">Hết hạn bảo hành</span>';
+                            } else {
+                                const days = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+                                document.getElementById('vWarrantyStatus').innerHTML = `<span class="badge bg-success">Còn ${days} ngày</span>`;
+                            }
+                        } else {
+                            document.getElementById('vWarrantyStatus').innerHTML = '<span class="text-muted">Không có thông tin</span>';
+                        }
+                    });
+            }
+
+            function capNhatSuDung() {
+                const val = document.getElementById('soGioThem').value;
+                if (!val || parseInt(val) <= 0) {
+                    alert('Vui lòng nhập số giờ hợp lệ');
+                    return;
+                }
+                fetch(`/api/admin/linh-kien/${linhKienId}/su-dung?soGioThem=${val}`, { method: 'PATCH' })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Cập nhật thành công!');
+                            document.getElementById('soGioThem').value = '';
+                            loadDetail();
+                        } else {
+                            alert('Lỗi: ' + (data.message || ''));
+                        }
+                    });
+            }
+        </script>
+    </th:block>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${title}">Sửa linh kiện</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-1" th:text="${title}">Sửa linh kiện</h4>
+                            <p class="text-muted small mb-0">Cập nhật thông tin linh kiện</p>
+                        </div>
+                        <a th:href="@{/admin/linh-kien}" class="btn btn-secondary">
+                            <i data-lucide="arrow-left"></i> Quay lại
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-body">
+                            <form id="editForm">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Mã linh kiện</label>
+                                        <input type="text" class="form-control" id="maLinhKien" readonly>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Tên linh kiện <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="tenLinhKien" required>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Trạng thái</label>
+                                        <select class="form-select" id="trangThai">
+                                            <option value="HOAT_DONG">Hoạt động</option>
+                                            <option value="CAN_THAY_THE">Cần thay thế</option>
+                                            <option value="DANG_BAO_HANH">Đang bảo hành</option>
+                                            <option value="DA_HU_HONG">Đã hư hỏng</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Đơn vị tính</label>
+                                        <select class="form-select" id="donViTinh">
+                                            <option value="Giờ">Giờ</option>
+                                            <option value="Trang">Trang (in)</option>
+                                            <option value="Tháng">Tháng</option>
+                                            <option value="Lần">Lần sử dụng</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Tuổi thọ tối đa</label>
+                                        <input type="number" class="form-control" id="tuoiThoToiDa">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Đã sử dụng</label>
+                                        <input type="number" class="form-control" id="thoiGianDaSuDung">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Hạn bảo hành</label>
+                                        <input type="date" class="form-control" id="hanBaoHanh">
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Thông số kỹ thuật</label>
+                                    <textarea class="form-control" id="thongSoKyThuat" rows="3"></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">
+                                    <i data-lucide="save"></i> Lưu thay đổi
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            const linhKienId = [[${id}]];
+
+            document.addEventListener('DOMContentLoaded', function () {
+                lucide.createIcons();
+                loadLinhKien();
+            });
+
+            function loadLinhKien() {
+                fetch(`/api/admin/linh-kien/${linhKienId}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            const lk = data.data;
+                            document.getElementById('maLinhKien').value = lk.maLinhKien || '';
+                            document.getElementById('tenLinhKien').value = lk.tenLinhKien || '';
+                            document.getElementById('trangThai').value = lk.trangThai || 'HOAT_DONG';
+                            document.getElementById('donViTinh').value = lk.donViTinh || 'Giờ';
+                            document.getElementById('tuoiThoToiDa').value = lk.tuoiThoToiDa || '';
+                            document.getElementById('thoiGianDaSuDung').value = lk.thoiGianDaSuDung || 0;
+                            document.getElementById('hanBaoHanh').value = lk.hanBaoHanh || '';
+                            document.getElementById('thongSoKyThuat').value = lk.thongSoKyThuat || '';
+                        }
+                    });
+            }
+
+            document.getElementById('editForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const payload = {
+                    tenLinhKien: document.getElementById('tenLinhKien').value,
+                    trangThai: document.getElementById('trangThai').value,
+                    donViTinh: document.getElementById('donViTinh').value,
+                    tuoiThoToiDa: document.getElementById('tuoiThoToiDa').value ? parseInt(document.getElementById('tuoiThoToiDa').value) : null,
+                    thoiGianDaSuDung: parseInt(document.getElementById('thoiGianDaSuDung').value) || 0,
+                    hanBaoHanh: document.getElementById('hanBaoHanh').value || null,
+                    thongSoKyThuat: document.getElementById('thongSoKyThuat').value || null
+                };
+
+                fetch(`/api/admin/linh-kien/${linhKienId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Cập nhật thành công!');
+                            window.location.href = '/admin/linh-kien';
+                        } else {
+                            alert('Lỗi: ' + (data.message || 'Không thể cập nhật'));
+                        }
+                    })
+                    .catch(err => alert('Có lỗi xảy ra: ' + err.message));
+            });
+        </script>
+    </th:block>
+</body>
+</html>

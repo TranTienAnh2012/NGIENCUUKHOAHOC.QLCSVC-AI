@@ -60,8 +60,74 @@
         </div>
     </div>
     <th:block layout:fragment="scripts">
-        <script
-            th:inline="javascript">const id =/*[[${id}]]*/0; document.addEventListener('DOMContentLoaded', () => { loadData(); lucide.createIcons(); }); function loadData() { fetch(`/api/admin/muon-tra/${id}`).then(r => r.json()).then(data => { if (data.success) { const item = data.data; document.getElementById('display-id').textContent = item.id; document.getElementById('display-nguoiDung').textContent = item.nguoiDung?.hoTen || 'Chưa có'; document.getElementById('display-thietBi').textContent = item.thietBi?.tenThietBi || 'Chưa có'; document.getElementById('display-ngayMuon').textContent = new Date(item.ngayMuon).toLocaleDateString('vi-VN'); document.getElementById('display-ngayTraDuKien').textContent = item.ngayTraDuKien ? new Date(item.ngayTraDuKien).toLocaleDateString('vi-VN') : 'Chưa có'; document.getElementById('display-ngayTra').textContent = item.ngayTra ? new Date(item.ngayTra).toLocaleDateString('vi-VN') : 'Chưa trả'; const statusBadge = item.trangThai === 'DANG_MUON' ? 'bg-warning' : item.trangThai === 'DA_TRA' ? 'bg-success' : 'bg-secondary'; document.getElementById('display-trangThai').innerHTML = `<span class="badge ${statusBadge}">${item.trangThai}</span>`; document.getElementById('display-ghiChu').textContent = item.ghiChu || 'Không có'; document.getElementById('loadingState').style.display = 'none'; document.getElementById('dataDisplay').style.display = 'block'; lucide.createIcons(); } else { alert('Không tìm thấy'); window.location.href = '/admin/muon-tra'; } }).catch(e => { console.error('Error:', e); alert('Có lỗi xảy ra'); }); } function deleteItem() { if (confirm('Bạn có chắc chắn muốn xóa?')) { fetch(`/api/admin/muon-tra/${id}`, { method: 'DELETE' }).then(r => r.json()).then(data => { if (data.success) { alert('Xóa thành công!'); window.location.href = '/admin/muon-tra'; } else { alert('Lỗi: ' + (data.message || 'Không thể xóa')); } }).catch(e => { console.error('Error:', e); alert('Có lỗi xảy ra'); }); } }</script>
+        <script th:inline="javascript">
+            const id = /*[[${id}]]*/ 0;
+            document.addEventListener('DOMContentLoaded', () => { 
+                loadData(); 
+                lucide.createIcons(); 
+            }); 
+            
+            function parseDate(val) {
+                if (!val) return null;
+                if (Array.isArray(val)) {
+                    const [y, m, d, h=0, min=0] = val;
+                    return new Date(y, m - 1, d, h, min);
+                }
+                const d = new Date(val);
+                return isNaN(d.getTime()) ? null : d;
+            }
+
+            function loadData() { 
+                fetch(`/api/admin/muon-tra/${id}`)
+                .then(r => r.json())
+                .then(data => { 
+                    if (data.success) { 
+                        const item = data.data; 
+                        document.getElementById('display-id').textContent = item.id; 
+                        document.getElementById('display-nguoiDung').textContent = item.nguoiMuon?.hoTen || item.nguoiDung?.hoTen || 'Chưa có'; 
+                        document.getElementById('display-thietBi').textContent = item.thietBi?.tenThietBi || 'Chưa có'; 
+                        
+                        const ngayMuon = parseDate(item.ngayMuon);
+                        document.getElementById('display-ngayMuon').textContent = ngayMuon ? ngayMuon.toLocaleString('vi-VN') : 'Chưa có'; 
+                        
+                        const ngayTraDuKien = parseDate(item.ngayTraDuKien);
+                        document.getElementById('display-ngayTraDuKien').textContent = ngayTraDuKien ? ngayTraDuKien.toLocaleString('vi-VN') : 'Chưa có'; 
+                        
+                        const ngayTraThucTe = parseDate(item.ngayTraThucTe);
+                        document.getElementById('display-ngayTra').textContent = ngayTraThucTe ? ngayTraThucTe.toLocaleString('vi-VN') : 'Chưa trả'; 
+                        
+                        const statusBadge = item.trangThai === 'DANG_MUON' ? 'bg-warning' : item.trangThai === 'DA_TRA' ? 'bg-success' : 'bg-secondary'; 
+                        document.getElementById('display-trangThai').innerHTML = `<span class="badge ${statusBadge}">${item.trangThai}</span>`; 
+                        document.getElementById('display-ghiChu').textContent = item.ghiChu || 'Không có'; 
+                        
+                        document.getElementById('loadingState').style.display = 'none'; 
+                        document.getElementById('dataDisplay').style.display = 'block'; 
+                        lucide.createIcons(); 
+                    } else { 
+                        alert('Không tìm thấy'); 
+                        window.location.href = '/admin/muon-tra'; 
+                    } 
+                }).catch(e => { 
+                    console.error('Error:', e); 
+                    alert('Có lỗi xảy ra'); 
+                }); 
+            } 
+            
+            function deleteItem() { 
+                if (confirm('Bạn có chắc chắn muốn xóa?')) { 
+                    fetch(`/api/admin/muon-tra/${id}`, { method: 'DELETE' })
+                    .then(r => r.json())
+                    .then(data => { 
+                        if (data.success) { 
+                            alert('Xóa thành công!'); 
+                            window.location.href = '/admin/muon-tra'; 
+                        } else { 
+                            alert('Lỗi: ' + (data.message || 'Không thể xóa')); 
+                        } 
+                    }).catch(e => { console.error('Error:', e); alert('Có lỗi xảy ra'); }); 
+                } 
+            }
+        </script>
     </th:block>
 </body>
 

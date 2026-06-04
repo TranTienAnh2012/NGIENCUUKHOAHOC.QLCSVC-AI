@@ -13,6 +13,8 @@ import java.util.Optional;
 public interface ThietBiRepository extends JpaRepository<ThietBi, Long> {
     Optional<ThietBi> findByMaThietBi(String maThietBi);
 
+    long countByTrangThai(ThietBi.TrangThaiThietBi trangThai);
+
     List<ThietBi> findByTrangThai(ThietBi.TrangThaiThietBi trangThai);
 
     @Query("SELECT DISTINCT tb FROM ThietBi tb " +

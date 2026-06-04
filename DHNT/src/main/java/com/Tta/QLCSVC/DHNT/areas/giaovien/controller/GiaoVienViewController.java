@@ -196,9 +196,22 @@ public class GiaoVienViewController {
     }
 
     @GetMapping("/bao-hong/create")
-    public String createBaoHongForm(Model model) {
+    public String createBaoHongForm(@RequestParam(required = false) Long thietBiId, Model model) {
         model.addAttribute("title", "Báo hỏng mới");
         List<ThietBi> thietBis = giaoVienThietBiService.getAllAvailableThietBi();
+        
+        // Nếu có truyền thietBiId (từ trang mượn trả), và thiết bị đó không nằm trong list HOAT_DONG, ta vẫn cần lấy nó ra
+        if (thietBiId != null) {
+            model.addAttribute("selectedThietBiId", thietBiId);
+            boolean exists = thietBis.stream().anyMatch(tb -> tb.getId().equals(thietBiId));
+            if (!exists) {
+                try {
+                    ThietBi tb = giaoVienThietBiService.getThietBiById(thietBiId);
+                    thietBis.add(tb);
+                } catch (Exception ignored) {}
+            }
+        }
+        
         model.addAttribute("thietBis", thietBis);
         return "areas/giaovien/bao-hong-create";
     }

@@ -52,8 +52,10 @@
                     <select name="thietBiId" required
                         style="width: 100%; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 15px; transition: all 0.3s; cursor: pointer;">
                         <option value="">-- Chọn thiết bị --</option>
-                        <option th:each="tb : ${thietBis}" th:value="${tb.id}"
-                            th:text="${tb.tenThietBi + ' (' + tb.maThietBi + ')'}">
+                        <option th:each="tb : ${thietBis}" 
+                                th:value="${tb.id}"
+                                th:selected="${selectedThietBiId != null and selectedThietBiId == tb.id}"
+                                th:text="${tb.tenThietBi + ' (' + tb.maThietBi + ')'}">
                             Máy chiếu Epson (TB001)
                         </option>
                     </select>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/nhanvien-layout}">
+
+<head>
+    <title th:text="${title}">Quản lý thiết bị</title>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <!-- Header -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-1" th:text="${title}">Danh sách thiết bị</h4>
+                            <p class="text-muted small mb-0">Quản lý và tra cứu trạng thái thiết bị</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="dataTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Mã TB</th>
+                                            <th>Tên thiết bị</th>
+                                            <th>Loại</th>
+                                            <th>Phòng học</th>
+                                            <th>Trạng thái</th>
+                                            <th>Liên kết</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="item : ${thietBis}"
+                                            style="cursor: pointer; transition: background-color 0.2s;" 
+                                            onmouseover="this.style.backgroundColor='#f8f9fa'" 
+                                            onmouseout="this.style.backgroundColor='transparent'"
+                                            th:onclick="'window.location.href=\'/nhanvien-csvc/thiet-bi/' + ${item.id} + '\''">
+                                            <td th:text="${item.maThietBi}">TB-001</td>
+                                            <td class="fw-medium text-primary" th:text="${item.tenThietBi}">Máy chiếu</td>
+                                            <td th:text="${item.loaiThietBi?.tenLoai}">Máy chiếu</td>
+                                            <td th:text="${item.phong?.tenPhong}">A101</td>
+                                            <td>
+                                                <span th:class="'badge ' + ${item.trangThai.name() == 'TOT' ? 'bg-success' : (item.trangThai.name() == 'HONG' ? 'bg-danger' : 'bg-warning')}"
+                                                      th:text="${item.trangThai}">TOT</span>
+                                            </td>
+                                            <td onclick="event.stopPropagation();">
+                                                <div th:if="${item.trangThai.name() == 'HONG' || item.trangThai.name() == 'BAO_TRI'}" class="btn-group btn-group-sm">
+                                                    <a th:href="@{/nhanvien-csvc/bao-hong}" 
+                                                       class="btn btn-outline-danger" title="Đến trang báo hỏng">
+                                                        <i data-lucide="alert-triangle" style="width: 14px; height: 14px;"></i> Báo hỏng
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                lucide.createIcons();
+            });
+        </script>
+    </th:block>
+</body>
+</html>

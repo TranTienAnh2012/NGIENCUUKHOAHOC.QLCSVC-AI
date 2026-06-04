@@ -55,6 +55,9 @@ public class ThietBi {
     @Column(name = "gia_mua", precision = 15, scale = 2)
     private BigDecimal giaMua;
 
+    @Column(name = "han_bao_hanh")
+    private LocalDate hanBaoHanh;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "trang_thai")
     private TrangThaiThietBi trangThai = TrangThaiThietBi.TOT;
@@ -83,11 +86,15 @@ public class ThietBi {
     @JsonIgnore
     private List<MuonTraThietBi> muonTras = new ArrayList<>();
 
+    @OneToMany(mappedBy = "thietBi", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<LinhKien> linhKiens = new ArrayList<>();
+
     public ThietBi() {
     }
 
     public ThietBi(Long id, String maThietBi, String tenThietBi, LoaiThietBi loaiThietBi, PhongHoc phong,
-            String hangSanXuat, String model, Integer namSanXuat, LocalDate ngayMua, BigDecimal giaMua,
+            String hangSanXuat, String model, Integer namSanXuat, LocalDate ngayMua, LocalDate hanBaoHanh, BigDecimal giaMua,
             TrangThaiThietBi trangThai, String ghiChu, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.maThietBi = maThietBi;
@@ -98,6 +105,7 @@ public class ThietBi {
         this.model = model;
         this.namSanXuat = namSanXuat;
         this.ngayMua = ngayMua;
+        this.hanBaoHanh = hanBaoHanh;
         this.giaMua = giaMua;
         this.trangThai = trangThai;
         this.ghiChu = ghiChu;
@@ -188,6 +196,14 @@ public class ThietBi {
         this.ngayMua = ngayMua;
     }
 
+    public LocalDate getHanBaoHanh() {
+        return hanBaoHanh;
+    }
+
+    public void setHanBaoHanh(LocalDate hanBaoHanh) {
+        this.hanBaoHanh = hanBaoHanh;
+    }
+
     public BigDecimal getGiaMua() {
         return giaMua;
     }
@@ -240,7 +256,8 @@ public class ThietBi {
         TOT,
         BAO_TRI,
         HONG,
-        THANH_LY
+        THANH_LY,
+        DANG_BAO_HANH
     }
 
     public List<HinhAnhThietBi> getHinhAnhs() {
@@ -265,5 +282,13 @@ public class ThietBi {
 
     public void setMuonTras(List<MuonTraThietBi> muonTras) {
         this.muonTras = muonTras;
+    }
+
+    public List<LinhKien> getLinhKiens() {
+        return linhKiens;
+    }
+
+    public void setLinhKiens(List<LinhKien> linhKiens) {
+        this.linhKiens = linhKiens;
     }
 }

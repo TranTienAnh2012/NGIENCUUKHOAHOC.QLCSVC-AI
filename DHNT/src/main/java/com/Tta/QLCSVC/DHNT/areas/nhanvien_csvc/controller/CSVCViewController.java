@@ -2,8 +2,13 @@ package com.Tta.QLCSVC.DHNT.areas.nhanvien_csvc.controller;
 
 import com.Tta.QLCSVC.DHNT.areas.nhanvien_csvc.service.CSVCBaoHongService;
 import com.Tta.QLCSVC.DHNT.areas.nhanvien_csvc.service.CSVCBaoTriService;
+import com.Tta.QLCSVC.DHNT.areas.nhanvien_csvc.service.CSVCPhongHocService;
+import com.Tta.QLCSVC.DHNT.areas.nhanvien_csvc.service.CSVCThietBiService;
+import com.Tta.QLCSVC.DHNT.areas.nhanvien_csvc.service.CSVCThongKeService;
 import com.Tta.QLCSVC.DHNT.entity.BaoHong;
 import com.Tta.QLCSVC.DHNT.entity.BaoTri;
+import com.Tta.QLCSVC.DHNT.entity.ThietBi;
+import com.Tta.QLCSVC.DHNT.entity.PhongHoc;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
@@ -14,6 +19,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/nhanvien-csvc")
@@ -23,12 +29,17 @@ public class CSVCViewController {
 
     private final CSVCBaoHongService csvcBaoHongService;
     private final CSVCBaoTriService csvcBaoTriService;
+    private final CSVCThietBiService csvcThietBiService;
+    private final CSVCPhongHocService csvcPhongHocService;
+    private final CSVCThongKeService csvcThongKeService;
 
     @GetMapping
     public String dashboard(Model model) {
         model.addAttribute("title", "Dashboard Nhân viên CSVC");
         return "areas/nhanvien_csvc/dashboard";
     }
+
+    // ==================== Báo Hỏng ====================
 
     @GetMapping("/bao-hong")
     public String baoHongList(Model model) {
@@ -44,6 +55,24 @@ public class CSVCViewController {
         BaoHong baoHong = csvcBaoHongService.getBaoHongById(id);
         model.addAttribute("baoHong", baoHong);
         return "areas/nhanvien_csvc/bao-hong/detail";
+    }
+
+    // ==================== Bảo Trì ====================
+
+    @GetMapping("/bao-tri")
+    public String baoTri(Model model) {
+        model.addAttribute("title", "Lịch trình bảo trì");
+        List<BaoTri> baoTris = csvcBaoTriService.getAllBaoTri();
+        model.addAttribute("baoTris", baoTris);
+        return "areas/nhanvien_csvc/bao-tri/list";
+    }
+
+    @GetMapping("/bao-tri/{id}")
+    public String baoTriDetail(@PathVariable Long id, Model model) {
+        model.addAttribute("title", "Chi tiết bảo trì");
+        BaoTri baoTri = csvcBaoTriService.getBaoTriById(id);
+        model.addAttribute("baoTri", baoTri);
+        return "areas/nhanvien_csvc/bao-tri/detail";
     }
 
     @GetMapping("/bao-tri/create")
@@ -88,11 +117,42 @@ public class CSVCViewController {
         }
     }
 
-    @GetMapping("/bao-tri")
-    public String baoTri(Model model) {
-        model.addAttribute("title", "Lịch trình bảo trì");
-        List<BaoTri> baoTris = csvcBaoTriService.getAllBaoTri();
-        model.addAttribute("baoTris", baoTris);
-        return "areas/nhanvien_csvc/bao-tri/list";
+    // ==================== Thiết Bị ====================
+
+    @GetMapping("/thiet-bi")
+    public String thietBiList(Model model) {
+        model.addAttribute("title", "Quản lý thiết bị");
+        List<ThietBi> thietBis = csvcThietBiService.getAllThietBi();
+        model.addAttribute("thietBis", thietBis);
+        return "areas/nhanvien_csvc/thiet-bi";
+    }
+
+    @GetMapping("/thiet-bi/{id}")
+    public String thietBiDetail(@PathVariable Long id, Model model) {
+        model.addAttribute("title", "Chi tiết thiết bị");
+        ThietBi thietBi = csvcThietBiService.getThietBiById(id);
+        model.addAttribute("thietBi", thietBi);
+        return "areas/nhanvien_csvc/thiet-bi/detail";
+    }
+
+    // ==================== Phòng Học ====================
+
+    @GetMapping("/phong-hoc")
+    public String phongHocList(Model model) {
+        model.addAttribute("title", "Quản lý phòng học");
+        List<PhongHoc> phongHocs = csvcPhongHocService.getAllPhongHocWithThietBiStats();
+        model.addAttribute("phongHocs", phongHocs);
+        return "areas/nhanvien_csvc/phong-hoc";
+    }
+
+    // ==================== Thống Kê ====================
+
+    @GetMapping("/thong-ke")
+    public String thongKe(Model model) {
+        model.addAttribute("title", "Thống kê & Báo cáo");
+        Map<String, Object> stats = csvcThongKeService.getThongKeTongQuan();
+        model.addAttribute("stats", stats);
+        return "areas/nhanvien_csvc/thong-ke";
     }
 }
+
