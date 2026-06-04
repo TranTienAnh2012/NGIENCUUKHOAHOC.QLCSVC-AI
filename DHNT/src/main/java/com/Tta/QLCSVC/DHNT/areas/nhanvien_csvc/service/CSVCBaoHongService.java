@@ -14,6 +14,7 @@ import java.util.List;
 public class CSVCBaoHongService {
 
     private final BaoHongRepository baoHongRepository;
+    private final com.Tta.QLCSVC.DHNT.service.NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<BaoHong> getAllBaoHong() {
@@ -79,6 +80,15 @@ public class CSVCBaoHongService {
         BaoHong baoHong = baoHongRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("BaoHong", "id", id));
         baoHong.setTrangThai(trangThai);
-        return baoHongRepository.save(baoHong);
+        BaoHong saved = baoHongRepository.save(baoHong);
+        
+        // Notify the user who reported it
+        if (saved.getNguoiBao() != null && saved.getThietBi() != null) {
+            String title = "🛠️ Cập nhật báo hỏng: " + saved.getThietBi().getTenThietBi();
+            String msg = "Trạng thái báo hỏng thiết bị " + saved.getThietBi().getTenThietBi() + " đã được chuyển sang: " + trangThai.name();
+            notificationService.sendToUser(saved.getNguoiBao().getId(), title, msg, "BAO_HONG", "/giao-vien/bao-hong");
+        }
+        
+        return saved;
     }
 }

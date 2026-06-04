@@ -24,6 +24,7 @@ public class AdminThietBiService {
     private final ThietBiRepository thietBiRepository;
     private final LoaiThietBiRepository loaiThietBiRepository;
     private final PhongHocRepository phongHocRepository;
+    private final com.Tta.QLCSVC.DHNT.service.NotificationService notificationService;
 
 
     @Transactional(readOnly = true)
@@ -86,11 +87,27 @@ public class AdminThietBiService {
         ThietBi thietBi = getThietBiById(id);
 
         thietBi.setTenThietBi(thietBiDetails.getTenThietBi());
-        thietBi.setHangSanXuat(thietBiDetails.getHangSanXuat());
-        thietBi.setModel(thietBiDetails.getModel());
-        thietBi.setNamSanXuat(thietBiDetails.getNamSanXuat());
+        if (thietBiDetails.getMaThietBi() != null && !thietBiDetails.getMaThietBi().isEmpty()) {
+            thietBi.setMaThietBi(thietBiDetails.getMaThietBi());
+        }
+        // Only overwrite these fields if the incoming value is non-null (patch-merge strategy)
+        if (thietBiDetails.getHangSanXuat() != null) {
+            thietBi.setHangSanXuat(thietBiDetails.getHangSanXuat());
+        }
+        if (thietBiDetails.getModel() != null) {
+            thietBi.setModel(thietBiDetails.getModel());
+        }
+        if (thietBiDetails.getNamSanXuat() != null) {
+            thietBi.setNamSanXuat(thietBiDetails.getNamSanXuat());
+        }
+        // ngayMua and hanBaoHanh CAN be explicitly set to null by the user (clearing the field),
+        // but the frontend sends null for these when the input is empty.
+        // Since these are sent in the payload, we always update them.
         thietBi.setNgayMua(thietBiDetails.getNgayMua());
-        thietBi.setGiaMua(thietBiDetails.getGiaMua());
+        thietBi.setHanBaoHanh(thietBiDetails.getHanBaoHanh());
+        if (thietBiDetails.getGiaMua() != null) {
+            thietBi.setGiaMua(thietBiDetails.getGiaMua());
+        }
         thietBi.setGhiChu(thietBiDetails.getGhiChu());
         thietBi.setTrangThai(thietBiDetails.getTrangThai());
 
@@ -113,14 +130,25 @@ public class AdminThietBiService {
             thietBi.setPhong(null);
         }
 
-        return thietBiRepository.save(thietBi);
+        ThietBi saved = thietBiRepository.save(thietBi);
+        
+        // System Audit Log
+        String title = "🔄 Hệ thống: Cập nhật thiết bị";
+        String msg = "Thiết bị " + saved.getTenThietBi() + " (Mã: " + saved.getMaThietBi() + ") vừa được chỉnh sửa.";
+        notificationService.sendToRole(com.Tta.QLCSVC.DHNT.entity.NguoiDung.VaiTro.ADMIN, title, msg, "THIET_BI", "/admin/thiet-bi");
+        
+        return saved;
     }
 
     @Transactional
     public void deleteThietBi(Long id) {
-        if (!thietBiRepository.existsById(id)) {
-            throw new ResourceNotFoundException("ThietBi", "id", id);
-        }
+        ThietBi thietBi = getThietBiById(id);
+        
+        // System Audit Log
+        String title = "🗑️ Hệ thống: Xóa thiết bị";
+        String msg = "Thiết bị " + thietBi.getTenThietBi() + " (Mã: " + thietBi.getMaThietBi() + ") đã bị xóa khỏi hệ thống.";
+        notificationService.sendToRole(com.Tta.QLCSVC.DHNT.entity.NguoiDung.VaiTro.ADMIN, title, msg, "THIET_BI", "/admin/thiet-bi");
+        
         thietBiRepository.deleteById(id);
     }
 

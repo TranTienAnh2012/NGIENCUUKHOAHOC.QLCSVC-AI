@@ -194,13 +194,39 @@ def chatbot():
         if not user_message or not user_id or not session_id:
             return jsonify({"error": "Missing fields"}), 400
         
+        # Lấy context từ DB
+        context_data = ""
+        try:
+            r = req_lib.get('http://localhost:8080/api/ai-data/devices', headers=INTERNAL_HEADERS, timeout=3)
+            if r.status_code == 200:
+                devices = r.json()
+                tot = sum(1 for d in devices if d.get('status') == 'TOT')
+                hong = sum(1 for d in devices if d.get('status') == 'HONG')
+                bao_tri = sum(1 for d in devices if d.get('status') == 'BAO_TRI')
+                thanh_ly = sum(1 for d in devices if d.get('status') == 'THANH_LY')
+                context_data = f"[Hệ thống nội bộ]: Hiện tại có {len(devices)} thiết bị. Trạng thái: {tot} hoạt động tốt, {bao_tri} cần bảo trì, {hong} đang báo hỏng, {thanh_ly} đã thanh lý.\n\n"
+        except Exception as e:
+            pass
+
         history = get_conversation_history(user_id, session_id)
-        full_prompt = f"{CHATBOT_SYSTEM_PROMPT}\nUser: {user_message}"
+        full_prompt = f"{CHATBOT_SYSTEM_PROMPT}\n{context_data}User: {user_message}"
         response = model.generate_content(full_prompt)
         ai_response = response.text
         save_conversation(user_id, session_id, user_message, ai_response)
         
         return jsonify({"success": True, "response": ai_response}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/ai/chat', methods=['POST'])
+def simple_chat():
+    try:
+        data = request.get_json()
+        message = data.get('message', '')
+        if not message: return jsonify({"error": "Missing message"}), 400
+        
+        response = model.generate_content(message)
+        return jsonify({"success": True, "response": response.text}), 200
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

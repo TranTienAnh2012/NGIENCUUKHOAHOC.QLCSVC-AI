@@ -16,6 +16,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
@@ -54,6 +55,7 @@ public class AiNotificationScheduler {
     // STARTUP: Chạy ngay khi server khởi động để có thông báo ngay
     // ================================================================
     @EventListener(ApplicationReadyEvent.class)
+    @Transactional
     public void onStartup() {
         log.info("[AI] Server khởi động — kích hoạt phân tích tự động...");
         runFullAiAnalysis();
@@ -63,14 +65,10 @@ public class AiNotificationScheduler {
     // SCHEDULED: Mỗi 8h sáng (daily report) + mỗi giờ (kiểm tra hạn trả)
     // ================================================================
     @Scheduled(cron = "0 0 8 * * ?")
+    @Transactional
     public void dailySchedule() {
         log.info("[AI] Bắt đầu phân tích tự động hàng ngày...");
         runFullAiAnalysis();
-    }
-
-    @Scheduled(fixedRate = 3_600_000)
-    public void hourlyReminder() {
-        remindDueSoonBorrowings();
     }
 
     // ================================================================
@@ -85,18 +83,21 @@ public class AiNotificationScheduler {
             long choBaoHong  = baoHongRepository.findByTrangThai(BaoHong.TrangThaiBaoHong.CHO_XU_LY).size();
             long dangBaoHong = baoHongRepository.findByTrangThai(BaoHong.TrangThaiBaoHong.DANG_XU_LY).size();
             List<BaoHong> urgentList = baoHongRepository.findUrgentReports();
+            
+            LocalDateTime oneDayAgo = LocalDateTime.now().minusDays(1);
             List<BaoTri> recentBaoTri = baoTriRepository.findAll().stream()
-                    .sorted((a, b) -> {
-                        if (a.getCreatedAt() == null) return 1;
-                        if (b.getCreatedAt() == null) return -1;
-                        return b.getCreatedAt().compareTo(a.getCreatedAt());
-                    }).limit(3).toList();
+                    .filter(b -> b.getCreatedAt() != null && b.getCreatedAt().isAfter(oneDayAgo))
+                    .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                    .limit(5).toList();
 
             // 2. Gửi thông báo AI cho từng role
             notifyAdmin(tongThietBi, dangMuon, quaHan, choBaoHong, urgentList.size());
             notifyNhanVien(choBaoHong, dangBaoHong, urgentList, recentBaoTri);
+            
+            // 3. Nhắc nhở hạn trả cho Giáo viên
+            remindDueSoonBorrowings();
 
-            log.info("[AI] Phân tích hoàn tất — đã gửi thông báo cho Admin và Nhân viên CSVC.");
+            log.info("[AI] Phân tích hoàn tất — đã gửi thông báo cho 3 roles.");
         } catch (Exception e) {
             log.error("[AI] Lỗi khi phân tích: {}", e.getMessage());
         }
@@ -261,6 +262,7 @@ public class AiNotificationScheduler {
     // ================================================================
     // GIÁO VIÊN: Nhắc hạn trả (cá nhân, có AI sinh nội dung)
     // ================================================================
+    @Transactional
     public void remindDueSoonBorrowings() {
         try {
             LocalDateTime now = LocalDateTime.now();
@@ -332,6 +334,7 @@ public class AiNotificationScheduler {
     /**
      * Trigger thủ công từ API endpoint (Admin dùng khi demo).
      */
+    @Transactional
     public void triggerManualPrediction() {
         runFullAiAnalysis();
     }

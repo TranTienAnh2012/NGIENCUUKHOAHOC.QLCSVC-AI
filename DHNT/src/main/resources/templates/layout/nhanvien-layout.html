@@ -156,7 +156,7 @@
             content.innerHTML = '✨ <strong>AI đang phân tích...</strong>';
             container.style.display = 'block';
             const texts = notifications.map(n => `- ${n.tieuDe}: ${n.noiDung}`).join('\n');
-            fetch('/api/ai/chat', {
+            fetch('http://localhost:5000/api/ai/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: `Tóm tắt ngắn gọn (2-3 dòng) các thông báo sau theo góc nhìn Nhân viên CSVC:\n${texts}`, role: 'NHAN_VIEN_CSVC' })
@@ -174,7 +174,8 @@
                     badge.style.display = 'block';
                     badge.textContent = data.count;
                     let html = '<li id="nv-ai-summary-container" style="display:none;border-bottom:1px solid #e2e8f0;"><div id="nv-ai-summary-content" style="padding:10px 14px;background:linear-gradient(135deg,#064e3b,#065f46);font-size:0.82rem;color:#6ee7b7;line-height:1.6;"></div></li>';
-                    data.notifications.forEach(n => {
+                    var displayList = data.notifications.slice(0, 5);
+                    displayList.forEach(n => {
                         function parseDate(v) {
                             if (!v) return null;
                             if (Array.isArray(v)) return new Date(v[0], v[1]-1, v[2], v[3]||0, v[4]||0, v[5]||0);
@@ -189,8 +190,12 @@
                                 <small style="color:#94a3b8;font-size:0.72rem;align-self:flex-end;margin-top:6px;">${d}</small>
                             </a></li>`;
                     });
+                    if (data.count > 5) {
+                        html += `<li><div class="text-center p-2"><small style="color:#94a3b8;">Còn ${data.count - 5} thông báo khác...</small></div></li>`;
+                    }
+                    html += '<li style="border-top:1px solid rgba(255,255,255,0.08);"><a href="/thong-bao" class="dropdown-item text-center py-2" style="font-weight:600;color:#10b981;">Xem tất cả thông báo</a></li>';
                     list.innerHTML = html;
-                    if (!nvAiDone) { nvAiDone = true; setTimeout(() => summarizeNvAI(data.notifications), 600); }
+                    if (!nvAiDone) { nvAiDone = true; setTimeout(() => summarizeNvAI(data.notifications.slice(0, 5)), 600); }
                 } else {
                     badge.style.display = 'none';
                     list.innerHTML = '<li><div class="p-3 text-center text-muted">Không có thông báo mới</div></li>';

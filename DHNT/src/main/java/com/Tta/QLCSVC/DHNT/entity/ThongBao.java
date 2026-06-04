@@ -21,6 +21,7 @@ public class ThongBao {
     // Gửi cho 1 người cụ thể (nullable nếu gửi theo role)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "nguoi_dung_id")
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "thongBaos"})
     private NguoiDung nguoiDung;
 
     // Gửi broadcast cho cả 1 role (nullable nếu gửi cho cá nhân)

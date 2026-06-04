@@ -55,6 +55,7 @@ public class HinhAnhThietBi {
     public enum LoaiHinhAnh {
         QR_CODE, // Mã QR để nhận diện thiết bị
         HINH_ANH_CHINH, // Hình ảnh đại diện chính của thiết bị
-        KIEM_TRA_TINH_TRANG // Hình ảnh kiểm tra tình trạng thiết bị
+        KIEM_TRA_TINH_TRANG, // Hình ảnh kiểm tra tình trạng thiết bị
+        BAO_HONG // Hình ảnh đính kèm khi báo hỏng
     }
 }

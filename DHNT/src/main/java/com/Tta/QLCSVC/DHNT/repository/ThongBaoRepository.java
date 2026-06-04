@@ -17,10 +17,10 @@ public interface ThongBaoRepository extends JpaRepository<ThongBao, Long> {
     long countByNguoiDungIdAndDaDocFalse(Long nguoiDungId);
 
     // Queries mới (kết hợp per-user + role-broadcast, dùng bởi NotificationService)
-    @Query("SELECT t FROM ThongBao t WHERE (t.nguoiDung.id = :userId OR t.roleNhan = :role) ORDER BY t.createdAt DESC")
+    @Query("SELECT t FROM ThongBao t LEFT JOIN t.nguoiDung u WHERE (u.id = :userId OR t.roleNhan = :role) ORDER BY t.createdAt DESC")
     List<ThongBao> findNotificationsForUser(@Param("userId") Long userId, @Param("role") NguoiDung.VaiTro role);
 
-    @Query("SELECT COUNT(t) FROM ThongBao t WHERE (t.nguoiDung.id = :userId OR t.roleNhan = :role) AND t.daDoc = false")
+    @Query("SELECT COUNT(t) FROM ThongBao t LEFT JOIN t.nguoiDung u WHERE (u.id = :userId OR t.roleNhan = :role) AND t.daDoc = false")
     long countUnreadNotifications(@Param("userId") Long userId, @Param("role") NguoiDung.VaiTro role);
 
     // Deduplication: kiểm tra đã gửi thông báo tương tự chưa (trong N giờ gần đây)

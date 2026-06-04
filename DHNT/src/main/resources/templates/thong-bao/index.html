@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{__${layoutName}__}">
+
+<head>
+    <title th:text="${title}">Trung tâm Thông báo</title>
+    <style>
+        .notif-card {
+            transition: all 0.2s ease-in-out;
+            border-left: 4px solid transparent;
+        }
+        .notif-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .notif-unread {
+            background-color: #f8fafc;
+            border-left-color: #3b82f6;
+        }
+        .notif-read {
+            opacity: 0.8;
+        }
+        .ai-summary-card {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.5);
+        }
+    </style>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid py-4">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h3 mb-0 text-gray-800"><i data-lucide="bell" class="me-2 text-primary"></i>Trung tâm Thông báo AI</h2>
+                <button class="btn btn-outline-primary" onclick="markAllAsRead()">
+                    <i data-lucide="check-check" class="me-1"></i> Đánh dấu tất cả đã đọc
+                </button>
+            </div>
+
+            <!-- AI Insight Section -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="ai-summary-card p-4">
+                        <div class="d-flex align-items-start">
+                            <div class="bg-white p-3 rounded-circle me-4 shadow-sm" style="color: #2563eb;">
+                                <i data-lucide="sparkles" style="width: 32px; height: 32px;"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h4 class="fw-bold mb-2">AI Tổng hợp thông tin (Dành riêng cho bạn)</h4>
+                                <div id="ai-insight-content">
+                                    <div class="spinner-border spinner-border-sm text-light me-2" role="status"></div>
+                                    <span class="opacity-75">AI đang phân tích luồng công việc và thông báo của bạn...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications List -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow-sm border-0 rounded-3">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 fw-bold">Danh sách Thông báo</h5>
+                            <span class="badge bg-primary rounded-pill" id="total-notif-count">0</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="loading-state" class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <p class="mt-2 text-muted">Đang tải thông báo...</p>
+                            </div>
+                            <div id="empty-state" class="text-center py-5" style="display: none;">
+                                <i data-lucide="inbox" style="width: 48px; height: 48px; color: #cbd5e1;"></i>
+                                <h6 class="mt-3 text-muted">Không có thông báo nào</h6>
+                            </div>
+                            <div id="notifications-list" class="list-group list-group-flush">
+                                <!-- Rendered by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            let allNotifications = [];
+            const userRole = window.CHATBOT_USER_ROLE || 'USER';
+
+            document.addEventListener('DOMContentLoaded', () => {
+                loadNotifications();
+                lucide.createIcons();
+            });
+
+            function parseDate(v) {
+                if (!v) return null;
+                if (Array.isArray(v)) return new Date(v[0], v[1]-1, v[2], v[3]||0, v[4]||0, v[5]||0);
+                return new Date(v);
+            }
+
+            function loadNotifications() {
+                fetch('/api/thong-bao/all')
+                    .then(r => r.json())
+                    .then(data => {
+                        document.getElementById('loading-state').style.display = 'none';
+                        if (!data || !data.notifications || data.notifications.length === 0) {
+                            document.getElementById('empty-state').style.display = 'block';
+                            document.getElementById('ai-insight-content').innerHTML = '<span class="opacity-75">Không có thông tin mới nào cần xử lý. Bạn đã hoàn thành tốt công việc!</span>';
+                            return;
+                        }
+                        
+                        allNotifications = data.notifications;
+                        document.getElementById('total-notif-count').textContent = allNotifications.length;
+                        renderNotifications(allNotifications);
+                        generateAiInsight(allNotifications);
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        document.getElementById('loading-state').style.display = 'none';
+                    });
+            }
+
+            function renderNotifications(notifs) {
+                const list = document.getElementById('notifications-list');
+                list.innerHTML = '';
+                notifs.forEach(n => {
+                    const dt = parseDate(n.createdAt);
+                    const timeStr = dt ? dt.toLocaleString('vi-VN') : '';
+                    const isUnread = !n.daDoc;
+                    
+                    let actionHtml = '';
+                    if (n.urlDetail) {
+                        actionHtml = `<a href="${n.urlDetail}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Xem chi tiết</a>`;
+                    }
+                    
+                    const html = `
+                        <div class="list-group-item p-4 notif-card ${isUnread ? 'notif-unread' : 'notif-read'}" 
+                             onclick="if(${isUnread}) markAsRead(${n.id})">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="d-flex align-items-center mb-1">
+                                        ${isUnread ? '<span class="badge bg-danger me-2">Mới</span>' : ''}
+                                        <h6 class="mb-0 fw-bold text-dark">${n.tieuDe}</h6>
+                                    </div>
+                                    <p class="text-muted mb-2">${n.noiDung}</p>
+                                    <small class="text-secondary"><i data-lucide="clock" class="me-1" style="width: 12px;"></i> ${timeStr}</small>
+                                </div>
+                                <div class="ms-3">
+                                    ${actionHtml}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    list.innerHTML += html;
+                });
+                lucide.createIcons();
+            }
+
+            function markAsRead(id) {
+                fetch(`/api/thong-bao/${id}/read`, { method: 'PUT' })
+                    .then(() => {
+                        const notif = allNotifications.find(n => n.id === id);
+                        if (notif) notif.daDoc = true;
+                        renderNotifications(allNotifications);
+                        if (typeof fetchAdminNotifications === 'function') fetchAdminNotifications();
+                        if (typeof fetchNotifications === 'function') fetchNotifications();
+                        if (typeof fetchNvNotifications === 'function') fetchNvNotifications();
+                    });
+            }
+
+            function markAllAsRead() {
+                fetch('/api/thong-bao/read-all', { method: 'PUT' })
+                    .then(() => {
+                        allNotifications.forEach(n => n.daDoc = true);
+                        renderNotifications(allNotifications);
+                        if (typeof fetchAdminNotifications === 'function') fetchAdminNotifications();
+                        if (typeof fetchNotifications === 'function') fetchNotifications();
+                        if (typeof fetchNvNotifications === 'function') fetchNvNotifications();
+                    });
+            }
+
+            function generateAiInsight(notifs) {
+                // Lọc ra các thông báo chưa đọc hoặc gần đây (tối đa 10 cái để tránh prompt quá dài)
+                const recentNotifs = notifs.slice(0, 10).map(n => `- [${n.loaiThongBao}] ${n.tieuDe}: ${n.noiDung}`).join('\n');
+                
+                let prompt = `Bạn là một trợ lý AI thông minh trong hệ thống quản lý cơ sở vật chất.
+Vai trò của người dùng hiện tại là: ${userRole}.
+Dưới đây là danh sách các thông báo mới nhất của họ:
+${recentNotifs}
+
+Nhiệm vụ: Hãy phân tích, tổng hợp thành một đoạn tóm tắt (insight) khoảng 3-4 câu, chỉ ra mức độ ưu tiên và gợi ý hành động tiếp theo cho người dùng dựa theo Role của họ. Bỏ qua các thông báo rác, tập trung vào thiết bị hỏng, mượn trả quá hạn, hoặc bảo trì. Trả lời trực tiếp bằng tiếng Việt, thân thiện và chuyên nghiệp. Không cần lặp lại nội dung thông báo.`;
+
+                fetch('http://localhost:5000/api/ai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: prompt, role: userRole })
+                })
+                .then(r => r.json())
+                .then(d => {
+                    const reply = d.response || d.reply || d.message || 'Hệ thống đang hoạt động ổn định.';
+                    // Render markdown cơ bản
+                    const formatted = reply.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    document.getElementById('ai-insight-content').innerHTML = `<p class="mb-0" style="font-size: 1.05rem; line-height: 1.6;">${formatted}</p>`;
+                })
+                .catch(() => {
+                    document.getElementById('ai-insight-content').innerHTML = '<span class="opacity-75">Không thể kết nối AI để phân tích tại thời điểm này.</span>';
+                });
+            }
+        </script>
+    </th:block>
+</body>
+</html>

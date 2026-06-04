@@ -24,12 +24,12 @@ public class OverdueCheckScheduler {
 
     private static final String FLASK_AI_URL = "http://localhost:5000/api/ai/chatbot";
 
-    // Chạy ngầm mỗi 1 phút để test (có thể đổi thành 0 0 0 * * * để chạy lúc nửa đêm)
-    @Scheduled(fixedRate = 60000)
+    // Chạy ngầm định kỳ 1 lần mỗi ngày vào lúc 7h00 sáng
+    @Scheduled(cron = "0 0 7 * * ?")
     @Transactional
     public void scanAndNotifyOverdue() {
         System.out.println("[Scheduler] Bắt đầu quét các thiết bị mượn quá hạn...");
-        
+
         // Lấy danh sách các phiếu mượn đang mượn nhưng đã quá ngày trả dự kiến
         List<MuonTraThietBi> overdueRecords = muonTraThietBiRepository.findOverdueRecords(LocalDateTime.now());
         

@@ -318,9 +318,11 @@
                 return `${d.getFullYear()}-${m}-${day}`;
             }
 
-            document.addEventListener('DOMContentLoaded', function () {
-                loadLoaiThietBi();
-                loadPhongHoc();
+            document.addEventListener('DOMContentLoaded', async function () {
+                await Promise.all([
+                    loadLoaiThietBi(),
+                    loadPhongHoc()
+                ]);
                 loadThietBiData();
                 setupDragDrop();
                 document.getElementById('uploadFileInput').addEventListener('change', onFileSelected);
@@ -328,7 +330,7 @@
             });
 
             function loadLoaiThietBi() {
-                fetch('/api/admin/loai-thiet-bi/all')
+                return fetch('/api/admin/loai-thiet-bi/all')
                     .then(r => r.json())
                     .then(data => {
                         if (data.success) {
@@ -344,7 +346,7 @@
             }
 
             function loadPhongHoc() {
-                fetch('/api/admin/phong-hoc/all')
+                return fetch('/api/admin/phong-hoc/all')
                     .then(r => r.json())
                     .then(data => {
                         if (data.success) {
@@ -405,7 +407,8 @@
             const loaiBadge = {
                 'QR_CODE': { cls: 'bg-info text-dark', label: '🔲 QR Code' },
                 'HINH_ANH_CHINH': { cls: 'bg-success', label: '📷 Ảnh chính' },
-                'KIEM_TRA_TINH_TRANG': { cls: 'bg-warning text-dark', label: '🔍 Kiểm tra' }
+                'KIEM_TRA_TINH_TRANG': { cls: 'bg-warning text-dark', label: '🔍 Kiểm tra' },
+                'BAO_HONG': { cls: 'bg-danger', label: '🚨 Báo hỏng' }
             };
 
             function renderImages(items) {
@@ -425,7 +428,9 @@
 
                 items.forEach(item => {
                     const badge = loaiBadge[item.loaiHinhAnh] || { cls: 'bg-secondary', label: item.loaiHinhAnh || 'Chưa phân loại' };
-                    const ngay = item.ngayChup ? new Date(item.ngayChup).toLocaleDateString('vi-VN') : '';
+                    
+                    const d = parseDate(item.ngayChup);
+                    const ngay = d ? d.toLocaleDateString('vi-VN') : '';
 
                     const col = document.createElement('div');
                     col.className = 'col-6 col-md-4 col-lg-3';

@@ -24,6 +24,7 @@ public class GiaoVienBaoHongService {
     private final BaoHongRepository baoHongRepository;
     private final ThietBiRepository thietBiRepository;
     private final NguoiDungRepository nguoiDungRepository;
+    private final com.Tta.QLCSVC.DHNT.service.NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<BaoHong> getMyReports() {
@@ -74,7 +75,17 @@ public class GiaoVienBaoHongService {
         thietBi.setTrangThai(ThietBi.TrangThaiThietBi.HONG);
         thietBiRepository.save(thietBi);
 
-        return baoHongRepository.save(baoHong);
+        BaoHong savedBaoHong = baoHongRepository.save(baoHong);
+
+        // Phát thông báo realtime cho ADMIN và NHAN_VIEN_CSVC
+        String notifTitle = "🚨 Báo hỏng mới: " + thietBi.getTenThietBi();
+        String notifContent = String.format("Giáo viên %s vừa báo hỏng thiết bị %s (Mức độ: %s). Lỗi: %s",
+                currentUser.getHoTen(), thietBi.getTenThietBi(), mucDo != null ? mucDo.name() : "TRUNG_BINH", moTa);
+        
+        notificationService.sendToRole(NguoiDung.VaiTro.ADMIN, notifTitle, notifContent, "BAO_HONG", "/admin/bao-hong");
+        notificationService.sendToRole(NguoiDung.VaiTro.NHAN_VIEN_CSVC, notifTitle, notifContent, "BAO_HONG", "/nhanvien-csvc/bao-hong");
+
+        return savedBaoHong;
     }
 
     private NguoiDung getCurrentUser() {

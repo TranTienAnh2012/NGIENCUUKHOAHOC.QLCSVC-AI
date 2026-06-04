@@ -240,7 +240,7 @@
         container.style.display = 'block';
 
         const texts = notifications.map(n => `- ${n.tieuDe}: ${n.noiDung}`).join('\n');
-        fetch('/api/ai/chat', {
+        fetch('http://localhost:5000/api/ai/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -270,7 +270,8 @@
                     badge.textContent = data.count;
                     
                     let html = '<li id="ai-summary-container" style="display:none; border-bottom: 1px solid #334155;"><div id="ai-summary-content" style="padding: 10px 14px; background: linear-gradient(135deg,#065f46,#064e3b); font-size:0.82rem; color:#6ee7b7; line-height: 1.6;"></div></li>';
-                    data.notifications.forEach(n => {
+                    var displayList = data.notifications.slice(0, 5);
+                    displayList.forEach(n => {
                         // LocalDateTime từ Java có thể là array [y,m,d,h,min,s] hoặc ISO string
                         function parseDate(v) {
                             if (!v) return null;
@@ -288,6 +289,12 @@
                             </a>
                         </li>`;
                     });
+                    
+                    if (data.count > 5) {
+                        html += `<li><div class="text-center p-2"><small style="color: #94a3b8;">Còn ${data.count - 5} thông báo khác...</small></div></li>`;
+                    }
+                    html += '<li style="border-top:1px solid #334155;"><a href="/thong-bao" class="dropdown-item text-center py-2" style="font-weight:600;color:#10b981;">Xem tất cả thông báo</a></li>';
+                    
                     list.innerHTML = html;
 
                     // Tự động phân tích AI (chỉ 1 lần mỗi lần load trang)

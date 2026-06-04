@@ -109,6 +109,70 @@
         lucide.createIcons();
     </script>
 
+    <!-- Notification Bell Script (Admin) -->
+    <script>
+    (function() {
+        function fetchNotifications() {
+            fetch('/api/thong-bao/unread', { cache: 'no-store' })
+                .then(function(r) { return r.ok ? r.json() : null; })
+                .then(function(data) {
+                    if (!data) return;
+                    var badge = document.getElementById('notif-badge');
+                    var list = document.getElementById('notif-list');
+                    if (!badge || !list) return;
+
+                    if (data.count > 0) {
+                        badge.style.display = 'block';
+                        badge.textContent = data.count;
+
+                        var html = '<li style="padding: 10px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #334155;">Thông báo mới (' + data.count + ')</li>';
+
+                        var displayList = data.notifications.slice(0, 5);
+                        displayList.forEach(function(n) {
+                            var dt = null;
+                            if (n.createdAt) {
+                                if (Array.isArray(n.createdAt)) {
+                                    dt = new Date(n.createdAt[0], n.createdAt[1]-1, n.createdAt[2], n.createdAt[3]||0, n.createdAt[4]||0, n.createdAt[5]||0);
+                                } else {
+                                    dt = new Date(n.createdAt);
+                                }
+                            }
+                            var d = dt ? dt.toLocaleDateString('vi-VN', {hour:'2-digit',minute:'2-digit'}) : '';
+                            var targetUrl = n.urlDetail ? n.urlDetail : '/thong-bao';
+
+                            html += '<li style="border-bottom:1px solid #f1f5f9;">'
+                                + '<a class="dropdown-item d-flex flex-column p-3" href="' + targetUrl + '" style="white-space:normal;" onclick="fetch(\'/api/thong-bao/' + n.id + '/read\',{method:\'PUT\'})">'
+                                + '<strong style="color:#0f172a;font-size:0.9rem;">' + (n.tieuDe || '') + '</strong>'
+                                + '<span style="font-size:0.82rem;color:#64748b;margin-top:4px;">' + (n.noiDung || '') + '</span>'
+                                + '<small style="color:#94a3b8;font-size:0.72rem;align-self:flex-end;margin-top:6px;">' + d + '</small>'
+                                + '</a></li>';
+                        });
+
+                        if (data.count > 5) {
+                            html += '<li><div class="text-center p-2"><small class="text-muted">Còn ' + (data.count - 5) + ' thông báo khác...</small></div></li>';
+                        }
+
+                        html += '<li style="border-top:1px solid #e2e8f0;"><a href="/thong-bao" class="dropdown-item text-center text-primary py-2" style="font-weight:600;"><i data-lucide="layout-dashboard" class="me-1" style="width:16px;"></i>Đến TT Thông báo AI</a></li>';
+
+                        list.innerHTML = html;
+                        if (typeof lucide !== 'undefined') lucide.createIcons();
+                    } else {
+                        badge.style.display = 'none';
+                        list.innerHTML = '<li><div class="p-3 text-center text-muted">Không có thông báo mới</div></li>'
+                            + '<li style="border-top:1px solid #e2e8f0;"><a href="/thong-bao" class="dropdown-item text-center text-primary py-2" style="font-weight:600;"><i data-lucide="layout-dashboard" class="me-1" style="width:16px;"></i>Đến TT Thông báo AI</a></li>';
+                        if (typeof lucide !== 'undefined') lucide.createIcons();
+                    }
+                })
+                .catch(function(err) { console.warn('[Notif] fetch error:', err); });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchNotifications();
+            setInterval(fetchNotifications, 30000);
+        });
+    })();
+    </script>
+
     <!-- AI Chatbot Widget JS -->
     <script>window.CHATBOT_USER_ROLE = 'ADMIN';</script>
     <script th:src="@{/js/chatbot-widget.js(v=3)}"></script>

@@ -48,6 +48,19 @@ public class ThongBaoApiController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/all")
+    public ResponseEntity<Map<String, Object>> getAllNotifications() {
+        Optional<NguoiDung> currentUserOpt = getCurrentUser();
+        if (currentUserOpt.isEmpty()) return ResponseEntity.status(401).build();
+
+        NguoiDung user = currentUserOpt.get();
+        List<ThongBao> allList = notificationService.getUserNotifications(user.getId(), user.getVaiTro());
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("notifications", allList);
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping("/{id}/read")
     public ResponseEntity<Void> markAsRead(@PathVariable Long id) {
         notificationService.markAsRead(id);
@@ -73,6 +86,33 @@ public class ThongBaoApiController {
         result.put("success", true);
         result.put("message", "Đã kích hoạt AI phân tích hệ thống thành công.");
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/debug")
+    public ResponseEntity<Map<String, Object>> debugNotifications() {
+        Map<String, Object> debug = new HashMap<>();
+        try {
+            Optional<NguoiDung> userOpt = getCurrentUser();
+            debug.put("currentUser", userOpt.isPresent() ? userOpt.get().getEmail() : "null");
+            debug.put("currentRole", userOpt.isPresent() ? userOpt.get().getVaiTro() : "null");
+            
+            List<ThongBao> allAdmin = notificationService.getUserNotifications(0L, NguoiDung.VaiTro.ADMIN);
+            debug.put("allAdminNotifs", allAdmin);
+            debug.put("adminNotifCount", allAdmin.size());
+            
+            if (userOpt.isPresent()) {
+                List<ThongBao> userNotifs = notificationService.getUserNotifications(userOpt.get().getId(), userOpt.get().getVaiTro());
+                debug.put("userNotifCount", userNotifs.size());
+            }
+        } catch(Exception e) {
+            debug.put("error", e.getMessage());
+        }
+        return ResponseEntity.ok(debug);
+    }
+    
+    @GetMapping("/dump-db")
+    public ResponseEntity<List<Map<String, Object>>> dumpDb(@org.springframework.beans.factory.annotation.Autowired org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
+        return ResponseEntity.ok(jdbcTemplate.queryForList("SELECT id, role_nhan, nguoi_dung_id, tieu_de, da_doc FROM thong_bao WHERE role_nhan = 'ADMIN'"));
     }
 }
 

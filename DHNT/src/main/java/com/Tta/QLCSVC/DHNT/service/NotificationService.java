@@ -24,13 +24,13 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public boolean canSendToUser(Long userId, String tieuDe) {
-        LocalDateTime since = LocalDateTime.now().minusHours(24);
+        LocalDateTime since = LocalDateTime.now().minusMinutes(1);
         return !thongBaoRepository.existsByUserAndTitleSince(userId, tieuDe, since);
     }
 
     @Transactional(readOnly = true)
     public boolean canSendToRole(NguoiDung.VaiTro role, String tieuDe) {
-        LocalDateTime since = LocalDateTime.now().minusHours(24);
+        LocalDateTime since = LocalDateTime.now().minusMinutes(1);
         return !thongBaoRepository.existsByRoleAndTitleSince(role, tieuDe, since);
     }
 
@@ -57,8 +57,11 @@ public class NotificationService {
      */
     @Transactional
     public ThongBao sendToRole(NguoiDung.VaiTro role, String tieuDe, String noiDung, String loai, String url) {
-        if (!canSendToRole(role, tieuDe)) {
-            return null;
+        // Không deduplicate đối với Audit Log hệ thống
+        if (!loai.equals("THIET_BI") && !loai.equals("SYSTEM") && !loai.equals("BAO_HONG")) {
+            if (!canSendToRole(role, tieuDe)) {
+                return null;
+            }
         }
 
         ThongBao tb = new ThongBao();
