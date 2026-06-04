@@ -394,4 +394,15 @@
         init();
     }
 
+    // Expose global function to open chatbot programmatically
+    window.openAiChatbot = function(message) {
+        if (!isOpen) {
+            toggleChatbot();
+        }
+        if (message) {
+            chatInput.value = message;
+            // Optionally, we could auto-submit here: chatForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        }
+    };
+
 })();

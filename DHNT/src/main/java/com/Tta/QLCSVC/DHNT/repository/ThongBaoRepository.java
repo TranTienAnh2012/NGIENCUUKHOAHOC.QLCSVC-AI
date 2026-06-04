@@ -15,6 +15,7 @@ public interface ThongBaoRepository extends JpaRepository<ThongBao, Long> {
     List<ThongBao> findByNguoiDungIdOrderByCreatedAtDesc(Long nguoiDungId);
     List<ThongBao> findByNguoiDungIdAndDaDocFalse(Long nguoiDungId);
     long countByNguoiDungIdAndDaDocFalse(Long nguoiDungId);
+    List<ThongBao> findTop5ByOrderByCreatedAtDesc();
 
     // Queries mới (kết hợp per-user + role-broadcast, dùng bởi NotificationService)
     @Query("SELECT t FROM ThongBao t LEFT JOIN t.nguoiDung u WHERE (u.id = :userId OR t.roleNhan = :role) ORDER BY t.createdAt DESC")

@@ -194,22 +194,31 @@ def chatbot():
         if not user_message or not user_id or not session_id:
             return jsonify({"error": "Missing fields"}), 400
         
-        # Lấy context từ DB
+        context = data.get('context', {})
+        user_role = context.get('user_role', 'GIAO_VIEN')
+        
+        # Lấy context từ DB dựa trên Role
         context_data = ""
-        try:
-            r = req_lib.get('http://localhost:8080/api/ai-data/devices', headers=INTERNAL_HEADERS, timeout=3)
-            if r.status_code == 200:
-                devices = r.json()
-                tot = sum(1 for d in devices if d.get('status') == 'TOT')
-                hong = sum(1 for d in devices if d.get('status') == 'HONG')
-                bao_tri = sum(1 for d in devices if d.get('status') == 'BAO_TRI')
-                thanh_ly = sum(1 for d in devices if d.get('status') == 'THANH_LY')
-                context_data = f"[Hệ thống nội bộ]: Hiện tại có {len(devices)} thiết bị. Trạng thái: {tot} hoạt động tốt, {bao_tri} cần bảo trì, {hong} đang báo hỏng, {thanh_ly} đã thanh lý.\n\n"
-        except Exception as e:
-            pass
+        role_instructions = ""
+        
+        if user_role in ['ADMIN', 'NHAN_VIEN_CSVC', 'ROLE_ADMIN', 'ROLE_NHAN_VIEN_CSVC']:
+            role_instructions = "Bạn đang nói chuyện với QUẢN TRỊ VIÊN hoặc NHÂN VIÊN CSVC. Bạn ĐƯỢC PHÉP cung cấp số liệu tổng quan hệ thống và thông tin chi tiết.\n"
+            try:
+                r = req_lib.get('http://localhost:8080/api/ai-data/devices', headers=INTERNAL_HEADERS, timeout=3)
+                if r.status_code == 200:
+                    devices = r.json()
+                    tot = sum(1 for d in devices if d.get('status') == 'TOT')
+                    hong = sum(1 for d in devices if d.get('status') == 'HONG')
+                    bao_tri = sum(1 for d in devices if d.get('status') == 'BAO_TRI')
+                    thanh_ly = sum(1 for d in devices if d.get('status') == 'THANH_LY')
+                    context_data = f"[Hệ thống nội bộ]: Hiện tại có {len(devices)} thiết bị. Trạng thái: {tot} hoạt động tốt, {bao_tri} cần bảo trì, {hong} đang báo hỏng, {thanh_ly} đã thanh lý.\n\n"
+            except Exception as e:
+                pass
+        else:
+            role_instructions = "Bạn đang nói chuyện với GIÁO VIÊN. NGHIÊM CẤM cung cấp số liệu tổng quan của toàn trường, thông tin cá nhân của người dùng khác, hoặc thông tin bảo mật. Nếu họ hỏi về số lượng thiết bị tổng, lịch sử của người khác, hãy từ chối lịch sự và nói rằng họ không có quyền hạn xem thông tin này.\n"
 
         history = get_conversation_history(user_id, session_id)
-        full_prompt = f"{CHATBOT_SYSTEM_PROMPT}\n{context_data}User: {user_message}"
+        full_prompt = f"{CHATBOT_SYSTEM_PROMPT}\n{role_instructions}\n{context_data}User: {user_message}"
         response = model.generate_content(full_prompt)
         ai_response = response.text
         save_conversation(user_id, session_id, user_message, ai_response)

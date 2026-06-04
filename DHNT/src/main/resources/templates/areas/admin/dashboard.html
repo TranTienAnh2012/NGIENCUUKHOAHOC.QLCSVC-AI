@@ -15,14 +15,6 @@
                     <h2 class="font-bold text-slate-800 text-2xl">Tổng quan hệ thống</h2>
                     <p class="text-slate-500 text-sm">Chào mừng quay trở lại, hệ thống đang hoạt động ổn định.</p>
                 </div>
-                <div class="flex gap-2">
-                    <button class="btn btn-outline-primary shadow-sm hover-lift d-flex align-items-center gap-2">
-                        <i data-lucide="download" class="w-4 h-4"></i> Xuất báo cáo
-                    </button>
-                    <button class="btn btn-primary shadow-sm hover-lift d-flex align-items-center gap-2">
-                        <i data-lucide="plus" class="w-4 h-4"></i> Thêm mới
-                    </button>
-                </div>
             </div>
 
             <!-- Stat Cards Grid -->
@@ -34,11 +26,9 @@
                                 <i data-lucide="users" class="w-16 h-16 text-blue-600"></i>
                             </div>
                             <p class="text-sm font-medium text-slate-500 mb-1">Tổng người dùng</p>
-                            <h3 class="text-3xl font-bold text-slate-800 mb-2">1,248</h3>
+                            <h3 class="text-3xl font-bold text-slate-800 mb-2" th:text="${totalUsers != null ? totalUsers : '0'}">0</h3>
                             <div class="flex items-center gap-1 text-emerald-500 text-sm font-semibold">
-                                <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
-                                <span>12%</span>
-                                <span class="text-slate-400 font-normal ml-1">tháng này</span>
+                                <span>Thành viên hệ thống</span>
                             </div>
                         </div>
                     </div>
@@ -50,9 +40,9 @@
                                 <i data-lucide="monitor" class="w-16 h-16 text-indigo-600"></i>
                             </div>
                             <p class="text-sm font-medium text-slate-500 mb-1">Tổng thiết bị</p>
-                            <h3 class="text-3xl font-bold text-slate-800 mb-2">3,520</h3>
+                            <h3 class="text-3xl font-bold text-slate-800 mb-2" th:text="${totalDevices != null ? totalDevices : '0'}">0</h3>
                             <div class="flex items-center gap-1 text-indigo-500 text-sm font-semibold">
-                                <span>85%</span>
+                                <span th:text="${percentGood != null ? percentGood + '%' : '0%'}">0%</span>
                                 <span class="text-slate-400 font-normal ml-1">hoạt động tốt</span>
                             </div>
                         </div>
@@ -65,22 +55,24 @@
                             <div class="absolute top-0 right-0 p-3 opacity-10">
                                 <i data-lucide="hammer" class="w-16 h-16 text-amber-600"></i>
                             </div>
-                            <p class="text-sm font-medium text-slate-500 mb-1">Cần bảo trì</p>
-                            <h3 class="text-3xl font-bold text-slate-800 mb-2">42</h3>
-                            <span class="badge bg-warning text-dark px-2 py-1 rounded-pill">Ưu tiên cao</span>
+                            <p class="text-sm font-medium text-slate-500 mb-1">Cần bảo trì / Hỏng</p>
+                            <h3 class="text-3xl font-bold text-slate-800 mb-2" th:text="${devicesMaintenance != null ? devicesMaintenance : '0'}">0</h3>
+                            <span class="badge bg-warning text-dark px-2 py-1 rounded-pill">Đang xử lý</span>
                         </div>
                     </div>
                 </div>
                 <div class="col-12 col-md-6 col-lg-3">
-                    <div
-                        class="card border-0 shadow-sm glass-card hover-lift h-100 overflow-hidden border-start border-danger border-4">
+                    <div class="card border-0 shadow-sm glass-card hover-lift h-100 overflow-hidden border-start border-4"
+                         th:classappend="${systemStatusColor == 'emerald' ? 'border-success' : (systemStatusColor == 'amber' ? 'border-warning' : 'border-danger')}">
                         <div class="card-body p-4 relative">
                             <div class="absolute top-0 right-0 p-3 opacity-10">
-                                <i data-lucide="zap" class="w-16 h-16 text-rose-600"></i>
+                                <i data-lucide="check-circle" class="w-16 h-16" th:classappend="${systemStatusColor == 'emerald' ? 'text-emerald-600' : (systemStatusColor == 'amber' ? 'text-amber-600' : 'text-rose-600')}"></i>
                             </div>
-                            <p class="text-sm font-medium text-slate-500 mb-1">Dự đoán rủi ro AI</p>
-                            <h3 class="text-3xl font-bold text-slate-800 mb-2 text-rose-600">15</h3>
-                            <p class="text-sm text-rose-500">Cần kiểm tra ngay</p>
+                            <p class="text-sm font-medium text-slate-500 mb-1">Tình trạng hệ thống</p>
+                            <h3 class="text-3xl font-bold mb-2" th:classappend="${systemStatusColor == 'emerald' ? 'text-emerald-600' : (systemStatusColor == 'amber' ? 'text-amber-600' : 'text-rose-600')}" th:text="${systemStatus}">Tốt</h3>
+                            <p class="text-sm" th:classappend="${systemStatusColor == 'emerald' ? 'text-emerald-500' : (systemStatusColor == 'amber' ? 'text-amber-500' : 'text-rose-500')}"
+                               th:text="${percentGood >= 80 ? 'Mọi thứ hoạt động bình thường' : (percentGood >= 50 ? 'Cần chú ý bảo trì thêm' : 'Nguy cơ hỏng hóc cao, cần can thiệp gấp')}">
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -88,121 +80,65 @@
 
             <div class="row g-4">
                 <!-- Recent Activities -->
-                <div class="col-12 col-lg-8">
+                <div class="col-12 col-lg-6">
                     <div class="card border-0 shadow-sm glass-card h-100">
-                        <div
-                            class="card-header bg-white border-0 p-4 d-flex justify-content-between align-items-center">
+                        <div class="card-header bg-white border-0 p-4 d-flex justify-content-between align-items-center">
                             <h4 class="text-lg font-bold text-slate-800 m-0">Hoạt động gần đây</h4>
-                            <a href="#" class="text-sm text-blue-600 hover:underline">Xem tất cả</a>
+                            <a href="javascript:void(0)" onclick="if(window.openAiChatbot) window.openAiChatbot('Tóm tắt nhanh các hoạt động và báo hỏng hôm nay')" class="text-sm text-blue-600 hover:underline"><i data-lucide="bot" class="w-4 h-4 inline-block mr-1"></i>Phân tích AI</a>
                         </div>
                         <div class="card-body p-0">
-                            <div class="list-group list-group-flush">
-                                <div class="list-group-item border-0 p-4 hover:bg-slate-50 transition-colors">
+                            <div class="list-group list-group-flush" th:if="${recentActivities != null and !recentActivities.isEmpty()}">
+                                <div class="list-group-item border-0 p-4 hover:bg-slate-50 transition-colors border-top" th:each="activity : ${recentActivities}">
                                     <div class="flex gap-4">
-                                        <div
-                                            class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-                                            <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                                            <i data-lucide="bell" class="w-5 h-5"></i>
                                         </div>
                                         <div class="flex-grow">
                                             <div class="flex justify-content-between items-start mb-1">
-                                                <h6 class="font-bold text-slate-800 m-0 text-base">Thêm 5 thiết bị mới
-                                                </h6>
-                                                <span class="text-xs text-slate-400">2 giờ trước</span>
+                                                <h6 class="font-bold text-slate-800 m-0 text-base" th:text="${activity.tieuDe}">Tiêu đề</h6>
+                                                <span class="text-xs text-slate-400" th:text="${activity.createdAt != null ? #temporals.format(activity.createdAt, 'dd/MM HH:mm') : ''}">Thời gian</span>
                                             </div>
-                                            <p class="text-sm text-slate-500 m-0">Hệ thống vừa cập nhật danh sách máy
-                                                chiếu
-                                                tại tòa T1 bởi Admin.</p>
+                                            <p class="text-sm text-slate-500 m-0" th:text="${activity.noiDung}">Nội dung</p>
                                         </div>
                                     </div>
                                 </div>
-                                <div
-                                    class="list-group-item border-0 p-4 hover:bg-slate-50 transition-colors border-top">
-                                    <div class="flex gap-4">
-                                        <div
-                                            class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
-                                            <i data-lucide="tool" class="w-5 h-5"></i>
-                                        </div>
-                                        <div class="flex-grow">
-                                            <div class="flex justify-content-between items-start mb-1">
-                                                <h6 class="font-bold text-slate-800 m-0 text-base">Hoàn thành bảo trị
-                                                    #BT-102</h6>
-                                                <span class="text-xs text-slate-400">5 giờ trước</span>
-                                            </div>
-                                            <p class="text-sm text-slate-500 m-0">Thiết bị tại phòng P.203 đã được sửa
-                                                chữa
-                                                và đưa vào sử dụng.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div
-                                    class="list-group-item border-0 p-4 hover:bg-slate-50 transition-colors border-top">
-                                    <div class="flex gap-4">
-                                        <div
-                                            class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
-                                            <i data-lucide="alert-circle" class="w-5 h-5"></i>
-                                        </div>
-                                        <div class="flex-grow">
-                                            <div class="flex justify-content-between items-start mb-1">
-                                                <h6 class="font-bold text-slate-800 m-0 text-base">Báo hỏng mới tại Tòa
-                                                    T3
-                                                </h6>
-                                                <span class="text-xs text-slate-400">Hôm qua</span>
-                                            </div>
-                                            <p class="text-sm text-slate-500 m-0">Giảng viên báo hỏng điều hòa tại phòng
-                                                thực hành 10.</p>
-                                        </div>
-                                    </div>
-                                </div>
+                            </div>
+                            <div class="p-4 text-center text-slate-500" th:if="${recentActivities == null or recentActivities.isEmpty()}">
+                                Không có hoạt động mới nào.
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Quick Access / Sidebar info -->
-                <div class="col-12 col-lg-4">
-                    <div
-                        class="card border-0 shadow-sm glass-card mb-4 bg-gradient-to-br from-indigo-600 to-blue-700 text-white">
-                        <div class="card-body p-4 text-center">
-                            <div
-                                class="w-20 h-20 rounded-full bg-white/20 mx-auto mb-3 flex items-center justify-center backdrop-blur-md">
-                                <i data-lucide="shield-check" class="w-10 h-10"></i>
-                            </div>
-                            <h5 class="font-bold mb-2">Bảo mật hệ thống</h5>
-                            <p class="text-sm text-white/80 mb-4">Hệ thống của bạn đang được bảo vệ. Lần quét cuối cùng:
-                                10
-                                phút trước.</p>
-                            <button class="btn btn-light btn-sm font-semibold px-4 rounded-pill text-indigo-600">Kiểm
-                                tra
-                                ngay</button>
+                <!-- Pending Reports to Assign -->
+                <div class="col-12 col-lg-6">
+                    <div class="card border-0 shadow-sm glass-card h-100">
+                        <div class="card-header bg-white border-0 p-4 d-flex justify-content-between align-items-center">
+                            <h4 class="text-lg font-bold text-slate-800 m-0">Cần phân công xử lý</h4>
+                            <a href="/admin/bao-hong" class="text-sm text-amber-600 hover:underline">Quản lý báo hỏng</a>
                         </div>
-                    </div>
-
-                    <div class="card border-0 shadow-sm glass-card">
-                        <div class="card-body p-4">
-                            <h4 class="text-base font-bold text-slate-800 mb-3">Thông tin truy cập</h4>
-                            <div class="space-y-4">
-                                <div class="flex items-center gap-3">
-                                    <div
-                                        class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
-                                        <i data-lucide="globe" class="w-4 h-4"></i>
-                                    </div>
-                                    <div class="flex-grow">
-                                        <p class="text-xs font-semibold text-slate-800 mb-0">Địa chỉ IP</p>
-                                        <p class="text-xs text-slate-500 mb-0">192.168.1.1</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-3 border-top pt-3 mt-3">
-                                    <div
-                                        class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
-                                        <i data-lucide="clock" class="w-4 h-4"></i>
-                                    </div>
-                                    <div class="flex-grow">
-                                        <p class="text-xs font-semibold text-slate-800 mb-0">Lần đăng nhập cuối</p>
-                                        <p class="text-xs text-slate-500 mb-0"
-                                            th:text="${#temporals.format(#temporals.createNow(), 'dd/MM/yyyy HH:mm')}">
-                                        </p>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush" th:if="${pendingReports != null and !pendingReports.isEmpty()}">
+                                <div class="list-group-item border-0 p-4 hover:bg-slate-50 transition-colors border-top" th:each="report : ${pendingReports}">
+                                    <div class="flex gap-4">
+                                        <div class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+                                            <i data-lucide="tool" class="w-5 h-5"></i>
+                                        </div>
+                                        <div class="flex-grow">
+                                            <div class="flex justify-content-between items-start mb-1">
+                                                <h6 class="font-bold text-slate-800 m-0 text-base" th:text="${report.thietBi != null ? report.thietBi.tenThietBi : 'Thiết bị không xác định'}">Thiết bị</h6>
+                                                <span class="badge bg-danger text-white px-2 py-1 rounded-pill text-xs" th:if="${report.mucDoNghiemTrong != null}" th:text="${report.mucDoNghiemTrong}">Mức độ</span>
+                                            </div>
+                                            <p class="text-sm text-slate-500 m-0 mb-2" th:text="${report.moTaLoi}">Mô tả lỗi</p>
+                                            <a th:href="@{/admin/bao-hong/edit/{id}(id=${report.id})}" class="btn btn-sm btn-outline-primary rounded-pill">
+                                                <i data-lucide="edit" class="w-3 h-3 inline-block"></i> Cập nhật / Phân công
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
+                            </div>
+                            <div class="p-4 text-center text-slate-500" th:if="${pendingReports == null or pendingReports.isEmpty()}">
+                                Không có yêu cầu báo hỏng nào chờ xử lý. Tuyệt vời!
                             </div>
                         </div>
                     </div>

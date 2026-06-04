@@ -7,14 +7,61 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import com.Tta.QLCSVC.DHNT.entity.ThietBi;
+import com.Tta.QLCSVC.DHNT.repository.BaoHongRepository;
+import com.Tta.QLCSVC.DHNT.repository.NguoiDungRepository;
+import com.Tta.QLCSVC.DHNT.repository.ThietBiRepository;
+import com.Tta.QLCSVC.DHNT.repository.ThongBaoRepository;
+import lombok.RequiredArgsConstructor;
+
+import java.util.stream.Collectors;
+
 @Controller
 @RequestMapping("/admin")
 @PreAuthorize("hasRole('ADMIN')")
+@RequiredArgsConstructor
 public class AdminViewController {
+
+    private final NguoiDungRepository nguoiDungRepository;
+    private final ThietBiRepository thietBiRepository;
+    private final BaoHongRepository baoHongRepository;
+    private final ThongBaoRepository thongBaoRepository;
 
     @GetMapping
     public String dashboard(Model model) {
         model.addAttribute("title", "Admin Dashboard");
+        
+        long totalUsers = nguoiDungRepository.count();
+        long totalDevices = thietBiRepository.count();
+        long devicesGood = thietBiRepository.countByTrangThai(ThietBi.TrangThaiThietBi.TOT);
+        long devicesMaintenance = thietBiRepository.countByTrangThai(ThietBi.TrangThaiThietBi.BAO_TRI) + thietBiRepository.countByTrangThai(ThietBi.TrangThaiThietBi.HONG);
+        
+        int percentGood = totalDevices > 0 ? (int) ((devicesGood * 100) / totalDevices) : 0;
+        
+        String systemStatus = "Tốt";
+        String systemStatusColor = "emerald";
+        if (percentGood < 50) {
+            systemStatus = "Cảnh báo";
+            systemStatusColor = "rose";
+        } else if (percentGood < 80) {
+            systemStatus = "Bình thường";
+            systemStatusColor = "amber";
+        }
+        
+        model.addAttribute("totalUsers", totalUsers);
+        model.addAttribute("totalDevices", totalDevices);
+        model.addAttribute("percentGood", percentGood);
+        model.addAttribute("devicesMaintenance", devicesMaintenance);
+        model.addAttribute("systemStatus", systemStatus);
+        model.addAttribute("systemStatusColor", systemStatusColor);
+        
+        // Fetch recent activities
+        model.addAttribute("recentActivities", thongBaoRepository.findTop5ByOrderByCreatedAtDesc());
+        
+        // Fetch pending reports
+        var pending = baoHongRepository.findPendingReports();
+        model.addAttribute("pendingReports", pending.stream().limit(5).collect(Collectors.toList()));
+        
         return "areas/admin/dashboard";
     }
 
