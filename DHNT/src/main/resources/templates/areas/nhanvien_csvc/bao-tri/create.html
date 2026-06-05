@@ -67,14 +67,25 @@
                                     <label for="noiDung" class="form-label">Nội dung công việc <span
                                             class="text-danger">*</span></label>
                                     <textarea class="form-control" id="noiDung" name="noiDung" rows="4" required
-                                        placeholder="Mô tả chi tiết công việc bảo trì cần thực hiện..."></textarea>
+                                        placeholder="Mô tả chi tiết công việc bảo trì cần thực hiện..."
+                                        th:text="${baoHong != null ? 'Kiểm tra và xử lý lỗi: ' + baoHong.moTaLoi + ' (Mức độ: ' + baoHong.mucDoNghiemTrong + ')' : ''}"></textarea>
+                                </div>
+
+                                <!-- Thiết bị (If manual creation) -->
+                                <div class="mb-3" th:if="${baoHong == null}">
+                                    <label for="thietBiId" class="form-label">Thiết bị <span
+                                            class="text-danger">*</span></label>
+                                    <select class="form-select" id="thietBiId" name="thietBiId" required>
+                                        <option value="">-- Chọn thiết bị --</option>
+                                    </select>
                                 </div>
 
                                 <!-- Người thực hiện -->
                                 <div class="mb-3">
                                     <label for="nguoiThucHien" class="form-label">Người thực hiện</label>
                                     <input type="text" class="form-control" id="nguoiThucHien" name="nguoiThucHien"
-                                        placeholder="Tên người thực hiện bảo trì">
+                                        th:value="${#authentication.principal.username}" disabled>
+                                    <small class="text-muted">Lịch bảo trì sẽ tự động gán cho bạn.</small>
                                 </div>
 
                                 <!-- Chi phí dự kiến -->
@@ -123,7 +134,7 @@
     </div>
 
     <th:block layout:fragment="scripts">
-        <script>
+        <script th:inline="javascript">
             document.addEventListener('DOMContentLoaded', () => {
                 lucide.createIcons();
 
@@ -132,6 +143,22 @@
                 const today = new Date().toISOString().split('T')[0];
                 ngayBaoTriInput.min = today;
                 ngayBaoTriInput.value = today;
+
+                const thietBiSelect = document.getElementById('thietBiId');
+                if (thietBiSelect) {
+                    fetch('/api/admin/thiet-bi/all')
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                data.data.forEach(item => {
+                                    const option = document.createElement('option');
+                                    option.value = item.id;
+                                    option.textContent = item.tenThietBi + ' (' + item.maThietBi + ')';
+                                    thietBiSelect.appendChild(option);
+                                });
+                            }
+                        });
+                }
             });
         </script>
     </th:block>

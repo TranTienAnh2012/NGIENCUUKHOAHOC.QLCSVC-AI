@@ -205,8 +205,27 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             fetchNvNotifications();
+            fetchNhanVienBadges();
             setInterval(fetchNvNotifications, 30000);
+            setInterval(fetchNhanVienBadges, 30000);
         });
+
+        function fetchNhanVienBadges() {
+            fetch('/api/nhanvien-csvc/bao-hong/assignment/count')
+                .then(r => r.ok ? r.json() : null)
+                .then(data => {
+                    if(data && data.success) {
+                        const count = data.data;
+                        const badgeCount = document.querySelector('.nhanvien-sidebar .badge-count');
+                        const statValue = document.querySelector('.nhanvien-sidebar .stat-value');
+                        if(badgeCount) {
+                            badgeCount.textContent = count;
+                            badgeCount.style.display = count > 0 ? 'inline-block' : 'none';
+                        }
+                        if(statValue) statValue.textContent = count;
+                    }
+                }).catch(() => {});
+        }
     })();
     </script>
 

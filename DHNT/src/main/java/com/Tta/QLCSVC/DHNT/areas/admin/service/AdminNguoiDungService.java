@@ -22,6 +22,10 @@ public class AdminNguoiDungService {
         return nguoiDungRepository.findAll(pageable);
     }
 
+    public java.util.List<NguoiDung> getAllUsersList() {
+        return nguoiDungRepository.findAll();
+    }
+
     public NguoiDung getUserById(Long id) {
         return nguoiDungRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("NguoiDung", "id", id));

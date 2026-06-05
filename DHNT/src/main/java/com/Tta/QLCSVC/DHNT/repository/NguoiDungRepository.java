@@ -13,4 +13,7 @@ public interface NguoiDungRepository extends JpaRepository<NguoiDung, Long> {
     boolean existsByEmail(String email);
 
     java.util.List<NguoiDung> findByVaiTroIn(java.util.List<NguoiDung.VaiTro> vaiTros);
+
+    /** Lấy danh sách nhân viên CSVC — dùng cho dropdown phân công */
+    java.util.List<NguoiDung> findByVaiTro(NguoiDung.VaiTro vaiTro);
 }

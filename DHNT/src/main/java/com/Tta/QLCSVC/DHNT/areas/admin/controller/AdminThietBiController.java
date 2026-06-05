@@ -46,6 +46,12 @@ public class AdminThietBiController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/all")
+    @Operation(summary = "Lấy toàn bộ thiết bị", description = "Lấy toàn bộ danh sách thiết bị không phân trang")
+    public ResponseEntity<ApiResponse<java.util.List<ThietBi>>> getAllThietBiNoPagination() {
+        return ResponseEntity.ok(ApiResponse.success(adminThietBiService.getAllThietBiList()));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Lấy thông tin thiết bị", description = "Lấy thông tin chi tiết một thiết bị")
     public ResponseEntity<ApiResponse<ThietBi>> getThietBiById(@PathVariable Long id) {

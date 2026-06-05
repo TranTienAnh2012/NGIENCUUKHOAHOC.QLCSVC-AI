@@ -50,8 +50,11 @@ public class BaoTri {
     @Column(name = "chi_phi", precision = 15, scale = 2)
     private BigDecimal chiPhi;
 
-    @Column(name = "nguoi_thuc_hien", length = 100)
-    private String nguoiThucHien;
+    /** Nhân viên CSVC thực hiện bảo trì (FK, không còn là plain String) */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "nguoi_thuc_hien_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "matKhau", "thongBaos"})
+    private NguoiDung nguoiThucHien;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "ket_qua")

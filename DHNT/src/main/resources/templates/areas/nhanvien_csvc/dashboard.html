@@ -37,7 +37,7 @@
                 </div>
                 <div class="stat-card-content">
                     <h4>Chờ xử lý</h4>
-                    <div class="stat-number">12</div>
+                    <div class="stat-number" th:text="${stats.baoHongChoXuLy}">12</div>
                     <p style="font-size: 13px; color: #64748b; margin: 8px 0 0 0;">Phiếu báo hỏng</p>
                 </div>
             </div>
@@ -49,7 +49,7 @@
                 </div>
                 <div class="stat-card-content">
                     <h4>Bảo trì</h4>
-                    <div class="stat-number">8</div>
+                    <div class="stat-number" th:text="${stats.thietBiBaoTri}">8</div>
                     <p style="font-size: 13px; color: #64748b; margin: 8px 0 0 0;">Thiết bị cần bảo trì</p>
                 </div>
             </div>
@@ -61,7 +61,7 @@
                 </div>
                 <div class="stat-card-content">
                     <h4>Thiết bị</h4>
-                    <div class="stat-number">156</div>
+                    <div class="stat-number" th:text="${stats.tongThietBi}">156</div>
                     <p style="font-size: 13px; color: #64748b; margin: 8px 0 0 0;">Tổng số thiết bị</p>
                 </div>
             </div>
@@ -73,7 +73,7 @@
                 </div>
                 <div class="stat-card-content">
                     <h4>Hoạt động</h4>
-                    <div class="stat-number">142</div>
+                    <div class="stat-number" th:text="${stats.thietBiTot}">142</div>
                     <p style="font-size: 13px; color: #64748b; margin: 8px 0 0 0;">Thiết bị sẵn sàng</p>
                 </div>
             </div>
@@ -128,50 +128,110 @@
             </div>
         </div>
 
-        <!-- Urgent Tasks & Equipment Status -->
-        <div class="animate-in"
-            style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; animation-delay: 0.3s;">
-            <!-- Urgent Tasks -->
+        <!-- Yêu cầu & AI Đánh giá -->
+        <div class="animate-in" style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 32px; animation-delay: 0.3s;">
+            <!-- Danh sách việc chờ nhận -->
             <div class="card-modern">
                 <div class="card-header-modern">
-                    <h3 class="card-title">Yêu cầu khẩn cấp</h3>
-                    <span
-                        style="background: #ef4444; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">3</span>
+                    <h3 class="card-title">Phân công chờ xử lý</h3>
+                    <span th:text="${assignedTasks.size()}" style="background: #ef4444; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">0</span>
                 </div>
-                <div>
-                    <div class="alert-card urgent">
-                        <div class="alert-header">
-                            <div class="alert-title">
-                                <i data-lucide="alert-octagon" style="width: 20px; height: 20px; color: #ef4444;"></i>
-                                Máy chiếu hỏng - Phòng A101
+                <div style="padding: 20px;">
+                    <div th:if="${assignedTasks.isEmpty()}">
+                        <p style="color: #64748b; margin: 0;">Hiện không có phiếu nào chờ bạn xác nhận.</p>
+                        
+                        <!-- Gợi ý task chưa ai nhận -->
+                        <div th:if="${!unassignedTasks.isEmpty()}" style="margin-top: 24px;">
+                            <h5 style="font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 12px;">💡 Gợi ý công việc rảnh tay:</h5>
+                            <div th:each="task : ${unassignedTasks}" class="alert-card warning" style="margin-bottom: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div class="alert-title" style="margin-bottom: 4px;">
+                                        <i data-lucide="alert-circle" style="width: 16px; height: 16px; color: #f59e0b;"></i>
+                                        <span th:text="${task.thietBi?.tenThietBi}">Máy chiếu</span>
+                                    </div>
+                                    <div class="alert-content" style="font-size: 12px;" th:text="${task.moTaLoi}">Lỗi</div>
+                                </div>
+                                <button class="btn btn-sm btn-dark" th:onclick="'aiAutoSchedule(' + ${task.id} + ')'" title="AI tự động nhận và tạo lịch">
+                                    <i data-lucide="bot" style="width: 14px; height: 14px;"></i> AI Xử lý
+                                </button>
                             </div>
-                            <span class="alert-badge urgent">Khẩn cấp</span>
-                        </div>
-                        <div class="alert-content">
-                            Máy chiếu không hoạt động, ảnh hưởng đến lớp học. Cần xử lý ngay.
-                        </div>
-                        <div style="margin-top: 12px; font-size: 12px; color: #94a3b8;">
-                            <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
-                            2 giờ trước
                         </div>
                     </div>
 
-                    <div class="alert-card warning">
+                    <div th:each="task : ${assignedTasks}" class="alert-card urgent" style="margin-bottom: 12px;">
                         <div class="alert-header">
                             <div class="alert-title">
-                                <i data-lucide="alert-triangle" style="width: 20px; height: 20px; color: #f59e0b;"></i>
-                                Điều hòa yếu - Phòng B203
+                                <i data-lucide="alert-octagon" style="width: 16px; height: 16px; color: #ef4444;"></i>
+                                <span th:text="${task.thietBi?.tenThietBi}">Thiết bị</span>
                             </div>
-                            <span class="alert-badge warning">Quan trọng</span>
+                            <span class="alert-badge urgent">Phân công mới</span>
                         </div>
-                        <div class="alert-content">
-                            Điều hòa hoạt động yếu, cần kiểm tra và bảo trì.
-                        </div>
-                        <div style="margin-top: 12px; font-size: 12px; color: #94a3b8;">
-                            <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
-                            5 giờ trước
+                        <div class="alert-content" th:text="${task.moTaLoi}">Mô tả lỗi</div>
+                        <div style="margin-top: 12px; display: flex; gap: 8px;">
+                            <button class="btn btn-sm btn-primary" th:onclick="'acceptTask(' + ${task.id} + ')'"><i data-lucide="check" style="width:14px;height:14px;"></i> Nhận việc</button>
+                            <button class="btn btn-sm btn-danger" th:onclick="'rejectTask(' + ${task.id} + ')'"><i data-lucide="x" style="width:14px;height:14px;"></i> Từ chối</button>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- AI Đánh giá -->
+            <div class="card-modern" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; border: 1px solid rgba(255,255,255,0.1);">
+                <div class="card-header-modern" style="border-bottom-color: rgba(255,255,255,0.1);">
+                    <h3 class="card-title" style="color: white;">AI Đánh giá Năng lực</h3>
+                    <i data-lucide="sparkles" style="color: #f59e0b;"></i>
+                </div>
+                <div style="padding: 24px 20px; text-align: center;">
+                    <div style="width: 72px; height: 72px; background: rgba(16, 185, 129, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                        <i data-lucide="bot" style="width: 36px; height: 36px; color: #10b981;"></i>
+                    </div>
+                    <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">Đánh giá hoạt động tháng</h4>
+                    <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 24px; line-height: 1.5;">
+                        AI sẽ phân tích <span th:text="${myBaoTrisCount}" style="color: #10b981; font-weight: 700;">0</span> phiếu bảo trì bạn đã thực hiện để đưa ra đánh giá, đề xuất cải thiện và khen thưởng.
+                    </p>
+                    <button onclick="window.openAiChatbot('Hãy đóng vai chuyên gia nhân sự và đánh giá năng lực của tôi dựa trên các phiếu bảo trì tôi đã xử lý trong hệ thống. Đưa ra điểm mạnh và đề xuất cải thiện.')" class="btn" style="background: #10b981; color: white; width: 100%; border: none; padding: 10px; border-radius: 8px; font-weight: 600; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                        Sinh bài đánh giá ngay
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activities & Tình trạng thiết bị -->
+        <div class="animate-in" style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; animation-delay: 0.4s;">
+            <!-- Recent Activities -->
+            <div class="card-modern">
+                <div class="card-header-modern">
+                    <h3 class="card-title">Bảo trì gần đây</h3>
+                    <a th:href="@{/nhanvien-csvc/bao-tri}"
+                        style="color: #10b981; font-size: 14px; font-weight: 600; text-decoration: none;">
+                        Xem tất cả →
+                    </a>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #f1f5f9; text-align: left;">
+                                <th style="padding: 12px; color: #64748b; font-size: 13px; font-weight: 600;">Thiết bị</th>
+                                <th style="padding: 12px; color: #64748b; font-size: 13px; font-weight: 600;">Ngày bảo trì</th>
+                                <th style="padding: 12px; color: #64748b; font-size: 13px; font-weight: 600;">Người thực hiện</th>
+                                <th style="padding: 12px; color: #64748b; font-size: 13px; font-weight: 600;">Kết quả</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="bt : ${stats.recentBaoTris}" style="border-bottom: 1px solid #f1f5f9;">
+                                <td style="padding: 12px; font-weight: 600; color: #0f172a;" th:text="${bt.thietBi?.tenThietBi}">Thiết bị</td>
+                                <td style="padding: 12px; color: #64748b;" th:text="${#temporals.format(bt.ngayBaoTri, 'dd/MM/yyyy')}">01/01/2026</td>
+                                <td style="padding: 12px; color: #64748b;" th:text="${bt.nguoiThucHien?.hoTen}">Người A</td>
+                                <td style="padding: 12px;">
+                                    <span th:if="${bt.ketQua == null}" style="background: #f1f5f9; color: #64748b; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">Chưa xong</span>
+                                    <span th:if="${bt.ketQua != null}" th:text="${bt.ketQua}" style="background: #dcfce7; color: #166534; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">Hoàn thành</span>
+                                </td>
+                            </tr>
+                            <tr th:if="${stats.recentBaoTris.isEmpty()}">
+                                <td colspan="4" style="padding: 20px; text-align: center; color: #64748b;">Chưa có dữ liệu</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -179,116 +239,90 @@
             <div class="card-modern">
                 <div class="card-header-modern">
                     <h3 class="card-title">Tình trạng thiết bị</h3>
-                    <select class="chart-filter">
-                        <option>Tháng này</option>
-                        <option>Tuần này</option>
-                        <option>Hôm nay</option>
-                    </select>
                 </div>
                 <div style="padding: 20px 0;">
                     <div style="margin-bottom: 20px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                             <span style="font-size: 14px; font-weight: 600; color: #0f172a;">Hoạt động tốt</span>
-                            <span style="font-size: 14px; font-weight: 700; color: #10b981;">91%</span>
+                            <span style="font-size: 14px; font-weight: 700; color: #10b981;" th:text="${stats.tongThietBi > 0 ? (stats.thietBiTot * 100 / stats.tongThietBi) : 0} + '%'">91%</span>
                         </div>
                         <div class="progress-modern">
-                            <div class="progress-bar-modern" style="width: 91%;"></div>
+                            <div class="progress-bar-modern" th:style="'width: ' + ${stats.tongThietBi > 0 ? (stats.thietBiTot * 100 / stats.tongThietBi) : 0} + '%;'"></div>
                         </div>
                     </div>
 
                     <div style="margin-bottom: 20px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                             <span style="font-size: 14px; font-weight: 600; color: #0f172a;">Cần bảo trì</span>
-                            <span style="font-size: 14px; font-weight: 700; color: #f59e0b;">5%</span>
+                            <span style="font-size: 14px; font-weight: 700; color: #f59e0b;" th:text="${stats.tongThietBi > 0 ? (stats.thietBiBaoTri * 100 / stats.tongThietBi) : 0} + '%'">5%</span>
                         </div>
                         <div class="progress-modern">
                             <div class="progress-bar-modern"
-                                style="width: 5%; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);"></div>
+                                th:style="'width: ' + ${stats.tongThietBi > 0 ? (stats.thietBiBaoTri * 100 / stats.tongThietBi) : 0} + '%; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);'"></div>
                         </div>
                     </div>
 
                     <div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                             <span style="font-size: 14px; font-weight: 600; color: #0f172a;">Hỏng hóc</span>
-                            <span style="font-size: 14px; font-weight: 700; color: #ef4444;">4%</span>
+                            <span style="font-size: 14px; font-weight: 700; color: #ef4444;" th:text="${stats.tongThietBi > 0 ? (stats.thietBiHong * 100 / stats.tongThietBi) : 0} + '%'">4%</span>
                         </div>
                         <div class="progress-modern">
                             <div class="progress-bar-modern"
-                                style="width: 4%; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);"></div>
+                                th:style="'width: ' + ${stats.tongThietBi > 0 ? (stats.thietBiHong * 100 / stats.tongThietBi) : 0} + '%; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);'"></div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Recent Activities -->
-        <div class="card-modern animate-in" style="animation-delay: 0.4s;">
-            <div class="card-header-modern">
-                <h3 class="card-title">Hoạt động gần đây</h3>
-                <a th:href="@{/nhanvien-csvc/bao-hong}"
-                    style="color: #10b981; font-size: 14px; font-weight: 600; text-decoration: none;">
-                    Xem tất cả →
-                </a>
-            </div>
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="border-bottom: 2px solid #f1f5f9; text-align: left;">
-                            <th style="padding: 12px; color: #64748b; font-size: 13px; font-weight: 600;">Thời gian</th>
-                            <th style="padding: 12px; color: #64748b; font-size: 13px; font-weight: 600;">Hoạt động</th>
-                            <th style="padding: 12px; color: #64748b; font-size: 13px; font-weight: 600;">Người thực
-                                hiện</th>
-                            <th style="padding: 12px; color: #64748b; font-size: 13px; font-weight: 600;">Trạng thái
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr style="border-bottom: 1px solid #f1f5f9;">
-                            <td style="padding: 12px; color: #64748b;">10:30 AM</td>
-                            <td style="padding: 12px; font-weight: 600; color: #0f172a;">Xử lý báo hỏng máy chiếu</td>
-                            <td style="padding: 12px; color: #64748b;">Nguyễn Văn A</td>
-                            <td style="padding: 12px;">
-                                <span
-                                    style="background: #dcfce7; color: #166534; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">Hoàn
-                                    thành</span>
-                            </td>
-                        </tr>
-                        <tr style="border-bottom: 1px solid #f1f5f9;">
-                            <td style="padding: 12px; color: #64748b;">09:15 AM</td>
-                            <td style="padding: 12px; font-weight: 600; color: #0f172a;">Bảo trì điều hòa phòng B101
-                            </td>
-                            <td style="padding: 12px; color: #64748b;">Trần Thị B</td>
-                            <td style="padding: 12px;">
-                                <span
-                                    style="background: #fef3c7; color: #854d0e; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">Đang
-                                    xử lý</span>
-                            </td>
-                        </tr>
-                        <tr style="border-bottom: 1px solid #f1f5f9;">
-                            <td style="padding: 12px; color: #64748b;">08:45 AM</td>
-                            <td style="padding: 12px; font-weight: 600; color: #0f172a;">Kiểm tra thiết bị mới</td>
-                            <td style="padding: 12px; color: #64748b;">Lê Văn C</td>
-                            <td style="padding: 12px;">
-                                <span
-                                    style="background: #dcfce7; color: #166534; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">Hoàn
-                                    thành</span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
         </div>
     </div>
 
     <th:block layout:fragment="scripts">
         <script>
+            function acceptTask(id) {
+                if(confirm('Bạn có chắc chắn nhận phiếu này?')) {
+                    fetch('/api/nhanvien-csvc/bao-hong/' + id + '/accept', { method: 'POST' })
+                        .then(r => r.json())
+                        .then(data => {
+                            alert(data.message);
+                            location.reload();
+                        });
+                }
+            }
+
+            function rejectTask(id) {
+                const lyDo = prompt('Nhập lý do từ chối:');
+                if(lyDo) {
+                    fetch('/api/nhanvien-csvc/bao-hong/' + id + '/reject', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ lyDoTuChoi: lyDo })
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        alert(data.message);
+                        location.reload();
+                    });
+                }
+            }
+
+            function aiAutoSchedule(id) {
+                fetch('/api/nhanvien-csvc/bao-hong/' + id + '/ai-auto-schedule', { method: 'POST' })
+                    .then(r => r.json())
+                    .then(data => {
+                        alert(data.message || '✅ AI đã tự động nhận việc và tạo lịch bảo trì!');
+                        location.reload();
+                    });
+            }
+
             // Animate numbers on load
             document.addEventListener('DOMContentLoaded', function () {
                 const statNumbers = document.querySelectorAll('.stat-number');
                 statNumbers.forEach(num => {
-                    const target = parseInt(num.textContent);
+                    const target = parseInt(num.textContent) || 0;
                     let current = 0;
                     const increment = target / 30;
+                    if(target === 0) return;
                     const timer = setInterval(() => {
                         current += increment;
                         if (current >= target) {

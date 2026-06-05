@@ -44,6 +44,16 @@ public class AdminThietBiService {
     }
 
     @Transactional(readOnly = true)
+    public List<ThietBi> getAllThietBiList() {
+        List<ThietBi> list = thietBiRepository.findAll();
+        list.forEach(tb -> {
+            if (tb.getLoaiThietBi() != null) tb.getLoaiThietBi().getTenLoai();
+            if (tb.getPhong() != null) tb.getPhong().getTenPhong();
+        });
+        return list;
+    }
+
+    @Transactional(readOnly = true)
     public ThietBi getThietBiById(Long id) {
         ThietBi thietBi = thietBiRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("ThietBi", "id", id));

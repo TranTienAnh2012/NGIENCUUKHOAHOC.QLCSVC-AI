@@ -235,9 +235,17 @@ def simple_chat():
         if not message: return jsonify({"error": "Missing message"}), 400
         
         response = model.generate_content(message)
-        return jsonify({"success": True, "response": response.text}), 200
+        try:
+            text = response.text
+        except ValueError:
+            text = "Xin lỗi, câu trả lời bị chặn bởi bộ lọc an toàn hoặc gặp lỗi từ Google Gemini."
+            
+        return jsonify({"success": True, "response": text}), 200
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        error_msg = str(e)
+        if "429" in error_msg or "ResourceExhausted" in error_msg or "quota" in error_msg.lower():
+            error_msg = "Gemini API đã hết hạn mức truy cập (Rate Limit). Vui lòng thử lại sau."
+        return jsonify({"success": False, "error": error_msg}), 500
 
 @app.route('/api/ai/analyze-damage', methods=['POST'])
 def analyze_damage():

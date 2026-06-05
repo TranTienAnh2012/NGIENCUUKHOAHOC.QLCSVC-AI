@@ -51,8 +51,10 @@
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label for="nguoiThucHien" class="form-label">Người thực hiện</label>
-                                        <input type="text" class="form-control" id="nguoiThucHien">
+                                        <label for="nguoiThucHienId" class="form-label">Người thực hiện</label>
+                                        <select class="form-select" id="nguoiThucHienId">
+                                            <option value="">-- Chưa rõ --</option>
+                                        </select>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label for="chiPhi" class="form-label">Chi phí (VNĐ)</label>
@@ -86,9 +88,27 @@
         <script th:inline="javascript">
             const id = /*[[${id}]]*/ 0;
             document.addEventListener('DOMContentLoaded', () => {
-                loadData();
+                loadUsers().then(() => loadData());
                 lucide.createIcons();
             });
+
+            function loadUsers() {
+                return fetch('/api/admin/users/all')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            const select = document.getElementById('nguoiThucHienId');
+                            data.data.forEach(u => {
+                                if (u.vaiTro === 'NHAN_VIEN_CSVC' || u.vaiTro === 'ADMIN') {
+                                    const opt = document.createElement('option');
+                                    opt.value = u.id;
+                                    opt.textContent = u.hoTen + ' (' + u.email + ')';
+                                    select.appendChild(opt);
+                                }
+                            });
+                        }
+                    });
+            }
 
             function loadData() {
                 fetch(`/api/admin/bao-tri/${id}`)
@@ -98,7 +118,9 @@
                             const item = data.data;
                             document.getElementById('ngayBaoTri').value = item.ngayBaoTri;
                             document.getElementById('loaiBaoTri').value = item.loaiBaoTri || '';
-                            document.getElementById('nguoiThucHien').value = item.nguoiThucHien || '';
+                            if (item.nguoiThucHien) {
+                                document.getElementById('nguoiThucHienId').value = item.nguoiThucHien.id;
+                            }
                             document.getElementById('chiPhi').value = item.chiPhi || '';
                             document.getElementById('noiDung').value = item.noiDung || '';
                             document.getElementById('ketQua').value = item.ketQua || '';
@@ -152,10 +174,12 @@
             document.getElementById('editForm').addEventListener('submit', function (e) {
                 e.preventDefault();
                 const linhKienId = document.getElementById('linhKienId').value;
+                const nguoiThucHienId = document.getElementById('nguoiThucHienId').value;
+                
                 const data = {
                     ngayBaoTri: document.getElementById('ngayBaoTri').value,
                     loaiBaoTri: document.getElementById('loaiBaoTri').value,
-                    nguoiThucHien: document.getElementById('nguoiThucHien').value,
+                    nguoiThucHien: nguoiThucHienId ? { id: parseInt(nguoiThucHienId) } : null,
                     chiPhi: document.getElementById('chiPhi').value ? parseFloat(document.getElementById('chiPhi').value) : null,
                     noiDung: document.getElementById('noiDung').value,
                     ketQua: document.getElementById('ketQua').value || null,

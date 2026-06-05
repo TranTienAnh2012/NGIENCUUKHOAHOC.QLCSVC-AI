@@ -2,12 +2,15 @@ package com.Tta.QLCSVC.DHNT.areas.nhanvien_csvc.service;
 
 import com.Tta.QLCSVC.DHNT.entity.BaoHong;
 import com.Tta.QLCSVC.DHNT.entity.BaoTri;
+import com.Tta.QLCSVC.DHNT.entity.NguoiDung;
 import com.Tta.QLCSVC.DHNT.entity.ThietBi;
 import com.Tta.QLCSVC.DHNT.exception.ResourceNotFoundException;
 import com.Tta.QLCSVC.DHNT.repository.BaoHongRepository;
 import com.Tta.QLCSVC.DHNT.repository.BaoTriRepository;
+import com.Tta.QLCSVC.DHNT.repository.NguoiDungRepository;
 import com.Tta.QLCSVC.DHNT.repository.ThietBiRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +25,7 @@ public class CSVCBaoTriService {
     private final BaoTriRepository baoTriRepository;
     private final ThietBiRepository thietBiRepository;
     private final BaoHongRepository baoHongRepository;
+    private final NguoiDungRepository nguoiDungRepository;
 
     public List<BaoTri> getAllBaoTri() {
         return baoTriRepository.findAll();
@@ -45,8 +49,9 @@ public class CSVCBaoTriService {
         if (baoTri.getNgayBaoTri() == null) {
             baoTri.setNgayBaoTri(LocalDate.now());
         }
+        // Auto-set người thực hiện từ SecurityContext
+        setNguoiThucHienFromContext(baoTri);
 
-        // Cập nhật trạng thái thiết bị sang BAO_TRI
         thietBi.setTrangThai(ThietBi.TrangThaiThietBi.BAO_TRI);
         thietBiRepository.save(thietBi);
 
@@ -71,6 +76,9 @@ public class CSVCBaoTriService {
             baoTri.setLoaiBaoTri(BaoTri.LoaiBaoTri.SUA_CHUA);
         }
 
+        // Auto-set người thực hiện từ SecurityContext
+        setNguoiThucHienFromContext(baoTri);
+
         // Cập nhật trạng thái báo hỏng sang DANG_XU_LY
         baoHong.setTrangThai(BaoHong.TrangThaiBaoHong.DANG_XU_LY);
         baoHongRepository.save(baoHong);
@@ -83,18 +91,61 @@ public class CSVCBaoTriService {
     }
 
     @Transactional
-    public BaoTri hoanThanhBaoTri(Long baoTriId, BaoTri.KetQuaBaoTri ketQua, BigDecimal chiPhi) {
+    public BaoTri hoanThanhBaoTri(Long baoTriId, BaoTri.KetQuaBaoTri ketQua, BigDecimal chiPhi, String ghiChu) {
         BaoTri baoTri = baoTriRepository.findById(baoTriId)
                 .orElseThrow(() -> new ResourceNotFoundException("BaoTri", "id", baoTriId));
 
         baoTri.setKetQua(ketQua);
         baoTri.setChiPhi(chiPhi);
 
-        // Trả thiết bị về trạng thái TOT
+        if (ghiChu != null && !ghiChu.trim().isEmpty()) {
+            String currentNoiDung = baoTri.getNoiDung() != null ? baoTri.getNoiDung() : "";
+            String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+            String appendedNote = "[" + timestamp + "] " + ghiChu;
+            baoTri.setNoiDung(currentNoiDung.isEmpty() ? appendedNote : currentNoiDung + "\n" + appendedNote);
+        }
+
+        // Cập nhật trạng thái thiết bị
         ThietBi thietBi = baoTri.getThietBi();
-        thietBi.setTrangThai(ThietBi.TrangThaiThietBi.TOT);
+        if (ketQua == BaoTri.KetQuaBaoTri.THANH_CONG) {
+            thietBi.setTrangThai(ThietBi.TrangThaiThietBi.TOT);
+        } else {
+            thietBi.setTrangThai(ThietBi.TrangThaiThietBi.HONG);
+        }
         thietBiRepository.save(thietBi);
 
         return baoTriRepository.save(baoTri);
+    }
+
+    @Transactional
+    public BaoTri capNhatTienDo(Long baoTriId, BigDecimal chiPhiThem, String ghiChu) {
+        BaoTri baoTri = baoTriRepository.findById(baoTriId)
+                .orElseThrow(() -> new ResourceNotFoundException("BaoTri", "id", baoTriId));
+
+        if (chiPhiThem != null && chiPhiThem.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal currentChiPhi = baoTri.getChiPhi() != null ? baoTri.getChiPhi() : BigDecimal.ZERO;
+            baoTri.setChiPhi(currentChiPhi.add(chiPhiThem));
+        }
+
+        if (ghiChu != null && !ghiChu.trim().isEmpty()) {
+            String currentNoiDung = baoTri.getNoiDung() != null ? baoTri.getNoiDung() : "";
+            String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+            String appendedNote = "[" + timestamp + "] " + ghiChu;
+            baoTri.setNoiDung(currentNoiDung.isEmpty() ? appendedNote : currentNoiDung + "\n" + appendedNote);
+        }
+
+        return baoTriRepository.save(baoTri);
+    }
+
+    /** Auto-set nguoiThucHien từ SecurityContext nếu chưa được set */
+    private void setNguoiThucHienFromContext(BaoTri baoTri) {
+        if (baoTri.getNguoiThucHien() == null) {
+            try {
+                String email = SecurityContextHolder.getContext().getAuthentication().getName();
+                nguoiDungRepository.findByEmail(email).ifPresent(baoTri::setNguoiThucHien);
+            } catch (Exception ignored) {
+                // Không bắt buộc — nếu không lấy được context thì để null
+            }
+        }
     }
 }

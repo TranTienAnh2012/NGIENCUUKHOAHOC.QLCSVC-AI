@@ -59,6 +59,7 @@
                                             <th>Người báo</th>
                                             <th>Ngày báo</th>
                                             <th>Mức độ</th>
+                                            <th>Phân công</th>
                                             <th>Trạng thái</th>
                                             <th>Thao tác</th>
                                         </tr>
@@ -78,6 +79,13 @@
                                                     th:text="${item.mucDoNghiemTrong}">TRUNG_BINH</span>
                                             </td>
                                             <td>
+                                                <span th:if="${item.trangThaiPhanCong != null}"
+                                                    th:class="'badge ' + ${item.trangThaiPhanCong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiPhanCong).CHUA_PHAN_CONG ? 'bg-secondary' : 
+                                                    item.trangThaiPhanCong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiPhanCong).CHO_XAC_NHAN ? 'bg-warning text-dark' : 
+                                                    item.trangThaiPhanCong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiPhanCong).DA_NHAN ? 'bg-success' : 'bg-danger'}"
+                                                    th:text="${item.trangThaiPhanCong}">CHO_XAC_NHAN</span>
+                                            </td>
+                                            <td>
                                                 <span
                                                     th:class="'badge ' + ${item.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).CHO_XU_LY ? 'bg-warning' : 
                                                     item.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).DANG_XU_LY ? 'bg-info' : 
@@ -90,10 +98,28 @@
                                                         class="btn btn-info" title="Xem chi tiết">
                                                         <i data-lucide="eye"></i>
                                                     </a>
-                                                    <a th:if="${item.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).CHO_XU_LY}"
+                                                    
+                                                    <!-- Nút Nhận việc / Từ chối (chỉ hiện khi CHO_XAC_NHAN) -->
+                                                    <button th:if="${item.trangThaiPhanCong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiPhanCong).CHO_XAC_NHAN}"
+                                                        class="btn btn-primary" th:onclick="'acceptTask(' + ${item.id} + ')'" title="Nhận việc">
+                                                        <i data-lucide="check-circle"></i> Nhận
+                                                    </button>
+                                                    <button th:if="${item.trangThaiPhanCong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiPhanCong).CHO_XAC_NHAN}"
+                                                        class="btn btn-danger" th:onclick="'rejectTask(' + ${item.id} + ')'" title="Từ chối">
+                                                        <i data-lucide="x-circle"></i> Từ chối
+                                                    </button>
+                                                    
+                                                    <!-- AI Tự động xử lý -->
+                                                    <button th:if="${(item.trangThaiPhanCong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiPhanCong).CHO_XAC_NHAN or item.trangThaiPhanCong == null or item.trangThaiPhanCong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiPhanCong).CHUA_PHAN_CONG) and item.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).CHO_XU_LY}"
+                                                        class="btn btn-dark" th:onclick="'aiAutoSchedule(' + ${item.id} + ')'" title="AI tự động nhận và tạo lịch">
+                                                        <i data-lucide="bot"></i> AI Xử lý
+                                                    </button>
+
+                                                    <!-- Lên lịch bảo trì (chỉ khi đã nhận) -->
+                                                    <a th:if="${item.trangThaiPhanCong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiPhanCong).DA_NHAN}"
                                                         th:href="@{/nhanvien-csvc/bao-tri/create(baoHongId=${item.id})}"
                                                         class="btn btn-success" title="Lên lịch bảo trì">
-                                                        <i data-lucide="calendar-plus"></i>
+                                                        <i data-lucide="calendar-plus"></i> Tạo BT
                                                     </a>
                                                 </div>
                                             </td>
@@ -140,6 +166,79 @@
                 filterTrangThai.addEventListener('change', filterTable);
                 filterMucDo.addEventListener('change', filterTable);
                 searchInput.addEventListener('input', filterTable);
+
+                // Gán vào window để inline onclick có thể gọi được
+                window.acceptTask = function(id) {
+                    if (confirm('Bạn có chắc chắn muốn nhận xử lý phiếu báo hỏng này?')) {
+                        fetch(`/api/nhanvien-csvc/bao-hong/${id}/accept`, {
+                            method: 'POST'
+                        })
+                        .then(r => r.json())
+                        .then(res => {
+                            if (res.success) {
+                                alert('Đã nhận việc thành công!');
+                                window.location.reload();
+                            } else {
+                                alert('Lỗi: ' + (res.message || 'Không thể nhận việc'));
+                            }
+                        })
+                        .catch(e => {
+                            console.error('Error:', e);
+                            alert('Có lỗi xảy ra khi gọi API');
+                        });
+                    }
+                };
+
+                window.rejectTask = function(id) {
+                    const lyDo = prompt('Vui lòng nhập lý do từ chối:');
+                    if (lyDo !== null) { // null if user clicks Cancel
+                        if (!lyDo.trim()) {
+                            alert('Bạn phải nhập lý do từ chối!');
+                            return;
+                        }
+                        fetch(`/api/nhanvien-csvc/bao-hong/${id}/reject`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ lyDoTuChoi: lyDo })
+                        })
+                        .then(r => r.json())
+                        .then(res => {
+                            if (res.success) {
+                                alert('Đã từ chối công việc.');
+                                window.location.reload();
+                            } else {
+                                alert('Lỗi: ' + (res.message || 'Không thể từ chối'));
+                            }
+                        })
+                        .catch(e => {
+                            console.error('Error:', e);
+                            alert('Có lỗi xảy ra khi gọi API');
+                        });
+                    }
+                };
+
+                window.aiAutoSchedule = function(id) {
+                    if (confirm('AI sẽ tự động phân tích và tạo lịch bảo trì cho bạn. Xác nhận?')) {
+                        // show loading
+                        alert('Đang xử lý...');
+                        fetch(`/api/nhanvien-csvc/bao-hong/${id}/ai-auto-schedule`, {
+                            method: 'POST'
+                        })
+                        .then(r => r.json())
+                        .then(res => {
+                            if (res.success) {
+                                alert(res.message);
+                                window.location.reload();
+                            } else {
+                                alert('Lỗi: ' + (res.message || 'Không thể tạo lịch'));
+                            }
+                        })
+                        .catch(e => {
+                            console.error('Error:', e);
+                            alert('Có lỗi xảy ra khi gọi API');
+                        });
+                    }
+                };
             });
         </script>
     </th:block>

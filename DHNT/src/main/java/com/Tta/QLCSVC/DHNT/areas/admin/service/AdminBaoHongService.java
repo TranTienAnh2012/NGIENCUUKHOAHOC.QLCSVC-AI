@@ -1,8 +1,11 @@
 package com.Tta.QLCSVC.DHNT.areas.admin.service;
 
+import com.Tta.QLCSVC.DHNT.dto.PhanCongRequest;
 import com.Tta.QLCSVC.DHNT.entity.BaoHong;
+import com.Tta.QLCSVC.DHNT.entity.NguoiDung;
 import com.Tta.QLCSVC.DHNT.exception.ResourceNotFoundException;
 import com.Tta.QLCSVC.DHNT.repository.BaoHongRepository;
+import com.Tta.QLCSVC.DHNT.repository.NguoiDungRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,19 +19,16 @@ import java.util.List;
 public class AdminBaoHongService {
 
     private final BaoHongRepository baoHongRepository;
+    private final NguoiDungRepository nguoiDungRepository;
     private final com.Tta.QLCSVC.DHNT.service.NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public Page<BaoHong> getAllBaoHong(Pageable pageable) {
         Page<BaoHong> page = baoHongRepository.findAll(pageable);
-        // Force initialization of lazy relationships
         page.getContent().forEach(bh -> {
-            if (bh.getThietBi() != null) {
-                bh.getThietBi().getTenThietBi();
-            }
-            if (bh.getNguoiBao() != null) {
-                bh.getNguoiBao().getHoTen();
-            }
+            if (bh.getThietBi() != null) bh.getThietBi().getTenThietBi();
+            if (bh.getNguoiBao() != null) bh.getNguoiBao().getHoTen();
+            if (bh.getNguoiPhuTrach() != null) bh.getNguoiPhuTrach().getHoTen();
         });
         return page;
     }
@@ -36,14 +36,10 @@ public class AdminBaoHongService {
     @Transactional(readOnly = true)
     public List<BaoHong> getAllBaoHong() {
         List<BaoHong> list = baoHongRepository.findAll();
-        // Force initialization of lazy relationships
         list.forEach(bh -> {
-            if (bh.getThietBi() != null) {
-                bh.getThietBi().getTenThietBi();
-            }
-            if (bh.getNguoiBao() != null) {
-                bh.getNguoiBao().getHoTen();
-            }
+            if (bh.getThietBi() != null) bh.getThietBi().getTenThietBi();
+            if (bh.getNguoiBao() != null) bh.getNguoiBao().getHoTen();
+            if (bh.getNguoiPhuTrach() != null) bh.getNguoiPhuTrach().getHoTen();
         });
         return list;
     }
@@ -52,13 +48,9 @@ public class AdminBaoHongService {
     public BaoHong getBaoHongById(Long id) {
         BaoHong baoHong = baoHongRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("BaoHong", "id", id));
-        // Force initialization of lazy relationships
-        if (baoHong.getThietBi() != null) {
-            baoHong.getThietBi().getTenThietBi();
-        }
-        if (baoHong.getNguoiBao() != null) {
-            baoHong.getNguoiBao().getHoTen();
-        }
+        if (baoHong.getThietBi() != null) baoHong.getThietBi().getTenThietBi();
+        if (baoHong.getNguoiBao() != null) baoHong.getNguoiBao().getHoTen();
+        if (baoHong.getNguoiPhuTrach() != null) baoHong.getNguoiPhuTrach().getHoTen();
         return baoHong;
     }
 
@@ -80,14 +72,12 @@ public class AdminBaoHongService {
             baoHong.setTrangThai(BaoHong.TrangThaiBaoHong.CHO_XU_LY);
         }
         BaoHong saved = baoHongRepository.save(baoHong);
-        
-        // Notify Nhân Viên CSVC
         if (saved.getThietBi() != null) {
-            String title = "🚨 Báo hỏng mới từ Admin: " + saved.getThietBi().getTenThietBi();
-            String msg = "Admin vừa tạo phiếu báo hỏng cho thiết bị: " + saved.getThietBi().getTenThietBi();
-            notificationService.sendToRole(com.Tta.QLCSVC.DHNT.entity.NguoiDung.VaiTro.NHAN_VIEN_CSVC, title, msg, "BAO_HONG", "/nhanvien-csvc/bao-hong");
+            notificationService.sendToRole(NguoiDung.VaiTro.NHAN_VIEN_CSVC,
+                "🚨 Báo hỏng mới: " + saved.getThietBi().getTenThietBi(),
+                "Admin vừa tạo phiếu báo hỏng cho thiết bị: " + saved.getThietBi().getTenThietBi(),
+                "BAO_HONG", "/nhanvien-csvc/bao-hong");
         }
-        
         return saved;
     }
 
@@ -101,14 +91,11 @@ public class AdminBaoHongService {
         baoHong.setMucDoNghiemTrong(baoHongDetails.getMucDoNghiemTrong());
         baoHong.setTrangThai(baoHongDetails.getTrangThai());
         BaoHong saved = baoHongRepository.save(baoHong);
-        
-        // System Audit Log cho Admin
         if (saved.getThietBi() != null) {
-            String title = "🔄 Hệ thống: Cập nhật báo hỏng";
-            String msg = "Phiếu báo hỏng thiết bị " + saved.getThietBi().getTenThietBi() + " vừa được cập nhật.";
-            notificationService.sendToRole(com.Tta.QLCSVC.DHNT.entity.NguoiDung.VaiTro.ADMIN, title, msg, "BAO_HONG", "/admin/bao-hong/view/" + id);
+            notificationService.sendToRole(NguoiDung.VaiTro.ADMIN, "🔄 Cập nhật báo hỏng",
+                "Phiếu báo hỏng thiết bị " + saved.getThietBi().getTenThietBi() + " vừa được cập nhật.",
+                "BAO_HONG", "/admin/bao-hong/view/" + id);
         }
-        
         return saved;
     }
 
@@ -117,26 +104,67 @@ public class AdminBaoHongService {
         BaoHong baoHong = getBaoHongById(id);
         baoHong.setTrangThai(trangThai);
         BaoHong saved = baoHongRepository.save(baoHong);
-        
-        // Khôi phục thiết bị về hoạt động nếu phiếu báo hỏng được hoàn thành hoặc bị hủy
-        if (saved.getThietBi() != null && (trangThai == BaoHong.TrangThaiBaoHong.HOAN_THANH || trangThai == BaoHong.TrangThaiBaoHong.HUY)) {
+        if (saved.getThietBi() != null && (trangThai == BaoHong.TrangThaiBaoHong.HOAN_THANH
+                || trangThai == BaoHong.TrangThaiBaoHong.HUY)) {
             saved.getThietBi().setTrangThai(com.Tta.QLCSVC.DHNT.entity.ThietBi.TrangThaiThietBi.TOT);
         }
-        
-        // Notify the user who reported it
         if (saved.getNguoiBao() != null && saved.getThietBi() != null) {
-            String title = "🛠️ Cập nhật báo hỏng: " + saved.getThietBi().getTenThietBi();
-            String msg = "Trạng thái báo hỏng thiết bị " + saved.getThietBi().getTenThietBi() + " đã được chuyển sang: " + trangThai.name();
-            notificationService.sendToUser(saved.getNguoiBao().getId(), title, msg, "BAO_HONG", "/giao-vien/bao-hong");
+            notificationService.sendToUser(saved.getNguoiBao().getId(),
+                "🛠️ Cập nhật báo hỏng: " + saved.getThietBi().getTenThietBi(),
+                "Trạng thái chuyển sang: " + trangThai.name(),
+                "BAO_HONG", "/giao-vien/bao-hong");
         }
-        
-        // System Audit Log cho Admin
-        if (saved.getThietBi() != null) {
-            String adminTitle = "🔄 Hệ thống: Đổi trạng thái báo hỏng";
-            String adminMsg = "Thiết bị " + saved.getThietBi().getTenThietBi() + " -> Trạng thái: " + trangThai.name();
-            notificationService.sendToRole(com.Tta.QLCSVC.DHNT.entity.NguoiDung.VaiTro.ADMIN, adminTitle, adminMsg, "BAO_HONG", "/admin/bao-hong/view/" + id);
+        return saved;
+    }
+
+    /**
+     * Admin phân công nhân viên CSVC xử lý phiếu báo hỏng.
+     * Strict validation: nhanVien phải có VaiTro = NHAN_VIEN_CSVC, không chấp nhận role khác.
+     */
+    @Transactional
+    public BaoHong phanCongNhanVien(Long baoHongId, PhanCongRequest req) {
+        BaoHong baoHong = getBaoHongById(baoHongId);
+
+        NguoiDung nhanVien = nguoiDungRepository.findById(req.getNhanVienId())
+                .orElseThrow(() -> new ResourceNotFoundException("NguoiDung", "id", req.getNhanVienId()));
+
+        if (nhanVien.getVaiTro() != NguoiDung.VaiTro.NHAN_VIEN_CSVC) {
+            throw new IllegalArgumentException(
+                "Chỉ có thể phân công cho nhân viên CSVC, không phải: " + nhanVien.getVaiTro().getTen());
         }
-        
+
+        baoHong.setNguoiPhuTrach(nhanVien);
+        baoHong.setTrangThaiPhanCong(BaoHong.TrangThaiPhanCong.CHO_XAC_NHAN);
+        if (req.getGhiChuAdmin() != null && !req.getGhiChuAdmin().isBlank()) {
+            String existing = baoHong.getGhiChu() != null ? baoHong.getGhiChu() : "";
+            baoHong.setGhiChu(existing + "\n[Admin] " + req.getGhiChuAdmin());
+        }
+
+        BaoHong saved = baoHongRepository.save(baoHong);
+
+        String tenThietBi = saved.getThietBi() != null ? saved.getThietBi().getTenThietBi() : "Thiết bị";
+        notificationService.sendToUser(nhanVien.getId(),
+            "📋 Bạn được phân công xử lý báo hỏng",
+            "Admin giao: " + tenThietBi + ". Vui lòng xác nhận hoặc từ chối.",
+            "PHAN_CONG", "/nhanvien-csvc/bao-hong/assignment/" + baoHongId);
+
+        return saved;
+    }
+
+    /** Admin hủy phân công - đặt lại CHUA_PHAN_CONG */
+    @Transactional
+    public BaoHong huyCongViec(Long baoHongId) {
+        BaoHong baoHong = getBaoHongById(baoHongId);
+        NguoiDung nvCu = baoHong.getNguoiPhuTrach();
+        baoHong.setNguoiPhuTrach(null);
+        baoHong.setTrangThaiPhanCong(BaoHong.TrangThaiPhanCong.CHUA_PHAN_CONG);
+        BaoHong saved = baoHongRepository.save(baoHong);
+        if (nvCu != null && saved.getThietBi() != null) {
+            notificationService.sendToUser(nvCu.getId(),
+                "❌ Phân công đã bị thu hồi",
+                "Admin đã thu hồi phân công thiết bị: " + saved.getThietBi().getTenThietBi(),
+                "PHAN_CONG", "/nhanvien-csvc/bao-hong");
+        }
         return saved;
     }
 
@@ -144,16 +172,12 @@ public class AdminBaoHongService {
     public void deleteBaoHong(Long id) {
         BaoHong baoHong = baoHongRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("BaoHong", "id", id));
-                
-        // Khôi phục trạng thái thiết bị về TOT nếu xoá phiếu báo hỏng
         if (baoHong.getThietBi() != null) {
             baoHong.getThietBi().setTrangThai(com.Tta.QLCSVC.DHNT.entity.ThietBi.TrangThaiThietBi.TOT);
-            // System Audit Log cho Admin
-            String title = "🗑️ Hệ thống: Xóa báo hỏng";
-            String msg = "Phiếu báo hỏng thiết bị " + baoHong.getThietBi().getTenThietBi() + " vừa bị xóa.";
-            notificationService.sendToRole(com.Tta.QLCSVC.DHNT.entity.NguoiDung.VaiTro.ADMIN, title, msg, "BAO_HONG", "/admin/bao-hong");
+            notificationService.sendToRole(NguoiDung.VaiTro.ADMIN, "🗑️ Xóa báo hỏng",
+                "Phiếu báo hỏng thiết bị " + baoHong.getThietBi().getTenThietBi() + " vừa bị xóa.",
+                "BAO_HONG", "/admin/bao-hong");
         }
-        
         baoHongRepository.delete(baoHong);
     }
 }

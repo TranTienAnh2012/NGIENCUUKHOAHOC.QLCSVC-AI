@@ -36,6 +36,27 @@ public class CSVCViewController {
     @GetMapping
     public String dashboard(Model model) {
         model.addAttribute("title", "Dashboard Nhân viên CSVC");
+        
+        // Thống kê chung
+        Map<String, Object> stats = csvcThongKeService.getThongKeTongQuan();
+        model.addAttribute("stats", stats);
+        
+        // Công việc được phân công chờ nhận (CHO_XAC_NHAN)
+        List<BaoHong> assignedTasks = csvcBaoHongService.getPendingAcceptanceForCurrentUser();
+        model.addAttribute("assignedTasks", assignedTasks);
+        
+        // Công việc chưa ai nhận (để hiển thị gợi ý)
+        List<BaoHong> unassignedTasks = csvcBaoHongService.getPendingReports();
+        // Lọc lấy những task CHUA_PHAN_CONG (hoặc null)
+        unassignedTasks.removeIf(t -> t.getTrangThaiPhanCong() != null && t.getTrangThaiPhanCong() != BaoHong.TrangThaiPhanCong.CHUA_PHAN_CONG);
+        model.addAttribute("unassignedTasks", unassignedTasks.size() > 5 ? unassignedTasks.subList(0, 5) : unassignedTasks);
+        
+        // Lấy list bảo trì của user hiện tại (để AI đánh giá)
+        List<BaoTri> myBaoTris = csvcBaoTriService.getAllBaoTri().stream()
+            .filter(b -> b.getNguoiThucHien() != null && b.getNguoiThucHien().getEmail().equals(org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName()))
+            .toList();
+        model.addAttribute("myBaoTrisCount", myBaoTris.size());
+        
         return "areas/nhanvien_csvc/dashboard";
     }
 
@@ -92,7 +113,6 @@ public class CSVCViewController {
             @RequestParam String loaiBaoTri,
             @RequestParam String ngayBaoTri,
             @RequestParam String noiDung,
-            @RequestParam(required = false) String nguoiThucHien,
             @RequestParam(required = false) BigDecimal chiPhi,
             RedirectAttributes redirectAttributes) {
         try {
@@ -100,7 +120,7 @@ public class CSVCViewController {
             baoTri.setLoaiBaoTri(BaoTri.LoaiBaoTri.valueOf(loaiBaoTri));
             baoTri.setNgayBaoTri(LocalDate.parse(ngayBaoTri));
             baoTri.setNoiDung(noiDung);
-            baoTri.setNguoiThucHien(nguoiThucHien);
+            // nguoiThucHien giờ là FK NguoiDung, service sẽ tự set từ SecurityContext
             baoTri.setChiPhi(chiPhi);
 
             if (baoHongId != null) {

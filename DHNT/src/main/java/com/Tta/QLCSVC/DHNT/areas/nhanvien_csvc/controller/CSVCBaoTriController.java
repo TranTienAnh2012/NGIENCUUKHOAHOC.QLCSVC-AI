@@ -44,9 +44,20 @@ public class CSVCBaoTriController {
     public ResponseEntity<ApiResponse<BaoTri>> hoanThanhBaoTri(
             @PathVariable Long id,
             @RequestParam String ketQua,
-            @RequestParam BigDecimal chiPhi) {
+            @RequestParam BigDecimal chiPhi,
+            @RequestParam(required = false) String ghiChu) {
         BaoTri.KetQuaBaoTri resultEnum = BaoTri.KetQuaBaoTri.valueOf(ketQua);
-        BaoTri result = baoTriService.hoanThanhBaoTri(id, resultEnum, chiPhi);
+        BaoTri result = baoTriService.hoanThanhBaoTri(id, resultEnum, chiPhi, ghiChu);
         return ResponseEntity.ok(ApiResponse.success("Cập nhật hoàn thành bảo trì thành công", result));
+    }
+
+    @PutMapping("/{id}/cap-nhat-tien-do")
+    @Operation(summary = "Cập nhật tiến độ bảo trì", description = "Cập nhật ghi chú và chi phí phát sinh mà chưa kết thúc lịch")
+    public ResponseEntity<ApiResponse<BaoTri>> capNhatTienDo(
+            @PathVariable Long id,
+            @RequestParam(required = false) BigDecimal chiPhiThem,
+            @RequestParam(required = false) String ghiChu) {
+        BaoTri result = baoTriService.capNhatTienDo(id, chiPhiThem, ghiChu);
+        return ResponseEntity.ok(ApiResponse.success("Đã ghi nhận tiến độ bảo trì", result));
     }
 }

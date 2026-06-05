@@ -55,7 +55,7 @@
                                             </td>
                                             <td th:text="${#temporals.format(item.ngayBaoTri, 'dd/MM/yyyy')}">22/01/2026
                                             </td>
-                                            <td th:text="${item.nguoiThucHien ?: '-'}">Nguyễn Văn A</td>
+                                            <td th:text="${item.nguoiThucHien != null ? item.nguoiThucHien.hoTen : '-'}">-</td>
                                             <td
                                                 th:text="${item.chiPhi != null ? #numbers.formatDecimal(item.chiPhi, 0, 'COMMA', 0, 'POINT') + ' VNĐ' : '-'}">
                                                 500,000 VNĐ</td>
@@ -69,11 +69,10 @@
                                             </td>
                                             <td>
                                                 <div class="btn-group btn-group-sm">
-                                                    <button class="btn btn-info"
-                                                        th:onclick="'viewDetail(' + ${item.id} + ')'"
-                                                        title="Xem chi tiết">
+                                                    <a th:href="@{/nhanvien-csvc/bao-tri/{id}(id=${item.id})}"
+                                                        class="btn btn-info" title="Xem chi tiết">
                                                         <i data-lucide="eye"></i>
-                                                    </button>
+                                                    </a>
                                                 </div>
                                             </td>
                                         </tr>

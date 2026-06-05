@@ -3,7 +3,7 @@
     layout:decorate="~{layout/main}">
 
 <head>
-    <title th:text="${title}">Sửa báo hỏng</title>
+    <title th:text="${title}">Sửa báo hỏng & Phân công</title>
 </head>
 
 <body>
@@ -13,12 +13,12 @@
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a th:href="@{/admin}">Dashboard</a></li>
                     <li class="breadcrumb-item"><a th:href="@{/admin/bao-hong}">Báo hỏng</a></li>
-                    <li class="breadcrumb-item active">Sửa</li>
+                    <li class="breadcrumb-item active">Sửa & Phân công</li>
                 </ol>
             </nav>
             <div class="row">
-                <div class="col-lg-8 mx-auto">
-                    <div class="card shadow-sm">
+                <div class="col-lg-7">
+                    <div class="card shadow-sm mb-4">
                         <div class="card-header bg-warning text-dark">
                             <h5 class="mb-0"><i data-lucide="edit"></i> Cập nhật báo hỏng</h5>
                         </div>
@@ -66,6 +66,50 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Cột phân công -->
+                <div class="col-lg-5">
+                    <div class="card shadow-sm border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i data-lucide="user-check"></i> Phân công nhân viên</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="assignLoadingState" class="text-center py-3" style="display:none;">
+                                <div class="spinner-border spinner-border-sm text-primary"></div>
+                            </div>
+                            <div id="assignDisplay" style="display:none;">
+                                <div class="alert alert-info mb-3">
+                                    <strong>Trạng thái: </strong> <span id="assignStatusBadge">Chưa phân công</span><br>
+                                    <span id="assignNhanVienInfo" style="display:none;">
+                                        <strong>Người phụ trách: </strong> <span id="assignNhanVienName"></span><br>
+                                        <strong>Lý do từ chối (nếu có): </strong> <span class="text-danger" id="assignLyDoTuChoi"></span>
+                                    </span>
+                                </div>
+
+                                <form id="assignForm">
+                                    <div class="mb-3">
+                                        <label for="nhanVienId" class="form-label">Chọn nhân viên CSVC</label>
+                                        <select class="form-select" id="nhanVienId">
+                                            <option value="">-- Chọn nhân viên --</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="ghiChuAdmin" class="form-label">Ghi chú phân công (Tùy chọn)</label>
+                                        <textarea class="form-control" id="ghiChuAdmin" rows="2" placeholder="VD: Ưu tiên xử lý ngay..."></textarea>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" id="btnHuyPhanCong" class="btn btn-outline-danger flex-grow-1" style="display:none;">
+                                            <i data-lucide="x-circle"></i> Thu hồi
+                                        </button>
+                                        <button type="submit" id="btnPhanCong" class="btn btn-primary flex-grow-1">
+                                            <i data-lucide="send"></i> Giao việc
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -74,10 +118,16 @@
             const id = /*[[${id}]]*/ 0;
             document.addEventListener('DOMContentLoaded', () => {
                 loadData();
+                loadNhanVienCsvc();
                 lucide.createIcons();
             });
 
             function loadData() {
+                document.getElementById('loadingState').style.display = 'block';
+                document.getElementById('editForm').style.display = 'none';
+                document.getElementById('assignLoadingState').style.display = 'block';
+                document.getElementById('assignDisplay').style.display = 'none';
+
                 fetch(`/api/admin/bao-hong/${id}`)
                     .then(r => r.json())
                     .then(data => {
@@ -93,6 +143,11 @@
 
                             document.getElementById('loadingState').style.display = 'none';
                             document.getElementById('editForm').style.display = 'block';
+
+                            // Populate Assignment Section
+                            updateAssignUI(item);
+                            document.getElementById('assignLoadingState').style.display = 'none';
+                            document.getElementById('assignDisplay').style.display = 'block';
                         } else {
                             alert('Không tìm thấy');
                             window.location.href = '/admin/bao-hong';
@@ -104,6 +159,63 @@
                     });
             }
 
+            function loadNhanVienCsvc() {
+                // Fetch all users and filter by NHAN_VIEN_CSVC
+                fetch('/api/admin/users/all')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            const select = document.getElementById('nhanVienId');
+                            data.data.forEach(user => {
+                                if (user.vaiTro === 'NHAN_VIEN_CSVC') {
+                                    const option = document.createElement('option');
+                                    option.value = user.id;
+                                    option.textContent = user.hoTen + ' (' + user.email + ')';
+                                    select.appendChild(option);
+                                }
+                            });
+                        }
+                    });
+            }
+
+            function updateAssignUI(item) {
+                const statusBadge = document.getElementById('assignStatusBadge');
+                const btnPhanCong = document.getElementById('btnPhanCong');
+                const btnHuyPhanCong = document.getElementById('btnHuyPhanCong');
+                const nhanVienInfo = document.getElementById('assignNhanVienInfo');
+
+                if (item.trangThaiPhanCong) {
+                    statusBadge.textContent = item.trangThaiPhanCong;
+                    if (item.trangThaiPhanCong === 'CHUA_PHAN_CONG') {
+                        statusBadge.className = 'badge bg-secondary';
+                        btnPhanCong.style.display = 'block';
+                        btnHuyPhanCong.style.display = 'none';
+                        nhanVienInfo.style.display = 'none';
+                    } else {
+                        btnPhanCong.style.display = 'none';
+                        btnHuyPhanCong.style.display = 'block';
+                        nhanVienInfo.style.display = 'block';
+                        document.getElementById('assignNhanVienName').textContent = item.nguoiPhuTrach ? item.nguoiPhuTrach.hoTen : 'N/A';
+                        
+                        if (item.trangThaiPhanCong === 'TU_CHOI') {
+                            statusBadge.className = 'badge bg-danger';
+                            document.getElementById('assignLyDoTuChoi').textContent = item.lyDoTuChoi || 'Không có';
+                            // Cho phép phân công lại
+                            btnPhanCong.style.display = 'block';
+                            btnPhanCong.innerHTML = '<i data-lucide="send"></i> Phân công lại';
+                            lucide.createIcons();
+                        } else if (item.trangThaiPhanCong === 'CHO_XAC_NHAN') {
+                            statusBadge.className = 'badge bg-warning text-dark';
+                            document.getElementById('assignLyDoTuChoi').textContent = '';
+                        } else if (item.trangThaiPhanCong === 'DA_NHAN') {
+                            statusBadge.className = 'badge bg-success';
+                            document.getElementById('assignLyDoTuChoi').textContent = '';
+                        }
+                    }
+                }
+            }
+
+            // Xử lý Cập nhật thông tin
             document.getElementById('editForm').addEventListener('submit', function (e) {
                 e.preventDefault();
                 const data = {
@@ -123,7 +235,6 @@
                     .then(data => {
                         if (data.success) {
                             alert('Cập nhật thành công!');
-                            window.location.href = '/admin/bao-hong';
                         } else {
                             alert('Lỗi: ' + (data.message || 'Không thể cập nhật'));
                         }
@@ -132,6 +243,60 @@
                         console.error('Error:', e);
                         alert('Có lỗi xảy ra');
                     });
+            });
+
+            // Xử lý Phân công
+            document.getElementById('assignForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const nhanVienId = document.getElementById('nhanVienId').value;
+                if (!nhanVienId) {
+                    alert('Vui lòng chọn nhân viên');
+                    return;
+                }
+                const data = {
+                    nhanVienId: parseInt(nhanVienId),
+                    ghiChuAdmin: document.getElementById('ghiChuAdmin').value
+                };
+                fetch(`/api/admin/bao-hong/${id}/phan-cong`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.success) {
+                            alert('Đã phân công/giao việc thành công!');
+                            loadData(); // reload để cập nhật UI
+                        } else {
+                            alert('Lỗi: ' + (res.message || 'Không thể phân công'));
+                        }
+                    })
+                    .catch(e => {
+                        console.error('Error:', e);
+                        alert('Có lỗi xảy ra');
+                    });
+            });
+
+            // Xử lý Hủy/Thu hồi phân công
+            document.getElementById('btnHuyPhanCong').addEventListener('click', function () {
+                if (confirm('Bạn có chắc chắn muốn thu hồi phân công này?')) {
+                    fetch(`/api/admin/bao-hong/${id}/phan-cong`, {
+                        method: 'DELETE'
+                    })
+                        .then(r => r.json())
+                        .then(res => {
+                            if (res.success) {
+                                alert('Đã thu hồi phân công.');
+                                loadData(); // reload
+                            } else {
+                                alert('Lỗi: ' + (res.message || 'Không thể thu hồi'));
+                            }
+                        })
+                        .catch(e => {
+                            console.error('Error:', e);
+                            alert('Có lỗi xảy ra');
+                        });
+                }
             });
         </script>
     </th:block>

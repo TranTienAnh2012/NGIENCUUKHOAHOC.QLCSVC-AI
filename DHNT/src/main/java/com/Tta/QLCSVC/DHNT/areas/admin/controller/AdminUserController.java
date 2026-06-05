@@ -46,6 +46,12 @@ public class AdminUserController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/all")
+    @Operation(summary = "Lấy toàn bộ người dùng", description = "Lấy toàn bộ danh sách người dùng không phân trang (dùng cho dropdown)")
+    public ResponseEntity<ApiResponse<java.util.List<NguoiDung>>> getAllUsersNoPagination() {
+        return ResponseEntity.ok(ApiResponse.success(adminNguoiDungService.getAllUsersList()));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Lấy thông tin người dùng", description = "Lấy thông tin chi tiết một người dùng")
     public ResponseEntity<ApiResponse<NguoiDung>> getUserById(@PathVariable Long id) {
