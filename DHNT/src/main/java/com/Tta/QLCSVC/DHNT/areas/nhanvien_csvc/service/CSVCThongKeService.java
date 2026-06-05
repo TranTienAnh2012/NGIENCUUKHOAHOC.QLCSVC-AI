@@ -33,6 +33,12 @@ public class CSVCThongKeService {
         stats.put("thietBiHong", thietBiHong);
         stats.put("thietBiBaoTri", thietBiBaoTri);
 
+        // Chi tiết danh sách thiết bị
+        stats.put("listTongThietBi", thietBiRepository.findAll());
+        stats.put("listThietBiTot", thietBiRepository.findByTrangThai(com.Tta.QLCSVC.DHNT.entity.ThietBi.TrangThaiThietBi.TOT));
+        stats.put("listThietBiHong", thietBiRepository.findByTrangThai(com.Tta.QLCSVC.DHNT.entity.ThietBi.TrangThaiThietBi.HONG));
+        stats.put("listThietBiBaoTri", thietBiRepository.findByTrangThai(com.Tta.QLCSVC.DHNT.entity.ThietBi.TrangThaiThietBi.BAO_TRI));
+
         // Thống kê báo hỏng
         long baoHongChoXuLy = baoHongRepository.countByTrangThai(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong.CHO_XU_LY);
         stats.put("baoHongChoXuLy", baoHongChoXuLy);

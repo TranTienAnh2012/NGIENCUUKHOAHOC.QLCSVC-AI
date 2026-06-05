@@ -9,6 +9,7 @@ import com.Tta.QLCSVC.DHNT.entity.BaoHong;
 import com.Tta.QLCSVC.DHNT.entity.BaoTri;
 import com.Tta.QLCSVC.DHNT.entity.ThietBi;
 import com.Tta.QLCSVC.DHNT.entity.PhongHoc;
+import com.Tta.QLCSVC.DHNT.areas.admin.service.AdminThongKeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
@@ -32,6 +33,7 @@ public class CSVCViewController {
     private final CSVCThietBiService csvcThietBiService;
     private final CSVCPhongHocService csvcPhongHocService;
     private final CSVCThongKeService csvcThongKeService;
+    private final AdminThongKeService adminThongKeService;
 
     @GetMapping
     public String dashboard(Model model) {
@@ -171,6 +173,16 @@ public class CSVCViewController {
     public String thongKe(Model model) {
         model.addAttribute("title", "Thống kê & Báo cáo");
         Map<String, Object> stats = csvcThongKeService.getThongKeTongQuan();
+        
+        try {
+            // Merge with Admin stats to get 12-month chart and KPIs
+            Map<String, Object> adminStats = adminThongKeService.getThongKeTongQuan();
+            stats.putAll(adminStats);
+        } catch(Exception e) {
+            // If any error, ignore and fall back to basic stats
+            System.err.println("Error fetching admin stats for NhanVien: " + e.getMessage());
+        }
+
         model.addAttribute("stats", stats);
         return "areas/nhanvien_csvc/thong-ke";
     }

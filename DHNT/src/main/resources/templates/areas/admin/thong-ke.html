@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${title}">Thống kê & Báo cáo</title>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        @media print {
+            body { background: white !important; }
+            #sidebar, .sidebar, #navbar, .navbar, .topbar, footer, .modal, button, a.btn, #qr-scan-btn, .chatbot-widget-container { display: none !important; }
+            .dashboard-container { display: block !important; margin: 0 !important; padding: 0 !important; }
+            .main-content, #content-wrapper, #content, .container-fluid {
+                width: 100% !important; margin: 0 !important; padding: 0 !important; flex: 1 1 100% !important;
+            }
+            .col-lg-6 { width: 50% !important; float: left !important; }
+            .col-12 { width: 100% !important; }
+            .row { display: flex !important; flex-wrap: wrap !important; }
+            .card { break-inside: avoid; border: 1px solid #ddd !important; box-shadow: none !important; margin-bottom: 20px !important; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+        }
+        .stat-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease-in-out;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div layout:fragment="content">
+        <div class="container-fluid">
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-end mb-4 flex-wrap gap-3">
+                <div>
+                    <h4 class="mb-1 text-slate-800 font-bold tracking-tight" th:text="${title}">Thống kê & Báo cáo</h4>
+                    <p class="text-slate-500 mb-0 font-medium">Tổng quan hoạt động mượn trả và bảo trì cơ sở vật chất</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary d-flex align-items-center shadow-sm hover-lift" onclick="window.print()">
+                        <i data-lucide="printer" class="w-4 h-4 me-2"></i> In báo cáo
+                    </button>
+                    <button class="btn btn-secondary d-flex align-items-center shadow-sm hover-lift" style="background-color: #8b5cf6; border-color: #8b5cf6;" onclick="analyzeAI()">
+                        <i data-lucide="sparkles" class="w-4 h-4 me-2"></i> AI Đánh Giá
+                    </button>
+                </div>
+            </div>
+
+            <!-- Top Stats Row -->
+            <div class="row mb-4">
+                <!-- Báo hỏng hôm nay -->
+                <!-- Báo hỏng hôm nay -->
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card stat-card h-100 hover-lift cursor-pointer" data-bs-toggle="modal" data-bs-target="#modalBaoHong">
+                        <div class="card-body relative p-4">
+                            <div class="absolute top-0 right-0 p-3 opacity-10">
+                                <i data-lucide="alert-circle" class="w-16 h-16 text-danger"></i>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                        Báo hỏng (Hôm nay)</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800 text-2xl" th:text="${stats.baoHongDay}">0</div>
+                                </div>
+                            </div>
+                            <div class="mt-2 mb-0 text-muted text-xs">
+                                <span class="text-danger mr-2"><i class="fas fa-arrow-up"></i> So với Tuần: <span th:text="${stats.baoHongWeek}">0</span> phiếu</span>
+                            </div>
+                            <div class="mt-3">
+                                <span class="badge bg-danger text-danger bg-opacity-10 border border-danger border-opacity-25 rounded-pill px-2 py-1 text-xs">
+                                    <i data-lucide="mouse-pointer-click" class="w-3 h-3 inline-block me-1"></i> Xem chi tiết
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Đang mượn -->
+                <!-- Đang mượn -->
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card stat-card h-100 hover-lift cursor-pointer" data-bs-toggle="modal" data-bs-target="#modalDangMuon">
+                        <div class="card-body relative p-4">
+                            <div class="absolute top-0 right-0 p-3 opacity-10">
+                                <i data-lucide="monitor-speaker" class="w-16 h-16 text-info"></i>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        Thiết bị đang mượn</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800 text-2xl" th:text="${stats.dangMuon}">0</div>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <span class="badge bg-info text-info bg-opacity-10 border border-info border-opacity-25 rounded-pill px-2 py-1 text-xs">
+                                    <i data-lucide="mouse-pointer-click" class="w-3 h-3 inline-block me-1"></i> Xem danh sách
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chi phí tháng -->
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="card border-0 shadow-sm glass-card h-100 hover-lift cursor-pointer" data-bs-toggle="modal" data-bs-target="#modalChiPhiMonth">
+                        <div class="card-body p-4 relative">
+                            <div class="absolute top-0 right-0 p-3 opacity-10">
+                                <i data-lucide="circle-dollar-sign" class="w-16 h-16 text-warning"></i>
+                            </div>
+                            <p class="text-xs font-bold text-warning mb-1 uppercase tracking-wider">Chi phí bảo trì (Tháng này)</p>
+                            <h3 class="text-2xl font-bold text-slate-800 mb-0">
+                                <span th:text="${stats.chiPhiMonth != null ? #numbers.formatDecimal(stats.chiPhiMonth, 0, 'COMMA', 0, 'POINT') : '0'}">0</span>
+                                <span class="text-sm font-normal text-slate-500">VNĐ</span>
+                            </h3>
+                            <div class="mt-3">
+                                <span class="badge bg-warning text-dark bg-opacity-10 border border-warning border-opacity-25 rounded-pill px-2 py-1 text-xs">
+                                    <i data-lucide="mouse-pointer-click" class="w-3 h-3 inline-block me-1"></i> Xem chi tiết
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chi phí năm -->
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="card border-0 shadow-sm glass-card h-100 hover-lift cursor-pointer" data-bs-toggle="modal" data-bs-target="#modalChiPhiYear">
+                        <div class="card-body p-4 relative">
+                            <div class="absolute top-0 right-0 p-3 opacity-10">
+                                <i data-lucide="trending-up" class="w-16 h-16 text-success"></i>
+                            </div>
+                            <p class="text-xs font-bold text-success mb-1 uppercase tracking-wider">Chi phí bảo trì (Năm nay)</p>
+                            <h3 class="text-2xl font-bold text-slate-800 mb-0">
+                                <span th:text="${stats.chiPhiYear != null ? #numbers.formatDecimal(stats.chiPhiYear, 0, 'COMMA', 0, 'POINT') : '0'}">0</span>
+                                <span class="text-sm font-normal text-slate-500">VNĐ</span>
+                            </h3>
+                            <div class="mt-3">
+                                <span class="badge bg-success text-success bg-opacity-10 border border-success border-opacity-25 rounded-pill px-2 py-1 text-xs">
+                                    <i data-lucide="mouse-pointer-click" class="w-3 h-3 inline-block me-1"></i> Xem chi tiết
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <!-- Top Thiết bị -->
+                <div class="col-12 col-lg-6">
+                    <div class="card border-0 shadow-sm glass-card h-100 overflow-hidden">
+                        <div class="card-header bg-white border-bottom border-slate-100 p-4">
+                            <h5 class="m-0 text-slate-800 font-bold d-flex align-items-center">
+                                <i data-lucide="alert-triangle" class="text-danger me-2 w-5 h-5"></i> Top Thiết Bị Hay Hỏng (Tháng Này)
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
+                                        <tr>
+                                            <th class="px-4 py-3 font-semibold border-0">Tên thiết bị</th>
+                                            <th class="px-4 py-3 font-semibold border-0 text-center">Số lần báo hỏng</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="item : ${stats.topThietBiHayHong}">
+                                            <td class="px-4 py-3 text-slate-700 font-medium" th:text="${item.tenThietBi}">Máy in</td>
+                                            <td class="px-4 py-3 text-center">
+                                                <span class="badge rounded-pill bg-danger" th:text="${item.soLanHong}">2</span>
+                                            </td>
+                                        </tr>
+                                        <tr th:if="${#lists.isEmpty(stats.topThietBiHayHong)}">
+                                            <td colspan="2" class="text-center py-4 text-slate-500">Chưa có dữ liệu báo hỏng</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Nhân viên -->
+                <div class="col-12 col-lg-6">
+                    <div class="card border-0 shadow-sm glass-card h-100 overflow-hidden">
+                        <div class="card-header bg-white border-bottom border-slate-100 p-4">
+                            <h5 class="m-0 text-slate-800 font-bold d-flex align-items-center">
+                                <i data-lucide="award" class="text-primary me-2 w-5 h-5"></i> KPI Nhân Viên CSVC (Tháng Này)
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
+                                        <tr>
+                                            <th class="px-4 py-3 font-semibold border-0">Nhân viên</th>
+                                            <th class="px-4 py-3 font-semibold border-0 text-center">Số phiếu hoàn thành</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="item : ${stats.topNhanVien}">
+                                            <td class="px-4 py-3 text-slate-700 font-medium" th:text="${item.hoTen}">Nguyễn Văn A</td>
+                                            <td class="px-4 py-3 text-center">
+                                                <span class="badge rounded-pill bg-primary" th:text="${item.soPhieuHoanThanh}">15</span>
+                                            </td>
+                                        </tr>
+                                        <tr th:if="${#lists.isEmpty(stats.topNhanVien)}">
+                                            <td colspan="2" class="text-center py-4 text-slate-500">Chưa có dữ liệu</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Biểu đồ -->
+            <div class="card border-0 shadow-sm glass-card">
+                <div class="card-header bg-white border-bottom border-slate-100 p-4">
+                    <h5 class="m-0 text-slate-800 font-bold d-flex align-items-center">
+                        <i data-lucide="bar-chart-2" class="text-info me-2 w-5 h-5"></i> Biểu đồ Báo hỏng (12 Tháng Gần Nhất)
+                    </h5>
+                </div>
+                <div class="card-body p-4" style="height: 400px;">
+                    <canvas id="baoHongChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Modal Chi tiết Chi phí Tháng -->
+            <div class="modal fade" id="modalChiPhiMonth" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header border-bottom border-slate-100 bg-slate-50">
+                            <h5 class="modal-title font-bold text-slate-800"><i data-lucide="calculator" class="w-4 h-4 inline-block me-1 text-warning"></i> Chi tiết chi phí Tháng Này</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="bg-slate-100 text-slate-500 text-xs uppercase sticky-top">
+                                        <tr>
+                                            <th class="px-4 py-3 font-semibold border-0">Phiếu BT</th>
+                                            <th class="px-4 py-3 font-semibold border-0">Thiết bị</th>
+                                            <th class="px-4 py-3 font-semibold border-0">Người thực hiện</th>
+                                            <th class="px-4 py-3 font-semibold border-0">Ngày HT</th>
+                                            <th class="px-4 py-3 font-semibold border-0 text-end">Chi phí (VNĐ)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="row : ${stats.chiTietMonth}">
+                                            <td class="px-4 py-3 text-slate-600">#<span th:text="${row[0]}">1</span></td>
+                                            <td class="px-4 py-3 font-medium text-slate-800" th:text="${row[1]}">Máy in</td>
+                                            <td class="px-4 py-3 text-slate-600" th:text="${row[4] != null ? row[4] : 'N/A'}">Nguyễn A</td>
+                                            <td class="px-4 py-3 text-slate-500" th:text="${#temporals.format(row[2], 'dd/MM/yyyy')}">01/01/2026</td>
+                                            <td class="px-4 py-3 text-end font-bold text-warning" th:text="${#numbers.formatDecimal(row[3], 0, 'COMMA', 0, 'POINT')}">500,000</td>
+                                        </tr>
+                                        <tr th:if="${#lists.isEmpty(stats.chiTietMonth)}">
+                                            <td colspan="5" class="text-center py-5 text-slate-500">Không có phát sinh chi phí nào trong tháng này.</td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot class="bg-slate-50" th:unless="${#lists.isEmpty(stats.chiTietMonth)}">
+                                        <tr>
+                                            <td colspan="4" class="px-4 py-3 text-end font-bold text-slate-700 uppercase text-sm">Tổng cộng:</td>
+                                            <td class="px-4 py-3 text-end font-bold text-xl text-warning">
+                                                <span th:text="${stats.chiPhiMonth != null ? #numbers.formatDecimal(stats.chiPhiMonth, 0, 'COMMA', 0, 'POINT') : '0'}">0</span> VNĐ
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Chi tiết Chi phí Năm -->
+            <div class="modal fade" id="modalChiPhiYear" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header border-bottom border-slate-100 bg-slate-50">
+                            <h5 class="modal-title font-bold text-slate-800"><i data-lucide="calculator" class="w-4 h-4 inline-block me-1 text-success"></i> Chi tiết chi phí Năm Nay</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="bg-slate-100 text-slate-500 text-xs uppercase sticky-top">
+                                        <tr>
+                                            <th class="px-4 py-3 font-semibold border-0">Phiếu BT</th>
+                                            <th class="px-4 py-3 font-semibold border-0">Thiết bị</th>
+                                            <th class="px-4 py-3 font-semibold border-0">Người thực hiện</th>
+                                            <th class="px-4 py-3 font-semibold border-0">Ngày HT</th>
+                                            <th class="px-4 py-3 font-semibold border-0 text-end">Chi phí (VNĐ)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="row : ${stats.chiTietYear}">
+                                            <td class="px-4 py-3 text-slate-600">#<span th:text="${row[0]}">1</span></td>
+                                            <td class="px-4 py-3 font-medium text-slate-800" th:text="${row[1]}">Máy in</td>
+                                            <td class="px-4 py-3 text-slate-600" th:text="${row[4] != null ? row[4] : 'N/A'}">Nguyễn A</td>
+                                            <td class="px-4 py-3 text-slate-500" th:text="${#temporals.format(row[2], 'dd/MM/yyyy')}">01/01/2026</td>
+                                            <td class="px-4 py-3 text-end font-bold text-success" th:text="${#numbers.formatDecimal(row[3], 0, 'COMMA', 0, 'POINT')}">500,000</td>
+                                        </tr>
+                                        <tr th:if="${#lists.isEmpty(stats.chiTietYear)}">
+                                            <td colspan="5" class="text-center py-5 text-slate-500">Không có phát sinh chi phí nào trong năm nay.</td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot class="bg-slate-50" th:unless="${#lists.isEmpty(stats.chiTietYear)}">
+                                        <tr>
+                                            <td colspan="4" class="px-4 py-3 text-end font-bold text-slate-700 uppercase text-sm">Tổng cộng:</td>
+                                            <td class="px-4 py-3 text-end font-bold text-xl text-success">
+                                                <span th:text="${stats.chiPhiYear != null ? #numbers.formatDecimal(stats.chiPhiYear, 0, 'COMMA', 0, 'POINT') : '0'}">0</span> VNĐ
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Chi tiết Báo hỏng -->
+            <div class="modal fade" id="modalBaoHong" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header border-bottom border-slate-100 bg-slate-50">
+                            <h5 class="modal-title font-bold text-slate-800"><i data-lucide="alert-circle" class="w-5 h-5 inline-block me-1 text-danger"></i> Chi tiết Báo hỏng</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4 bg-slate-50">
+                            
+                            <!-- Báo hỏng hôm nay -->
+                            <div class="card border-0 shadow-sm mb-4">
+                                <div class="card-header bg-white border-bottom border-slate-100 p-3">
+                                    <h6 class="m-0 font-bold text-danger">Các thiết bị hỏng trong Hôm nay (<span th:text="${stats.baoHongDay}">0</span>)</h6>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle mb-0">
+                                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
+                                                <tr>
+                                                    <th class="px-4 py-3 border-0">Phiếu</th>
+                                                    <th class="px-4 py-3 border-0">Thiết bị</th>
+                                                    <th class="px-4 py-3 border-0">Người báo</th>
+                                                    <th class="px-4 py-3 border-0">Thời gian</th>
+                                                    <th class="px-4 py-3 border-0">Mô tả lỗi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr th:each="row : ${stats.chiTietBaoHongDay}">
+                                                    <td class="px-4 py-3 text-slate-600">#<span th:text="${row[0]}">1</span></td>
+                                                    <td class="px-4 py-3 font-medium text-slate-800" th:text="${row[1]}">Máy in</td>
+                                                    <td class="px-4 py-3 text-slate-600" th:text="${row[2] != null ? row[2] : 'N/A'}">User</td>
+                                                    <td class="px-4 py-3 text-slate-500" th:text="${#temporals.format(row[3], 'dd/MM/yyyy HH:mm')}">01/01/2026</td>
+                                                    <td class="px-4 py-3 text-slate-500 text-sm" th:text="${row[4]}">Lỗi nguồn</td>
+                                                </tr>
+                                                <tr th:if="${#lists.isEmpty(stats.chiTietBaoHongDay)}">
+                                                    <td colspan="5" class="text-center py-4 text-slate-500">Tuyệt vời! Hôm nay không có thiết bị nào bị hỏng.</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Báo hỏng tuần này -->
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-header bg-white border-bottom border-slate-100 p-3">
+                                    <h6 class="m-0 font-bold text-slate-700">Các thiết bị hỏng trong Tuần này (<span th:text="${stats.baoHongWeek}">0</span>)</h6>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle mb-0">
+                                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
+                                                <tr>
+                                                    <th class="px-4 py-3 border-0">Phiếu</th>
+                                                    <th class="px-4 py-3 border-0">Thiết bị</th>
+                                                    <th class="px-4 py-3 border-0">Người báo</th>
+                                                    <th class="px-4 py-3 border-0">Thời gian</th>
+                                                    <th class="px-4 py-3 border-0">Mô tả lỗi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr th:each="row : ${stats.chiTietBaoHongWeek}">
+                                                    <td class="px-4 py-3 text-slate-600">#<span th:text="${row[0]}">1</span></td>
+                                                    <td class="px-4 py-3 font-medium text-slate-800" th:text="${row[1]}">Máy in</td>
+                                                    <td class="px-4 py-3 text-slate-600" th:text="${row[2] != null ? row[2] : 'N/A'}">User</td>
+                                                    <td class="px-4 py-3 text-slate-500" th:text="${#temporals.format(row[3], 'dd/MM/yyyy HH:mm')}">01/01/2026</td>
+                                                    <td class="px-4 py-3 text-slate-500 text-sm" th:text="${row[4]}">Lỗi nguồn</td>
+                                                </tr>
+                                                <tr th:if="${#lists.isEmpty(stats.chiTietBaoHongWeek)}">
+                                                    <td colspan="5" class="text-center py-4 text-slate-500">Trong tuần này không có thiết bị nào báo hỏng.</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Thiết bị đang mượn -->
+            <div class="modal fade" id="modalDangMuon" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content border-0 shadow-lg">
+                        <div class="modal-header border-bottom border-slate-100 bg-slate-50">
+                            <h5 class="modal-title font-bold text-slate-800"><i data-lucide="monitor-speaker" class="w-5 h-5 inline-block me-1 text-info"></i> Danh sách thiết bị đang mượn</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="bg-slate-100 text-slate-500 text-xs uppercase sticky-top">
+                                        <tr>
+                                            <th class="px-4 py-3 border-0">Phiếu mượn</th>
+                                            <th class="px-4 py-3 border-0">Thiết bị</th>
+                                            <th class="px-4 py-3 border-0">Người mượn</th>
+                                            <th class="px-4 py-3 border-0">Ngày mượn</th>
+                                            <th class="px-4 py-3 border-0">Dự kiến trả</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="row : ${stats.chiTietDangMuon}">
+                                            <td class="px-4 py-3 text-slate-600">#<span th:text="${row[0]}">1</span></td>
+                                            <td class="px-4 py-3 font-medium text-slate-800" th:text="${row[1]}">Thiết bị</td>
+                                            <td class="px-4 py-3 text-slate-600" th:text="${row[4] != null ? row[4] : 'N/A'}">Người dùng</td>
+                                            <td class="px-4 py-3 text-slate-500" th:text="${row[2] != null ? #temporals.format(row[2], 'dd/MM/yyyy') : ''}">01/01/2026</td>
+                                            <td class="px-4 py-3 text-info font-medium" th:text="${row[3] != null ? #temporals.format(row[3], 'dd/MM/yyyy') : 'Chưa hẹn'}">05/01/2026</td>
+                                        </tr>
+                                        <tr th:if="${#lists.isEmpty(stats.chiTietDangMuon)}">
+                                            <td colspan="5" class="text-center py-5 text-slate-500">Hiện tại không có thiết bị nào đang được mượn bên ngoài.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script th:inline="javascript">
+            document.addEventListener('DOMContentLoaded', () => {
+                lucide.createIcons();
+
+                const chartLabels = /*[[${stats.chartLabels}]]*/ ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6'];
+                const chartData = /*[[${stats.chartData}]]*/ [12, 19, 3, 5, 2, 15];
+                const chartDataBaoTri = /*[[${stats.chartDataBaoTri}]]*/ [10, 15, 2, 4, 1, 12];
+                const chartDataMuon = /*[[${stats.chartDataMuon}]]*/ [5, 10, 15, 20, 25, 30];
+                const chartDataTra = /*[[${stats.chartDataTra}]]*/ [4, 9, 14, 18, 20, 28];
+                const chartDataTreHan = /*[[${stats.chartDataTreHan}]]*/ [1, 1, 1, 2, 5, 2];
+
+                const ctx = document.getElementById('baoHongChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [
+                            {
+                                label: 'Thiết bị mượn',
+                                data: chartDataMuon,
+                                backgroundColor: 'rgba(59, 130, 246, 0.6)', // blue
+                                borderColor: 'rgb(59, 130, 246)',
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                order: 5
+                            },
+                            {
+                                label: 'Thiết bị đã trả',
+                                data: chartDataTra,
+                                backgroundColor: 'rgba(16, 185, 129, 0.6)', // green
+                                borderColor: 'rgb(16, 185, 129)',
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                order: 4
+                            },
+                            {
+                                label: 'Trả trễ hạn',
+                                data: chartDataTreHan,
+                                backgroundColor: 'rgba(245, 158, 11, 0.6)', // yellow
+                                borderColor: 'rgb(245, 158, 11)',
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                order: 3
+                            },
+                            {
+                                label: 'Số lượng phiếu báo hỏng',
+                                data: chartData,
+                                backgroundColor: 'rgba(239, 68, 68, 0.7)', // red
+                                borderColor: 'rgb(239, 68, 68)',
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                order: 2
+                            },
+                            {
+                                label: 'Số phiếu đã sửa thành công',
+                                data: chartDataBaoTri,
+                                type: 'line',
+                                backgroundColor: 'rgba(139, 92, 246, 0.2)', // purple line
+                                borderColor: 'rgb(139, 92, 246)',
+                                borderWidth: 3,
+                                pointBackgroundColor: 'rgb(139, 92, 246)',
+                                pointRadius: 4,
+                                tension: 0.3,
+                                order: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { precision: 0 },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                titleFont: { size: 14, family: "'Inter', sans-serif" },
+                                bodyFont: { size: 13, family: "'Inter', sans-serif" },
+                                padding: 12,
+                                cornerRadius: 8
+                            },
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20,
+                                    font: { family: "'Inter', sans-serif", size: 13 }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                window.analyzeAI = function() {
+                    const promptData = {
+                        "Thang": chartLabels,
+                        "BaoHong": chartData,
+                        "SuaThanhCong": chartDataBaoTri,
+                        "Muon": chartDataMuon,
+                        "DaTra": chartDataTra,
+                        "TreHan": chartDataTreHan
+                    };
+                    const promptText = `Hãy đóng vai một chuyên gia phân tích dữ liệu, đánh giá ngắn gọn tình hình quản lý cơ sở vật chất 12 tháng qua dựa trên số liệu sau (Dữ liệu mảng tương ứng từ tháng cũ đến tháng mới):\n` 
+                                     + JSON.stringify(promptData) 
+                                     + `\nChú ý: Đánh giá tỷ lệ hỏng hóc, sửa chữa, tỷ lệ trả trễ hạn và đưa ra 2-3 đề xuất cải thiện (Dưới 150 chữ).`;
+
+                    Swal.fire({
+                        title: 'AI Đang phân tích...',
+                        text: 'Vui lòng chờ trong giây lát',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    fetch('http://localhost:5000/api/ai/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: promptText })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: '<i class="text-primary" data-lucide="sparkles"></i> AI Đánh Giá Hệ Thống',
+                                html: `<div style="text-align: left; font-size: 0.95rem; line-height: 1.6;">${data.response.replace(/\n/g, '<br>')}</div>`,
+                                icon: 'info',
+                                width: '600px',
+                                confirmButtonText: 'Đã hiểu'
+                            }).then(() => { lucide.createIcons(); });
+                        } else {
+                            Swal.fire('Lỗi', 'Không thể nhận đánh giá từ AI: ' + data.error, 'error');
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        Swal.fire('Lỗi', 'Không thể kết nối tới server AI (Flask port 5000).', 'error');
+                    });
+                };
+            });
+        </script>
+    </th:block>
+</body>
+
+</html>
