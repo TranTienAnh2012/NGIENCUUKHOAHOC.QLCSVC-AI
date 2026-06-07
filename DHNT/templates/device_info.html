@@ -193,15 +193,32 @@
     </p>
   </div>
 
-  {% if borrower_section %}
-    {{ borrower_section | safe }}
+  {% if borrower %}
+  <div class="borrow-alert">
+    <div class="borrow-alert-title">⚠️ Đang được mượn</div>
+    <div class="borrow-grid">
+      <div><span class="lbl">Người mượn</span><span class="val bold">{{ borrower.user_name }}</span></div>
+      <div><span class="lbl">Dự kiến trả</span><span class="val">{{ borrower.expected_return }}</span></div>
+    </div>
+  </div>
   {% endif %}
 
   <!-- Lịch sử báo hỏng -->
   <div class="card">
     <div class="card-label">🔧 Lịch sử báo hỏng gần đây</div>
-    {% if damage_html %}
-      {{ damage_html | safe }}
+    {% if damages %}
+      {% for d in damages %}
+      <div class="history-item">
+        <div class="hi-left">
+          <div class="hi-title">{{ d.description or '—' }}</div>
+          <div class="hi-sub">📅 {{ d.date_fmt }}</div>
+        </div>
+        <div class="hi-badges">
+          <span class="badge" style="color:{{ d.severity_color }};">{{ (d.severity or '')|upper }}</span>
+          <span class="badge">{{ d.status_label }}</span>
+        </div>
+      </div>
+      {% endfor %}
     {% else %}
       <div class="empty">Chưa có báo cáo hỏng hóc ✅</div>
     {% endif %}
@@ -210,8 +227,18 @@
   <!-- Lịch sử mượn trả -->
   <div class="card">
     <div class="card-label">📋 Lịch sử mượn trả</div>
-    {% if borrow_html %}
-      {{ borrow_html | safe }}
+    {% if borrow_history %}
+      {% for b in borrow_history %}
+      <div class="history-item">
+        <div class="hi-left">
+          <div class="hi-title">👤 {{ b.user_name or '—' }}</div>
+          <div class="hi-sub">📅 {{ b.date_fmt }}</div>
+        </div>
+        <div class="hi-badges">
+          <span class="badge">{{ 'Đang mượn' if b.is_active else 'Đã trả' }}</span>
+        </div>
+      </div>
+      {% endfor %}
     {% else %}
       <div class="empty">Chưa có lịch sử mượn trả</div>
     {% endif %}

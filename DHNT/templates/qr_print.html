@@ -106,7 +106,21 @@
 {% endif %}
 
 <div class="grid">
-{{ cards_html | safe }}
+{% for d in devices %}
+<a class="label-card" href="{{ host }}/api/ai/device-info/{{ d.id }}" target="_blank">
+  <div class="label-header">
+    <div class="label-sys">QLCSVC</div>
+  </div>
+  <div class="label-body">
+    <img class="label-qr" src="{{ host }}/api/ai/device-qr/{{ d.id }}" alt="QR {{ d.name }}">
+    <div class="label-info">
+      <div class="label-name">{{ d.name or '—' }}</div>
+      <div class="label-detail">Mã: {{ d.code or '—' }}</div>
+      <div class="label-detail">Phòng: {{ d.room or '—' }}</div>
+    </div>
+  </div>
+</a>
+{% endfor %}
 </div>
 
 </body>
