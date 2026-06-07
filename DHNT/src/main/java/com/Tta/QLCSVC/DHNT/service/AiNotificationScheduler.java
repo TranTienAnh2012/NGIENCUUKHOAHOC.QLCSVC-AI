@@ -26,13 +26,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Scheduler AI tích hợp Flask — tự động phân tích dữ liệu và
- * gửi thông báo thông minh cho 3 role: Admin, Nhân viên CSVC, Giáo viên.
+ * Scheduler AI tich hop Flask - tu dong phan tich du lieu va
+ * gui thong bao thong minh cho 3 role: Admin, Nhan vien CSVC, Giao vien.
  *
- * Luồng:
- *  1. Thu thập dữ liệu từ DB
- *  2. Gọi Flask AI để sinh nội dung tự nhiên, thông minh
- *  3. Lưu ThongBao vào DB qua NotificationService
+ * Luong:
+ *  1. Thu thap du lieu tu DB
+ *  2. Goi Flask AI de sinh noi dung tu nhien, thong minh
+ *  3. Luu ThongBao vao DB qua NotificationService
  */
 @Service
 @RequiredArgsConstructor
@@ -52,225 +52,170 @@ public class AiNotificationScheduler {
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     // ================================================================
-    // STARTUP: Chạy ngay khi server khởi động để có thông báo ngay
+    // STARTUP: Chay ngay khi server khoi dong
     // ================================================================
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
     public void onStartup() {
-        log.info("[AI] Server khởi động — kích hoạt phân tích tự động...");
+        log.info("[AI] Server khoi dong - kich hoat phan tich tu dong...");
         runFullAiAnalysis();
     }
 
     // ================================================================
-    // SCHEDULED: Mỗi 8h sáng (daily report) + mỗi giờ (kiểm tra hạn trả)
+    // SCHEDULED: Moi 8h sang (daily report)
     // ================================================================
     @Scheduled(cron = "0 0 8 * * ?")
     @Transactional
     public void dailySchedule() {
-        log.info("[AI] Bắt đầu phân tích tự động hàng ngày...");
+        log.info("[AI] Bat dau phan tich tu dong hang ngay...");
         runFullAiAnalysis();
     }
 
     // ================================================================
-    // CORE: Phân tích toàn hệ thống, AI sinh nội dung, gửi 3 role
+    // CORE: Phan tich toan he thong, AI sinh noi dung, gui 3 role
     // ================================================================
     public void runFullAiAnalysis() {
         try {
-            // 1. Thu thập dữ liệu thực từ DB
             long tongThietBi = thietBiRepository.count();
             long dangMuon    = muonTraThietBiRepository.countByTrangThai(MuonTraThietBi.TrangThaiMuonTra.DANG_MUON);
             long quaHan      = muonTraThietBiRepository.countByTrangThai(MuonTraThietBi.TrangThaiMuonTra.QUA_HAN);
             long choBaoHong  = baoHongRepository.findByTrangThai(BaoHong.TrangThaiBaoHong.CHO_XU_LY).size();
             long dangBaoHong = baoHongRepository.findByTrangThai(BaoHong.TrangThaiBaoHong.DANG_XU_LY).size();
             List<BaoHong> urgentList = baoHongRepository.findUrgentReports();
-            
+
             LocalDateTime oneDayAgo = LocalDateTime.now().minusDays(1);
             List<BaoTri> recentBaoTri = baoTriRepository.findAll().stream()
                     .filter(b -> b.getCreatedAt() != null && b.getCreatedAt().isAfter(oneDayAgo))
                     .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
                     .limit(5).toList();
 
-            // 2. Gửi thông báo AI cho từng role
             notifyAdmin(tongThietBi, dangMuon, quaHan, choBaoHong, urgentList.size());
             notifyNhanVien(choBaoHong, dangBaoHong, urgentList, recentBaoTri);
-            
-            // 3. Nhắc nhở hạn trả cho Giáo viên
             remindDueSoonBorrowings();
 
-            log.info("[AI] Phân tích hoàn tất — đã gửi thông báo cho 3 roles.");
+            log.info("[AI] Phan tich hoan tat - da gui thong bao cho 3 roles.");
         } catch (Exception e) {
-            log.error("[AI] Lỗi khi phân tích: {}", e.getMessage());
+            log.error("[AI] Loi khi phan tich: {}", e.getMessage());
         }
     }
 
     // ================================================================
-    // ADMIN: Báo cáo tổng quan hệ thống
+    // ADMIN: Bao cao tong quan he thong
     // ================================================================
     private void notifyAdmin(long tongThietBi, long dangMuon, long quaHan, long choBaoHong, long urgent) {
         String dataContext = String.format(
-            "Dữ liệu hệ thống QLCSVC:\n" +
-            "- Tổng thiết bị: %d\n" +
-            "- Đang được mượn: %d\n" +
-            "- Mượn quá hạn chưa trả: %d\n" +
-            "- Báo hỏng chờ xử lý: %d (trong đó khẩn cấp: %d)\n",
+            "Du lieu he thong QLCSVC:\n" +
+            "- Tong thiet bi: %d\n" +
+            "- Dang duoc muon: %d\n" +
+            "- Muon qua han chua tra: %d\n" +
+            "- Bao hong cho xu ly: %d (khan cap: %d)\n",
             tongThietBi, dangMuon, quaHan, choBaoHong, urgent
         );
 
-        String title = "📊 AI Báo cáo hệ thống tự động";
+        String title = "\uD83D\uDCCA AI Báo cáo hệ thống tự động";
         if (notificationService.canSendToRole(NguoiDung.VaiTro.ADMIN, title)) {
             String aiContent = callFlaskAI(
-                "Dựa vào dữ liệu sau, hãy viết một báo cáo ngắn gọn (3-4 câu) " +
-                "cho Quản trị viên hệ thống QLCSVC, nêu bật các vấn đề cần chú ý:\n" + dataContext,
+                "Dua vao du lieu sau, hay viet mot bao cao ngan gon (3-4 cau) cho Quan tri vien:\n" + dataContext,
                 "ADMIN",
-                String.format("Hệ thống hiện có %d thiết bị, đang mượn: %d, quá hạn: %d, báo hỏng chờ xử lý: %d.",
+                String.format("He thong hien co %d thiet bi, dang muon: %d, qua han: %d, bao hong cho xu ly: %d.",
                     tongThietBi, dangMuon, quaHan, choBaoHong)
             );
-
-            notificationService.sendToRole(
-                NguoiDung.VaiTro.ADMIN,
-                title,
-                aiContent,
-                "HE_THONG",
-                "/admin"
-            );
+            notificationService.sendToRole(NguoiDung.VaiTro.ADMIN, title, aiContent, "HE_THONG", "/admin");
         }
 
-        // Cảnh báo riêng nếu có sự cố nghiêm trọng
         if (urgent > 0) {
-            String urgentTitle = "🚨 AI Cảnh báo: " + urgent + " thiết bị hỏng khẩn cấp";
+            String urgentTitle = "\uD83D\uDEA8 AI Canh bao: " + urgent + " thiet bi hong khan cap";
             if (notificationService.canSendToRole(NguoiDung.VaiTro.ADMIN, urgentTitle)) {
                 String urgentMsg = callFlaskAI(
-                    "Hệ thống có " + urgent + " thiết bị báo hỏng mức KHẨN CẤP hoặc CAO. " +
-                    "Viết cảnh báo ngắn (2 câu) cho quản trị viên, yêu cầu xử lý ngay.",
+                    "He thong co " + urgent + " thiet bi bao hong muc KHAN CAP. Viet canh bao ngan (2 cau).",
                     "ADMIN",
-                    "Phát hiện " + urgent + " thiết bị hỏng mức nghiêm trọng. Vui lòng kiểm tra và xử lý ngay để đảm bảo hoạt động giảng dạy."
+                    "Phat hien " + urgent + " thiet bi hong muc nghiem trong. Vui long kiem tra va xu ly ngay."
                 );
-                notificationService.sendToRole(
-                    NguoiDung.VaiTro.ADMIN,
-                    urgentTitle,
-                    urgentMsg,
-                    "BAO_HONG",
-                    "/admin/bao-hong"
-                );
+                notificationService.sendToRole(NguoiDung.VaiTro.ADMIN, urgentTitle, urgentMsg, "BAO_HONG", "/admin/bao-hong");
             }
         }
 
         if (quaHan > 0) {
-            String overDueTitle = "⚠️ AI: " + quaHan + " thiết bị mượn quá hạn";
+            String overDueTitle = "\u26A0\uFE0F AI: " + quaHan + " thiet bi muon qua han";
             if (notificationService.canSendToRole(NguoiDung.VaiTro.ADMIN, overDueTitle)) {
                 notificationService.sendToRole(
-                    NguoiDung.VaiTro.ADMIN,
-                    overDueTitle,
+                    NguoiDung.VaiTro.ADMIN, overDueTitle,
                     callFlaskAI(
-                        "Có " + quaHan + " thiết bị mượn đã quá ngày trả. " +
-                        "Viết 2 câu nhắc nhở cho quản trị viên về việc theo dõi và thu hồi.",
+                        "Co " + quaHan + " thiet bi muon da qua ngay tra. Viet 2 cau nhac nho quan tri vien.",
                         "ADMIN",
-                        "Có " + quaHan + " phiếu mượn đã quá hạn trả. Đề nghị liên hệ người mượn để thu hồi thiết bị kịp thời."
+                        "Co " + quaHan + " phieu muon da qua han. De nghi lien he nguoi muon de thu hoi thiet bi."
                     ),
-                    "MUON_TRA",
-                    "/admin/muon-tra"
+                    "MUON_TRA", "/admin/muon-tra"
                 );
             }
         }
     }
 
     // ================================================================
-    // NHÂN VIÊN CSVC: Báo hỏng + Bảo trì + Ghi chú
+    // NHAN VIEN CSVC: Bao hong + Bao tri
     // ================================================================
     private void notifyNhanVien(long choBaoHong, long dangXuLy,
                                  List<BaoHong> urgentList, List<BaoTri> recentBaoTri) {
-        // Tổng kết công việc hôm nay
         String workSummary = String.format(
-            "- Đơn báo hỏng chờ xử lý: %d\n" +
-            "- Đơn đang xử lý: %d\n" +
-            "- Thiết bị hỏng khẩn cấp/cao: %d",
+            "- Don bao hong cho xu ly: %d\n- Don dang xu ly: %d\n- Thiet bi hong khan cap: %d",
             choBaoHong, dangXuLy, urgentList.size()
         );
 
-        String workSummaryTitle = "📋 AI Tóm tắt công việc hôm nay";
+        String workSummaryTitle = "\uD83D\uDCCB AI Tóm tắt công việc hôm nay";
         if (notificationService.canSendToRole(NguoiDung.VaiTro.NHAN_VIEN_CSVC, workSummaryTitle)) {
             String aiWorkMsg = callFlaskAI(
-                "Dựa vào tình trạng công việc nhân viên CSVC:\n" + workSummary +
-                "\nViết tóm tắt công việc hôm nay (3-4 câu), nêu ưu tiên cần xử lý.",
+                "Tinh trang cong viec nhan vien CSVC:\n" + workSummary + "\nViet tom tat (3-4 cau), neu uu tien xu ly.",
                 "NHAN_VIEN_CSVC",
-                String.format("Hôm nay có %d đơn báo hỏng chờ xử lý, %d đơn đang xử lý. Ưu tiên xử lý các thiết bị khẩn cấp trước.",
-                    choBaoHong, dangXuLy)
+                String.format("Hom nay co %d don bao hong cho xu ly, %d don dang xu ly.", choBaoHong, dangXuLy)
             );
-
-            notificationService.sendToRole(
-                NguoiDung.VaiTro.NHAN_VIEN_CSVC,
-                workSummaryTitle,
-                aiWorkMsg,
-                "HE_THONG",
-                "/nhanvien-csvc"
-            );
+            notificationService.sendToRole(NguoiDung.VaiTro.NHAN_VIEN_CSVC, workSummaryTitle, aiWorkMsg, "HE_THONG", "/nhanvien-csvc");
         }
 
-        // Thông báo từng thiết bị hỏng KHẨN CẤP
         for (BaoHong bh : urgentList) {
-            String tenThietBi = bh.getThietBi() != null ? bh.getThietBi().getTenThietBi() : "Thiết bị";
-            String moTa = bh.getMoTaLoi() != null ? bh.getMoTaLoi() : "không có mô tả";
+            String tenThietBi = bh.getThietBi() != null ? bh.getThietBi().getTenThietBi() : "Thiet bi";
+            String moTa = bh.getMoTaLoi() != null ? bh.getMoTaLoi() : "khong co mo ta";
             String mucDo = bh.getMucDoNghiemTrong() != null ? bh.getMucDoNghiemTrong().name() : "CAO";
 
-            String urgentBHTitle = "🔴 Báo hỏng khẩn: " + tenThietBi;
+            String urgentBHTitle = "\uD83D\uDD34 Báo hỏng khẩn: " + tenThietBi;
             if (notificationService.canSendToRole(NguoiDung.VaiTro.NHAN_VIEN_CSVC, urgentBHTitle)) {
                 String aiMsg = callFlaskAI(
-                    "Thiết bị '" + tenThietBi + "' bị báo hỏng mức '" + mucDo + "'. " +
-                    "Mô tả lỗi: " + moTa + ". " +
-                    "Viết 2 câu thông báo ngắn cho nhân viên CSVC, nêu rõ tên thiết bị và yêu cầu xử lý khẩn.",
+                    "Thiet bi '" + tenThietBi + "' bi bao hong muc '" + mucDo + "'. Mo ta: " + moTa + ". Viet 2 cau thong bao ngan.",
                     "NHAN_VIEN_CSVC",
-                    "Thiết bị " + tenThietBi + " vừa được báo hỏng (mức " + mucDo + "): " + moTa + ". Vui lòng kiểm tra và xử lý sớm."
+                    "Thiet bi " + tenThietBi + " vua duoc bao hong (muc " + mucDo + "): " + moTa
                 );
-
-                notificationService.sendToRole(
-                    NguoiDung.VaiTro.NHAN_VIEN_CSVC,
-                    urgentBHTitle,
-                    aiMsg,
-                    "BAO_HONG",
-                    "/nhanvien-csvc/bao-hong"
-                );
+                notificationService.sendToRole(NguoiDung.VaiTro.NHAN_VIEN_CSVC, urgentBHTitle, aiMsg, "BAO_HONG", "/nhanvien-csvc/bao-hong");
             }
         }
 
-        // Thông báo bảo trì gần đây (ghi chú kết quả)
         for (BaoTri bt : recentBaoTri) {
-            if (bt.getKetQua() == null) continue;   // enum — không dùng isBlank()
-            String tenThietBi = bt.getThietBi() != null ? bt.getThietBi().getTenThietBi() : "Thiết bị";
-            String ketQua = bt.getKetQua().name();   // THANH_CONG | THAT_BAI | CAN_THAY_THE
+            if (bt.getKetQua() == null) continue;
+            String tenThietBi = bt.getThietBi() != null ? bt.getThietBi().getTenThietBi() : "Thiet bi";
+            String ketQua = bt.getKetQua().name();
 
-            String maintDoneTitle = "🔧 Bảo trì hoàn tất: " + tenThietBi;
+            String maintDoneTitle = "\uD83D\uDD27 Báo trì hoàn tất: " + tenThietBi;
             if (notificationService.canSendToRole(NguoiDung.VaiTro.NHAN_VIEN_CSVC, maintDoneTitle)) {
                 String aiMsg = callFlaskAI(
-                    "Phiếu bảo trì thiết bị '" + tenThietBi + "' vừa hoàn tất. " +
-                    "Kết quả: " + ketQua + ". " +
-                    "Viết 2 câu thông báo kết quả bảo trì cho nhân viên CSVC.",
+                    "Phieu bao tri thiet bi '" + tenThietBi + "' hoan tat. Ket qua: " + ketQua + ". Viet 2 cau thong bao.",
                     "NHAN_VIEN_CSVC",
-                    "Bảo trì thiết bị " + tenThietBi + " đã hoàn tất với kết quả: " + ketQua + ". Cập nhật trạng thái thiết bị nếu cần thiết."
+                    "Bao tri " + tenThietBi + " da hoan tat voi ket qua: " + ketQua
                 );
-
-                notificationService.sendToRole(
-                    NguoiDung.VaiTro.NHAN_VIEN_CSVC,
-                    maintDoneTitle,
-                    aiMsg,
-                    "BAO_TRI",
-                    "/nhanvien-csvc/bao-tri"
-                );
+                notificationService.sendToRole(NguoiDung.VaiTro.NHAN_VIEN_CSVC, maintDoneTitle, aiMsg, "BAO_TRI", "/nhanvien-csvc/bao-tri");
             }
         }
     }
 
     // ================================================================
-    // GIÁO VIÊN: Nhắc hạn trả (cá nhân, có AI sinh nội dung)
+    // GIAO VIEN: Nhac han tra (ca nhan)
     // ================================================================
     @Transactional
     public void remindDueSoonBorrowings() {
         try {
             LocalDateTime now = LocalDateTime.now();
-            LocalDateTime in120h = now.plusHours(120); // 5 ngày
+            LocalDateTime in120h = now.plusHours(120);
             List<MuonTraThietBi> dueSoon = muonTraThietBiRepository.findDueSoonRecords(now, in120h);
             if (dueSoon.isEmpty()) return;
 
-            log.info("[AI] Nhắc hạn trả: {} phiếu sắp hết hạn trong 5 ngày", dueSoon.size());
+            log.info("[AI] Nhac han tra: {} phieu sap het han trong 5 ngay", dueSoon.size());
 
             for (MuonTraThietBi phieu : dueSoon) {
                 String tenThietBi = phieu.getThietBi().getTenThietBi();
@@ -278,36 +223,26 @@ public class AiNotificationScheduler {
                 String tenGV      = phieu.getNguoiMuon().getHoTen();
                 long daysLeft = java.time.temporal.ChronoUnit.DAYS.between(
                         now.toLocalDate(), phieu.getNgayTraDuKien().toLocalDate());
-                String timeLabel = daysLeft > 0 ? "còn " + daysLeft + " ngày" : "hôm nay";
+                String timeLabel = daysLeft > 0 ? "con " + daysLeft + " ngay" : "hom nay";
 
-                String remindTitle = "⏰ Nhắc nhở: Hạn trả thiết bị " + timeLabel;
+                String remindTitle = "\u23F0 Nhắc nhở: Hạn trả thiết bị (" + timeLabel + ")";
                 if (notificationService.canSendToUser(phieu.getNguoiMuon().getId(), remindTitle)) {
                     String aiMsg = callFlaskAI(
-                        "Giáo viên '" + tenGV + "' đang mượn thiết bị '" + tenThietBi +
-                        "', hạn trả ngày " + hanTra + " (" + timeLabel + "). " +
-                        "Viết 2 câu nhắc nhở lịch sự, thân thiện để gửi cho giáo viên này.",
+                        "Giao vien '" + tenGV + "' dang muon thiet bi '" + tenThietBi +
+                        "', han tra " + hanTra + " (" + timeLabel + "). Viet 2 cau nhac nho lich su.",
                         "GIAO_VIEN",
-                        "Nhắc nhở: Thiết bị \"" + tenThietBi + "\" bạn đang mượn sẽ hết hạn vào ngày " + hanTra +
-                        " (" + timeLabel + "). Vui lòng hoàn trả đúng hạn, cảm ơn bạn!"
+                        "Nhac nho: Thiet bi \"" + tenThietBi + "\" se het han vao ngay " + hanTra + " (" + timeLabel + "). Vui long hoan tra dung han!"
                     );
-
-                    notificationService.sendToUser(
-                        phieu.getNguoiMuon().getId(),
-                        remindTitle,
-                        aiMsg,
-                        "MUON_TRA",
-                        "/giao-vien/muon-tra"
-                    );
+                    notificationService.sendToUser(phieu.getNguoiMuon().getId(), remindTitle, aiMsg, "MUON_TRA", "/giao-vien/muon-tra");
                 }
             }
         } catch (Exception e) {
-            log.error("[AI] Lỗi nhắc hạn trả: {}", e.getMessage());
+            log.error("[AI] Loi nhac han tra: {}", e.getMessage());
         }
     }
 
     // ================================================================
-    // HELPER: Gọi Flask AI API để sinh nội dung thông minh
-    // Nếu Flask offline → dùng fallbackMsg thay vì dump raw prompt
+    // HELPER: Goi Flask AI de sinh noi dung. Neu Flask offline -> dung fallback.
     // ================================================================
     private String callFlaskAI(String prompt, String role, String fallbackMsg) {
         try {
@@ -326,13 +261,13 @@ public class AiNotificationScheduler {
                 if (aiReply != null && !aiReply.trim().isEmpty()) return aiReply;
             }
         } catch (Exception e) {
-            log.warn("[AI] Flask offline hoặc lỗi: {} — dùng nội dung mặc định.", e.getMessage());
+            log.warn("[AI] Flask offline hoac loi: {} - dung noi dung mac dinh.", e.getMessage());
         }
         return fallbackMsg;
     }
 
     /**
-     * Trigger thủ công từ API endpoint (Admin dùng khi demo).
+     * Trigger thu cong tu API endpoint (Admin dung khi demo).
      */
     @Transactional
     public void triggerManualPrediction() {

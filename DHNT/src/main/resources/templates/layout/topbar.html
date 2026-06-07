@@ -1,102 +1,157 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
-    <!-- Topbar Fragment -->
-    <header class="topbar" th:fragment="topbar">
-        <div class="page-info">
-            <h3 th:text="${title}">Dashboard</h3>
-        </div>
-        <div class="user-menu" style="display: flex; align-items: center; gap: 15px;">
-            <!-- Notification Bell -->
-            <div class="position-relative" id="notification-wrap">
-                <button id="notif-btn" data-bs-toggle="dropdown" aria-expanded="false" title="Thông báo"
-                    style="background:none;border:none;padding:6px 8px;cursor:pointer;color:var(--gray-500);position:relative;border-radius:8px;transition:background .15s;"
-                    onmouseover="this.style.background='rgba(0,0,0,0.06)'" onmouseout="this.style.background='none'">
-                    <i data-lucide="bell" style="width:20px;height:20px;display:block;"></i>
-                    <span id="notif-badge"
-                        style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;font-size:0.55rem;font-weight:700;padding:1px 4px;border-radius:999px;min-width:16px;text-align:center;line-height:1.4;">0</span>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" id="notif-list" style="width:340px;max-height:420px;overflow-y:auto;padding:0;box-shadow:0 10px 40px rgba(0,0,0,.18);border-radius:12px;border:1px solid #e2e8f0;">
-                    <li><div class="p-3 text-center text-muted">Không có thông báo mới</div></li>
-                </ul>
-            </div>
+<!-- =====================================================
+     TOPBAR FRAGMENT — Header chính của layout
+     ===================================================== -->
+<header class="topbar" th:fragment="topbar">
 
-            <span sec:authentication="name" style="font-weight: 600;">Username</span>
-            <span sec:authentication="principal.authorities" style="font-size: 12px; color: var(--gray-500);"
-                th:if="${#authorization.expression('isAuthenticated()')}">
-                <span th:each="auth, iterStat : ${#authentication.authorities}">
-                    <span th:if="${auth.authority == 'ROLE_ADMIN'}" class="badge bg-danger">Admin</span>
-                    <span th:if="${auth.authority == 'ROLE_GIAO_VIEN'}" class="badge bg-primary">Giáo viên</span>
-                    <span th:if="${auth.authority == 'ROLE_NHAN_VIEN_CSVC'}" class="badge bg-success">Nhân viên
-                        CSVC</span>
+    <!-- Left: Page title -->
+    <div class="topbar-left">
+        <h3 class="topbar-page-title" th:text="${title}">Dashboard</h3>
+    </div>
+
+    <!-- Right: Actions -->
+    <div class="topbar-right">
+
+        <!-- Notification Bell -->
+        <div class="position-relative" id="notification-wrap">
+            <button
+                id="notif-btn"
+                class="topbar-icon-btn"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                title="Thông báo"
+            >
+                <i data-lucide="bell" style="width:20px;height:20px;display:block;"></i>
+                <span id="notif-badge" class="notif-badge">0</span>
+            </button>
+
+            <ul
+                class="dropdown-menu dropdown-menu-end notif-dropdown"
+                id="notif-list"
+                style="padding:0;"
+            >
+                <li>
+                    <div class="p-3 text-center" style="color: var(--gray-400); font-size: 0.85rem;">
+                        Không có thông báo mới
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Vertical divider -->
+        <div class="topbar-divider"></div>
+
+        <!-- User chip -->
+        <div class="topbar-user">
+            <div class="topbar-avatar">
+                <span sec:authorize="hasRole('ADMIN')">🛡️</span>
+                <span sec:authorize="hasRole('NHAN_VIEN_CSVC')">🔧</span>
+                <span sec:authorize="hasRole('GIAO_VIEN')">👩‍🏫</span>
+            </div>
+            <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/profile}" class="topbar-username text-decoration-none text-dark" sec:authentication="name">Người dùng</a>
+            <a sec:authorize="hasRole('NHAN_VIEN_CSVC')" th:href="@{/nhanvien-csvc/profile}" class="topbar-username text-decoration-none text-dark" sec:authentication="name">Người dùng</a>
+            <a sec:authorize="hasRole('GIAO_VIEN')" th:href="@{/giao-vien/profile}" class="topbar-username text-decoration-none text-dark" sec:authentication="name">Người dùng</a>
+
+            <!-- Role badge -->
+            <span th:if="${#authorization.expression('isAuthenticated()')}"
+                  style="margin-left: 2px;">
+                <span th:each="auth : ${#authentication.authorities}">
+                    <span th:if="${auth.authority == 'ROLE_ADMIN'}"
+                          class="badge badge-danger" style="font-size: 0.65rem; padding: 2px 7px;">
+                        Admin
+                    </span>
+                    <span th:if="${auth.authority == 'ROLE_NHAN_VIEN_CSVC'}"
+                          class="badge badge-success" style="font-size: 0.65rem; padding: 2px 7px;">
+                        CSVC
+                    </span>
+                    <span th:if="${auth.authority == 'ROLE_GIAO_VIEN'}"
+                          class="badge badge-info" style="font-size: 0.65rem; padding: 2px 7px;">
+                        GV
+                    </span>
                 </span>
             </span>
-            <form th:action="@{/logout}" method="post" style="margin: 0;">
-                <button type="submit" class="btn" style="color: var(--danger); padding: 5px;" title="Đăng xuất">
-                    <i data-lucide="log-out"></i>
-                </button>
-            </form>
         </div>
-    </header>
 
-    <script>
-    (function() {
-        const userRole = window.CHATBOT_USER_ROLE || 'USER';
+        <!-- Logout button -->
+        <form th:action="@{/logout}" method="post" style="margin: 0;">
+            <button type="submit" class="btn-logout" title="Đăng xuất">
+                <i data-lucide="log-out" style="width:15px;height:15px;"></i>
+                <span>Đăng xuất</span>
+            </button>
+        </form>
 
-        function fetchNotifications() {
-            fetch('/api/thong-bao/unread', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(data => {
+    </div>
+</header>
+
+<!-- Topbar notification polling script -->
+<script>
+(function () {
+    function parseDate(v) {
+        if (!v) return null;
+        if (Array.isArray(v)) return new Date(v[0], v[1] - 1, v[2], v[3] || 0, v[4] || 0, v[5] || 0);
+        return new Date(v);
+    }
+
+    function fetchNotifications() {
+        fetch('/api/thong-bao/unread', { cache: 'no-store' })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
                 if (!data) return;
-                const badge = document.getElementById('notif-badge');
-                const list = document.getElementById('notif-list');
+                var badge = document.getElementById('notif-badge');
+                var list  = document.getElementById('notif-list');
+                if (!badge || !list) return;
+
                 if (data.count > 0) {
                     badge.style.display = 'block';
-                    badge.textContent = data.count;
-                    
-                    let html = '<li style="padding: 10px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #334155; d-flex justify-content-between align-items-center"><span>Thông báo mới</span></li>';
-                    
-                    const displayList = data.notifications.slice(0, 5); // Show only top 5 in dropdown
-                    
-                    displayList.forEach(n => {
-                        function parseDate(v) {
-                            if (!v) return null;
-                            if (Array.isArray(v)) return new Date(v[0], v[1]-1, v[2], v[3]||0, v[4]||0, v[5]||0);
-                            return new Date(v);
-                        }
-                        const dt = parseDate(n.createdAt);
-                        const d = dt ? dt.toLocaleDateString('vi-VN', {hour:'2-digit',minute:'2-digit'}) : '';
-                        const targetUrl = n.urlDetail ? n.urlDetail : '/thong-bao';
-                        
-                        html += `<li style="border-bottom:1px solid #f1f5f9;">
-                            <a class="dropdown-item d-flex flex-column p-3" href="${targetUrl}" style="white-space:normal;" onclick="fetch('/api/thong-bao/${n.id}/read',{method:'PUT'})">
-                                <strong style="color:#0f172a;font-size:0.9rem;">${n.tieuDe}</strong>
-                                <span style="font-size:0.82rem;color:#64748b;margin-top:4px;">${n.noiDung}</span>
-                                <small style="color:#94a3b8;font-size:0.72rem;align-self:flex-end;margin-top:6px;">${d}</small>
-                            </a></li>`;
+                    badge.textContent   = data.count;
+
+                    var html = '<li style="padding:10px 16px;background:var(--gray-50);border-bottom:1px solid var(--gray-200);font-weight:700;font-size:0.83rem;color:var(--gray-700);">'
+                             + 'Thông báo mới (' + data.count + ')</li>';
+
+                    data.notifications.slice(0, 5).forEach(function (n) {
+                        var dt = parseDate(n.createdAt);
+                        var d  = dt ? dt.toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
+                        var targetUrl = n.urlDetail || '/thong-bao';
+
+                        html += '<li style="border-bottom:1px solid var(--gray-100);">'
+                             + '<a class="dropdown-item d-flex flex-column p-3" href="' + targetUrl + '" style="white-space:normal;"'
+                             + ' onclick="fetch(\'/api/thong-bao/' + n.id + '/read\',{method:\'PUT\'})">'
+                             + '<strong style="color:var(--gray-900);font-size:0.85rem;">' + (n.tieuDe || '') + '</strong>'
+                             + '<span style="font-size:0.78rem;color:var(--gray-500);margin-top:4px;">' + (n.noiDung || '') + '</span>'
+                             + '<small style="color:var(--gray-400);font-size:0.68rem;align-self:flex-end;margin-top:6px;">' + d + '</small>'
+                             + '</a></li>';
                     });
-                    
+
                     if (data.count > 5) {
-                        html += `<li><div class="text-center p-2"><small class="text-muted">Còn ${data.count - 5} thông báo khác...</small></div></li>`;
+                        html += '<li><div class="text-center p-2"><small style="color:var(--gray-400);">Còn ' + (data.count - 5) + ' thông báo khác...</small></div></li>';
                     }
-                    
-                    html += `<li style="border-top:1px solid #e2e8f0;"><a href="/thong-bao" class="dropdown-item text-center text-primary py-2" style="font-weight:600;"><i data-lucide="layout-dashboard" class="me-1" style="width:16px;"></i>Đến TT Thông báo AI</a></li>`;
-                    
+
+                    html += '<li style="border-top:1px solid var(--gray-200);">'
+                         + '<a href="/thong-bao" class="dropdown-item text-center py-2"'
+                         + ' style="color:var(--primary);font-weight:700;font-size:0.83rem;">'
+                         + '<i data-lucide="layout-dashboard" class="me-1" style="width:14px;"></i>'
+                         + ' Xem tất cả thông báo</a></li>';
+
                     list.innerHTML = html;
-                    lucide.createIcons();
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
                 } else {
                     badge.style.display = 'none';
-                    list.innerHTML = '<li><div class="p-3 text-center text-muted">Không có thông báo mới</div></li><li style="border-top:1px solid #e2e8f0;"><a href="/thong-bao" class="dropdown-item text-center text-primary py-2" style="font-weight:600;"><i data-lucide="layout-dashboard" class="me-1" style="width:16px;"></i>Đến TT Thông báo AI</a></li>';
-                    lucide.createIcons();
+                    list.innerHTML = '<li><div class="p-3 text-center" style="color:var(--gray-400);font-size:0.85rem;">Không có thông báo mới</div></li>'
+                                   + '<li style="border-top:1px solid var(--gray-200);"><a href="/thong-bao" class="dropdown-item text-center py-2" style="color:var(--primary);font-weight:700;font-size:0.83rem;">Xem tất cả</a></li>';
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
                 }
-            }).catch(() => {});
-        }
+            })
+            .catch(function () {});
+    }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchNotifications();
-            setInterval(fetchNotifications, 30000);
-        });
-    })();
-    </script>
+    document.addEventListener('DOMContentLoaded', function () {
+        fetchNotifications();
+        setInterval(fetchNotifications, 30000); // Poll mỗi 30 giây
+    });
+})();
+</script>
 </body>
-
 </html>

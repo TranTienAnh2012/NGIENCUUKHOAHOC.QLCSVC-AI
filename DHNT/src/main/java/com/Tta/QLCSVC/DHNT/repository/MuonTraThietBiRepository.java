@@ -9,8 +9,15 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
+
 @Repository
 public interface MuonTraThietBiRepository extends JpaRepository<MuonTraThietBi, Long> {
+
+    @EntityGraph(attributePaths = {"thietBi", "nguoiMuon", "nguoiChoMuon", "nguoiNhanTra"})
+    Page<MuonTraThietBi> findAll(Pageable pageable);
 
     // Lấy tất cả phiếu mượn của user, eager-load thietBi và nguoiMuon
     @Query("SELECT m FROM MuonTraThietBi m LEFT JOIN FETCH m.thietBi LEFT JOIN FETCH m.nguoiMuon WHERE m.nguoiMuon.id = :nguoiMuonId ORDER BY m.ngayMuon DESC")

@@ -16,6 +16,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import com.Tta.QLCSVC.DHNT.areas.giaovien.service.GiaoVienProfileService;
+import com.Tta.QLCSVC.DHNT.entity.NguoiDung;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -34,6 +36,7 @@ public class CSVCViewController {
     private final CSVCPhongHocService csvcPhongHocService;
     private final CSVCThongKeService csvcThongKeService;
     private final AdminThongKeService adminThongKeService;
+    private final GiaoVienProfileService profileService;
 
     @GetMapping
     public String dashboard(Model model) {
@@ -60,6 +63,48 @@ public class CSVCViewController {
         model.addAttribute("myBaoTrisCount", myBaoTris.size());
         
         return "areas/nhanvien_csvc/dashboard";
+    }
+
+    // ==================== Profile ====================
+    @GetMapping("/profile")
+    public String profile(Model model) {
+        model.addAttribute("title", "Thông tin cá nhân");
+        NguoiDung user = profileService.getCurrentUserProfile();
+        model.addAttribute("user", user);
+        return "areas/nhanvien_csvc/profile";
+    }
+
+    @PostMapping("/profile/update")
+    public String updateProfile(@RequestParam String hoTen,
+            @RequestParam String soDienThoai,
+            RedirectAttributes redirectAttributes) {
+        try {
+            profileService.updateProfile(hoTen, soDienThoai);
+            redirectAttributes.addFlashAttribute("success", "Cập nhật thông tin thành công!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
+        }
+        return "redirect:/nhanvien-csvc/profile";
+    }
+
+    @PostMapping("/profile/change-password")
+    public String changePassword(@RequestParam String oldPassword,
+            @RequestParam String newPassword,
+            @RequestParam String confirmPassword,
+            RedirectAttributes redirectAttributes) {
+        try {
+            if (!newPassword.equals(confirmPassword)) {
+                redirectAttributes.addFlashAttribute("error", "Mật khẩu mới không khớp!");
+                return "redirect:/nhanvien-csvc/profile";
+            }
+            profileService.changePassword(oldPassword, newPassword);
+            redirectAttributes.addFlashAttribute("success", "Đổi mật khẩu thành công!");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
+        }
+        return "redirect:/nhanvien-csvc/profile";
     }
 
     // ==================== Báo Hỏng ====================

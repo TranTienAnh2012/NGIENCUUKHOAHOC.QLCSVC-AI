@@ -110,8 +110,8 @@
 
                     tbody.innerHTML += `<tr>
                         <td>${item.id}</td>
-                        <td>${item.nguoiMuon?.hoTen || '-'}</td>
-                        <td>${item.thietBi?.tenThietBi || '-'}</td>
+                        <td>${item.nguoiMuon ? (item.nguoiMuon.hoTen || item.nguoiMuon.email || 'ID: ' + item.nguoiMuon.id) : '-'}</td>
+                        <td>${item.thietBi ? (item.thietBi.tenThietBi || 'ID: ' + item.thietBi.id) : '-'}</td>
                         <td>${formatDate(item.ngayMuon)}</td>
                         <td>${ngayTra}</td>
                         <td><span class="badge ${statusBadge}">${item.trangThai}</span></td>

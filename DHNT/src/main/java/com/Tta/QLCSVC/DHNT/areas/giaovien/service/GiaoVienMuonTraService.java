@@ -63,6 +63,16 @@ public class GiaoVienMuonTraService {
     }
 
     @Transactional(readOnly = true)
+    public long getMyOverdueBorrowingsCount() {
+        NguoiDung currentUser = getCurrentUser();
+        List<MuonTraThietBi> active = muonTraRepository.findMyCurrentBorrowings(currentUser.getId());
+        LocalDateTime now = LocalDateTime.now();
+        return active.stream()
+                .filter(mt -> mt.getNgayTraDuKien() != null && mt.getNgayTraDuKien().isBefore(now))
+                .count();
+    }
+
+    @Transactional(readOnly = true)
     public long getMyTotalBorrowingsCount() {
         NguoiDung currentUser = getCurrentUser();
         return muonTraRepository.findByNguoiMuonId(currentUser.getId()).size();

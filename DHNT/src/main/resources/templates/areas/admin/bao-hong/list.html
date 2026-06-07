@@ -130,8 +130,8 @@
 
                     tbody.innerHTML += `<tr>
                         <td>${item.id}</td>
-                        <td>${item.thietBi?.tenThietBi || '-'}</td>
-                        <td>${item.nguoiBao?.hoTen || (item.ghiChu ? '<span class="text-muted small">' + item.ghiChu.substring(0,30) + '</span>' : '-')}</td>
+                        <td>${item.thietBi ? (item.thietBi.tenThietBi || 'ID: ' + item.thietBi.id) : '-'}</td>
+                        <td>${item.nguoiBao ? (item.nguoiBao.hoTen || item.nguoiBao.email || 'ID: ' + item.nguoiBao.id) : (item.ghiChu ? '<span class="text-muted small">' + item.ghiChu.substring(0,30) + '</span>' : '-')}</td>
                         <td title="${item.moTaLoi || ''}">${moTa}</td>
                         <td>${dateStr}</td>
                         <td><span class="badge ${severityBadge}">${item.mucDoNghiemTrong}</span></td>

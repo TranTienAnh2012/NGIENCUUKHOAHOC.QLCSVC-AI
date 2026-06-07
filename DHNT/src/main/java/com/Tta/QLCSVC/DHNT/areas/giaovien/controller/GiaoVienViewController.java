@@ -52,6 +52,10 @@ public class GiaoVienViewController {
         model.addAttribute("lichSuCount", lichSu);
         model.addAttribute("baoHongCount", baoHong);
         model.addAttribute("hoanThanhCount", hoanThanh);
+        
+        long quaHan = giaoVienMuonTraService.getMyOverdueBorrowingsCount();
+        model.addAttribute("quaHanCount", quaHan);
+        model.addAttribute("choDuyetCount", 0); // Hệ thống không có luồng chờ duyệt mượn trả
 
         // Danh sách thiết bị đang mượn (tối đa 3)
         model.addAttribute("activeBorrowings", giaoVienMuonTraService.getMyActiveBorrowings());

@@ -12,6 +12,11 @@ import com.Tta.QLCSVC.DHNT.repository.BaoHongRepository;
 import com.Tta.QLCSVC.DHNT.repository.NguoiDungRepository;
 import com.Tta.QLCSVC.DHNT.repository.ThietBiRepository;
 import com.Tta.QLCSVC.DHNT.repository.ThongBaoRepository;
+import com.Tta.QLCSVC.DHNT.areas.giaovien.service.GiaoVienProfileService;
+import com.Tta.QLCSVC.DHNT.entity.NguoiDung;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import lombok.RequiredArgsConstructor;
 
 import java.util.stream.Collectors;
@@ -26,6 +31,7 @@ public class AdminViewController {
     private final ThietBiRepository thietBiRepository;
     private final BaoHongRepository baoHongRepository;
     private final ThongBaoRepository thongBaoRepository;
+    private final GiaoVienProfileService profileService;
 
     @GetMapping
     public String dashboard(Model model) {
@@ -63,6 +69,48 @@ public class AdminViewController {
         model.addAttribute("pendingReports", pending.stream().limit(5).collect(Collectors.toList()));
         
         return "areas/admin/dashboard";
+    }
+
+    // Profile routes
+    @GetMapping("/profile")
+    public String profile(Model model) {
+        model.addAttribute("title", "Thông tin cá nhân");
+        NguoiDung user = profileService.getCurrentUserProfile();
+        model.addAttribute("user", user);
+        return "areas/admin/profile";
+    }
+
+    @PostMapping("/profile/update")
+    public String updateProfile(@RequestParam String hoTen,
+            @RequestParam String soDienThoai,
+            RedirectAttributes redirectAttributes) {
+        try {
+            profileService.updateProfile(hoTen, soDienThoai);
+            redirectAttributes.addFlashAttribute("success", "Cập nhật thông tin thành công!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
+        }
+        return "redirect:/admin/profile";
+    }
+
+    @PostMapping("/profile/change-password")
+    public String changePassword(@RequestParam String oldPassword,
+            @RequestParam String newPassword,
+            @RequestParam String confirmPassword,
+            RedirectAttributes redirectAttributes) {
+        try {
+            if (!newPassword.equals(confirmPassword)) {
+                redirectAttributes.addFlashAttribute("error", "Mật khẩu mới không khớp!");
+                return "redirect:/admin/profile";
+            }
+            profileService.changePassword(oldPassword, newPassword);
+            redirectAttributes.addFlashAttribute("success", "Đổi mật khẩu thành công!");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
+        }
+        return "redirect:/admin/profile";
     }
 
     // Thiết bị CRUD routes

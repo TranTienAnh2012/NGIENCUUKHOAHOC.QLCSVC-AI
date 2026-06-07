@@ -4,59 +4,489 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng nhập - QLCSVC-AI</title>
+    <meta name="description" content="Đăng nhập hệ thống Quản lý Cơ sở Vật chất DHNT">
+    <title>Đăng nhập — QLCSVC-AI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" th:href="@{/css/index.css}">
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-glow: rgba(99, 102, 241, 0.4);
+            --accent: #8b5cf6;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            background: #0a0a1a;
+            overflow: hidden;
+        }
+
+        /* === ANIMATED BACKGROUND === */
+        .bg-canvas {
+            position: fixed; inset: 0; z-index: 0;
+            background: radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.15) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 20%, rgba(139,92,246,0.12) 0%, transparent 55%),
+                        radial-gradient(ellipse at 60% 80%, rgba(59,130,246,0.1) 0%, transparent 50%),
+                        linear-gradient(135deg, #0a0a1a 0%, #0f0f2e 50%, #0a0a1a 100%);
+        }
+
+        /* Floating orbs */
+        .orb {
+            position: fixed; border-radius: 50%; filter: blur(80px);
+            animation: drift 12s ease-in-out infinite;
+            pointer-events: none; z-index: 0;
+        }
+        .orb-1 { width: 400px; height: 400px; background: rgba(99,102,241,0.12); top: -100px; left: -100px; animation-delay: 0s; }
+        .orb-2 { width: 300px; height: 300px; background: rgba(139,92,246,0.1); bottom: -50px; right: -50px; animation-delay: -4s; }
+        .orb-3 { width: 200px; height: 200px; background: rgba(59,130,246,0.08); top: 50%; left: 60%; animation-delay: -8s; }
+
+        @keyframes drift {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -20px) scale(1.05); }
+            66% { transform: translate(-20px, 30px) scale(0.95); }
+        }
+
+        /* Grid lines */
+        .grid-lines {
+            position: fixed; inset: 0; z-index: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        /* === SPLIT LAYOUT === */
+        .login-container {
+            position: relative; z-index: 1;
+            display: flex; width: 100vw; min-height: 100vh;
+        }
+
+        /* === LEFT PANEL (Brand) === */
+        .brand-panel {
+            flex: 1; display: flex; flex-direction: column;
+            justify-content: center; align-items: flex-start;
+            padding: 60px 70px;
+        }
+
+        .brand-logo {
+            display: flex; align-items: center; gap: 14px; margin-bottom: 60px;
+        }
+
+        .brand-logo-icon {
+            width: 52px; height: 52px; border-radius: 14px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 26px;
+            box-shadow: 0 8px 24px var(--primary-glow);
+        }
+
+        .brand-logo-text {
+            font-size: 1.3rem; font-weight: 800;
+            background: linear-gradient(135deg, #fff, rgba(255,255,255,0.7));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .brand-headline {
+            font-size: clamp(2rem, 3.5vw, 3rem);
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -0.03em;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .brand-headline .highlight {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .brand-desc {
+            font-size: 1rem; color: rgba(255,255,255,0.5);
+            line-height: 1.7; max-width: 440px; margin-bottom: 48px;
+        }
+
+        .brand-stats {
+            display: flex; gap: 40px;
+        }
+
+        .stat-item {
+            display: flex; flex-direction: column; gap: 4px;
+        }
+
+        .stat-number {
+            font-size: 1.6rem; font-weight: 800; color: white;
+            background: linear-gradient(135deg, #fff, rgba(255,255,255,0.8));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            font-size: 0.75rem; color: rgba(255,255,255,0.4);
+            text-transform: uppercase; letter-spacing: 0.06em;
+        }
+
+        /* Feature badges */
+        .feature-badges {
+            display: flex; flex-wrap: wrap; gap: 10px; margin-top: 40px;
+        }
+
+        .feature-badge {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 7px 14px; border-radius: 100px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.78rem; color: rgba(255,255,255,0.65);
+            font-weight: 500;
+        }
+
+        .feature-badge-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        /* === RIGHT PANEL (Form) === */
+        .form-panel {
+            width: 480px; min-height: 100vh;
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255,255,255,0.07);
+            display: flex; flex-direction: column;
+            justify-content: center; padding: 60px 50px;
+        }
+
+        .form-header { margin-bottom: 36px; }
+
+        .form-title {
+            font-size: 1.7rem; font-weight: 800;
+            color: white; letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
+
+        .form-subtitle {
+            font-size: 0.88rem; color: rgba(255,255,255,0.45);
+        }
+
+        /* Alert boxes */
+        .alert {
+            padding: 12px 16px; border-radius: 10px;
+            font-size: 0.84rem; margin-bottom: 20px;
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        .alert-error {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.25);
+            color: #fca5a5;
+        }
+
+        .alert-success {
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(16,185,129,0.25);
+            color: #6ee7b7;
+        }
+
+        /* Form elements */
+        .form-group { margin-bottom: 20px; }
+
+        .form-label {
+            display: block; font-size: 0.8rem; font-weight: 600;
+            color: rgba(255,255,255,0.6); margin-bottom: 8px;
+            text-transform: uppercase; letter-spacing: 0.06em;
+        }
+
+        .input-wrapper { position: relative; }
+
+        .input-icon {
+            position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+            color: rgba(255,255,255,0.3); font-size: 16px; pointer-events: none;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 13px 16px 13px 44px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .form-input::placeholder { color: rgba(255,255,255,0.25); }
+
+        .form-input:focus {
+            border-color: var(--primary);
+            background: rgba(99,102,241,0.08);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        /* Password toggle */
+        .pw-toggle {
+            position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+            color: rgba(255,255,255,0.3); cursor: pointer; font-size: 16px;
+            transition: color 0.2s;
+        }
+        .pw-toggle:hover { color: rgba(255,255,255,0.7); }
+
+        /* Remember row */
+        .form-options {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .checkbox-group {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 0.83rem; color: rgba(255,255,255,0.5);
+            cursor: pointer; user-select: none;
+        }
+
+        .checkbox-group input[type="checkbox"] { accent-color: var(--primary); }
+
+        /* Submit button */
+        .btn-login {
+            width: 100%; padding: 14px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            border: none; border-radius: 10px;
+            color: white; font-size: 0.95rem; font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer; display: flex; align-items: center;
+            justify-content: center; gap: 8px;
+            box-shadow: 0 8px 24px var(--primary-glow);
+            transition: all 0.25s;
+            position: relative; overflow: hidden;
+        }
+
+        .btn-login::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 100%);
+            opacity: 0; transition: opacity 0.2s;
+        }
+
+        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 12px 32px var(--primary-glow); }
+        .btn-login:hover::before { opacity: 1; }
+        .btn-login:active { transform: translateY(0); }
+
+        /* Divider */
+        .divider {
+            display: flex; align-items: center; gap: 12px;
+            margin: 24px 0; color: rgba(255,255,255,0.2); font-size: 0.78rem;
+        }
+        .divider::before, .divider::after {
+            content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.08);
+        }
+
+        /* Register link */
+        .register-link {
+            text-align: center; font-size: 0.85rem; color: rgba(255,255,255,0.4);
+        }
+
+        .register-link a {
+            color: var(--primary); font-weight: 600; text-decoration: none;
+            transition: color 0.2s;
+        }
+        .register-link a:hover { color: var(--accent); }
+
+        /* Footer note */
+        .form-footer {
+            margin-top: 32px; padding-top: 24px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            display: flex; align-items: center; gap: 8px;
+            font-size: 0.73rem; color: rgba(255,255,255,0.25);
+        }
+
+        /* Entrance animation */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-in { animation: slideUp 0.5s ease-out both; }
+        .delay-1 { animation-delay: 0.05s; }
+        .delay-2 { animation-delay: 0.1s; }
+        .delay-3 { animation-delay: 0.15s; }
+        .delay-4 { animation-delay: 0.2s; }
+        .delay-5 { animation-delay: 0.25s; }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .brand-panel { display: none; }
+            .form-panel { width: 100vw; padding: 40px 32px; }
+        }
+
+        @media (max-width: 480px) {
+            .form-panel { padding: 32px 24px; }
+        }
+    </style>
 </head>
 
-<body class="auth-wrapper">
-    <div class="auth-card fade-in">
-        <div class="auth-header">
-            <h1>Đăng nhập</h1>
-            <p>Vui lòng đăng nhập để tiếp tục</p>
-        </div>
+<body>
+    <!-- Animated background -->
+    <div class="bg-canvas"></div>
+    <div class="grid-lines"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
 
-        <div th:if="${param.error}" class="stat-card"
-            style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); margin-bottom: 20px; padding: 12px;">
-            <p style="color: var(--danger); font-size: 14px; text-align: center;">Email hoặc mật khẩu không chính xác
+    <div class="login-container">
+        <!-- LEFT: Brand panel -->
+        <div class="brand-panel">
+            <div class="brand-logo animate-in">
+                <div class="brand-logo-icon">🏫</div>
+                <span class="brand-logo-text">QLCSVC-AI</span>
+            </div>
+
+            <h1 class="brand-headline animate-in delay-1">
+                Quản lý <span class="highlight">thông minh</span><br>
+                với sức mạnh AI
+            </h1>
+
+            <p class="brand-desc animate-in delay-2">
+                Hệ thống quản lý cơ sở vật chất trường DHNT — tích hợp 
+                Google Gemini AI để tự động hóa báo cáo, phân tích và 
+                dự đoán bảo trì thiết bị.
             </p>
-        </div>
 
-        <div th:if="${param.logout}" class="stat-card"
-            style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); margin-bottom: 20px; padding: 12px;">
-            <p style="color: var(--success); font-size: 14px; text-align: center;">Bạn đã đăng xuất thành công</p>
-        </div>
-
-        <form th:action="@{/login}" method="post">
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" class="form-control" placeholder="admin@dhnt.edu.vn"
-                    required autofocus>
+            <div class="brand-stats animate-in delay-3">
+                <div class="stat-item">
+                    <span class="stat-number">AI</span>
+                    <span class="stat-label">Phân tích tự động</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">24/7</span>
+                    <span class="stat-label">Giám sát liên tục</span>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label for="password">Mật khẩu</label>
-                <input type="password" id="password" name="password" class="form-control" placeholder="••••••••"
-                    required>
+            <div class="feature-badges animate-in delay-4">
+                <span class="feature-badge">
+                    <span class="feature-badge-dot"></span>
+                    Google Gemini AI
+                </span>
+                <span class="feature-badge">
+                    <span class="feature-badge-dot"></span>
+                    QR Code Scan
+                </span>
+                <span class="feature-badge">
+                    <span class="feature-badge-dot"></span>
+                    Thông báo thông minh
+                </span>
+                <span class="feature-badge">
+                    <span class="feature-badge-dot"></span>
+                    Giám sát IoT
+                </span>
+            </div>
+        </div>
+
+        <!-- RIGHT: Form panel -->
+        <div class="form-panel">
+            <div class="form-header animate-in">
+                <h2 class="form-title">Chào mừng trở lại</h2>
+                <p class="form-subtitle">Đăng nhập để tiếp tục vào hệ thống</p>
             </div>
 
-            <button type="submit" class="btn btn-primary">
-                <i data-lucide="log-in"></i> Đăng nhập
-            </button>
-        </form>
+            <!-- Error alert -->
+            <div th:if="${param.error}" class="alert alert-error animate-in">
+                <span>⚠️</span>
+                <span>Email hoặc mật khẩu không chính xác. Vui lòng thử lại.</span>
+            </div>
 
-        <div style="margin-top: 25px; text-align: center; font-size: 14px;">
-            <p style="color: var(--gray-500);">Chưa có tài khoản? <a th:href="@{/register}"
-                    style="color: var(--primary); font-weight: 600;">Đăng ký ngay</a></p>
+            <!-- Logout success alert -->
+            <div th:if="${param.logout}" class="alert alert-success animate-in">
+                <span>✅</span>
+                <span>Bạn đã đăng xuất thành công.</span>
+            </div>
+
+            <form th:action="@{/login}" method="post">
+                <!-- Email field -->
+                <div class="form-group animate-in delay-1">
+                    <label class="form-label" for="email">Email</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">✉️</span>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            class="form-input"
+                            placeholder="admin@dhnt.edu.vn"
+                            required autofocus
+                        >
+                    </div>
+                </div>
+
+                <!-- Password field -->
+                <div class="form-group animate-in delay-2">
+                    <label class="form-label" for="password">Mật khẩu</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔒</span>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            class="form-input"
+                            placeholder="••••••••"
+                            required
+                        >
+                        <span class="pw-toggle" id="pw-toggle" onclick="togglePw()" title="Hiện/ẩn mật khẩu">👁️</span>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" class="btn-login animate-in delay-4" id="btn-login">
+                    <span>🚀</span>
+                    <span>Đăng nhập</span>
+                </button>
+            </form>
+
+            <div class="divider animate-in delay-5">hoặc</div>
+
+            <div class="register-link animate-in delay-5">
+                <p>Chưa có tài khoản? <a th:href="@{/register}">Đăng ký ngay</a></p>
+            </div>
+
+            <div class="form-footer animate-in delay-5">
+                <span>🔐</span>
+                <span>Kết nối được bảo mật bằng Spring Security + JWT</span>
+            </div>
         </div>
     </div>
 
     <script>
-        lucide.createIcons();
+        function togglePw() {
+            const input = document.getElementById('password');
+            const toggle = document.getElementById('pw-toggle');
+            if (input.type === 'password') {
+                input.type = 'text';
+                toggle.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                toggle.textContent = '👁️';
+            }
+        }
+
+        // Loading state on submit
+        document.querySelector('form').addEventListener('submit', function() {
+            const btn = document.getElementById('btn-login');
+            btn.innerHTML = '<span>⏳</span><span>Đang xác thực...</span>';
+            btn.disabled = true;
+            btn.style.opacity = '0.8';
+        });
     </script>
 </body>
-
 </html>
