@@ -80,7 +80,10 @@
 <body>
 
 <div class="topbar">
-  <h1>🖨️ In Nhãn QR Thiết Bị — QLCSVC</h1>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <button class="btn btn-outline" onclick="goBack()" style="padding: 6px 12px; font-size: 0.8rem;">⬅ Quay lại</button>
+    <h1>🖨️ In Nhãn QR Thiết Bị — QLCSVC</h1>
+  </div>
   <div class="topbar-right">
     <span style="font-size:0.78rem;opacity:0.7;">{{ devices|length }} thiết bị</span>
     <button class="btn btn-outline" onclick="location.reload()">🔄 Làm mới</button>
@@ -122,6 +125,32 @@
 </a>
 {% endfor %}
 </div>
+
+<script>
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return null;
+}
+
+function goBack() {
+  if (document.referrer && document.referrer.includes('localhost')) {
+    window.history.back();
+  } else {
+    const role = getCookie('user_role');
+    if (role === 'ADMIN') {
+      window.location.href = 'http://localhost:8080/admin/dashboard';
+    } else if (role === 'NHAN_VIEN_CSVC') {
+      window.location.href = 'http://localhost:8080/nhanvien-csvc/dashboard';
+    } else if (role === 'GIAO_VIEN') {
+      window.location.href = 'http://localhost:8080/giao-vien';
+    } else {
+      window.location.href = 'http://localhost:8080/';
+    }
+  }
+}
+</script>
 
 </body>
 </html>

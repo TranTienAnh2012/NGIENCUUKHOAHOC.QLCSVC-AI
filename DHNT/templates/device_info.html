@@ -126,6 +126,17 @@
 
 <!-- HEADER -->
 <div class="hero">
+  <!-- Back Button -->
+  <button onclick="goBack()" class="btn-back" style="
+    position: absolute; top: 16px; left: 16px;
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+    color: white; padding: 6px 12px; border-radius: 8px;
+    font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: background 0.2s; z-index: 10;
+  ">
+    ⬅ Quay lại
+  </button>
   <div class="hero-badge">{{ dev_cat }}</div>
   <h1>{{ dev_name }}</h1>
   <div class="code">Mã: {{ dev_code }}</div>
@@ -311,6 +322,32 @@
 <!-- Scan FAB button -->
 <span class="fab-scan-label">SCAN</span>
 <button class="fab-scan" onclick="window.location.href='{{ host }}/api/ai/scan'" title="Scan QR thiết bị khác">📷</button>
+
+<script>
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return null;
+}
+
+function goBack() {
+  if (document.referrer && document.referrer.includes('localhost')) {
+    window.history.back();
+  } else {
+    const role = getCookie('user_role');
+    if (role === 'ADMIN') {
+      window.location.href = 'http://localhost:8080/admin/dashboard';
+    } else if (role === 'NHAN_VIEN_CSVC') {
+      window.location.href = 'http://localhost:8080/nhanvien-csvc/dashboard';
+    } else if (role === 'GIAO_VIEN') {
+      window.location.href = 'http://localhost:8080/giao-vien';
+    } else {
+      window.location.href = 'http://localhost:8080/';
+    }
+  }
+}
+</script>
 
 </body>
 </html>
