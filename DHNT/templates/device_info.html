@@ -69,6 +69,18 @@
   .hi-badges { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; flex-shrink: 0; margin-left: 10px; }
   .badge { font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; border: 1px solid; white-space: nowrap; }
 
+  /* Dynamic color utility classes to avoid style linter warnings */
+  .color-tot { color: #22c55e !important; }
+  .color-bao-tri { color: #f59e0b !important; }
+  .color-hong { color: #ef4444 !important; }
+  .color-thanh-ly { color: #6b7280 !important; }
+
+  .badge-sev-thap { color: #3b82f6 !important; }
+  .badge-sev-trung-binh { color: #f59e0b !important; }
+  .badge-sev-cao { color: #ef4444 !important; }
+  .badge-sev-khan-cap { color: #7c3aed !important; }
+
+
   /* EMPTY STATE */
   .empty { text-align: center; color: var(--sub); font-size: 0.82rem; padding: 12px 0; }
 
@@ -157,7 +169,7 @@
       <div><span class="lbl">Mã thiết bị</span><span class="val">{{ dev_code }}</span></div>
       <div><span class="lbl">Phòng / Vị trí</span><span class="val">{{ dev_room }}</span></div>
       <div><span class="lbl">Loại thiết bị</span><span class="val">{{ dev_cat }}</span></div>
-      <div><span class="lbl">Trạng thái</span><span class="val status" style="color:{{ status_color }};">{{ status_icon }} {{ status_label }}</span></div>
+      <div><span class="lbl">Trạng thái</span><span class="val status color-{{ status_raw | lower | replace('_', '-') }}">{{ status_icon }} {{ status_label }}</span></div>
     </div>
 
     <!-- QR nhỏ góc dưới -->
@@ -225,7 +237,7 @@
           <div class="hi-sub">📅 {{ d.date_fmt }}</div>
         </div>
         <div class="hi-badges">
-          <span class="badge" style="color:{{ d.severity_color }};">{{ (d.severity or '')|upper }}</span>
+          <span class="badge badge-sev-{{ (d.severity or 'thap') | lower | replace('_', '-') }}">{{ (d.severity or '')|upper }}</span>
           <span class="badge">{{ d.status_label }}</span>
         </div>
       </div>
@@ -265,6 +277,19 @@
     <div id="aiHealthResult" style="display:none;"></div>
   </div>
 
+  <!-- Dữ liệu thiết bị dùng cho AI gợi ý bảo trì -->
+  <script type="application/json" id="deviceData">
+    {
+      "device_id": {{ device_id | tojson }},
+      "dev_name": {{ dev_name | tojson }},
+      "status_raw": {{ status_raw | tojson }},
+      "status_label": {{ status_label | tojson }},
+      "dev_cat": {{ dev_cat | tojson }},
+      "dev_room": {{ dev_room | tojson }},
+      "damages": {{ damages | tojson }}
+    }
+  </script>
+
   <!-- Nút báo hỏng -->
   <a class="btn-report" href="{{ host }}/api/ai/report-form?device_id={{ device_id }}&amp;device_name={{ dev_name }}">
     🚨 Báo hỏng thiết bị này
@@ -282,17 +307,21 @@
   const loadEl = document.getElementById('aiHealthLoading');
   const resEl  = document.getElementById('aiHealthResult');
   try {
+    const dataEl = document.getElementById('deviceData');
+    if (!dataEl) throw new Error('Device data element not found');
+    const deviceData = JSON.parse(dataEl.textContent);
+
     const r = await fetch('http://localhost:5000/api/ai/suggest-maintenance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        equipment_name: '{{ dev_name }}',
-        device_id:   {{ device_id }},
-        current_status: '{{ status_raw }}',
-        status:      '{{ status_label }}',
-        category:    '{{ dev_cat }}',
-        room:        '{{ dev_room }}',
-        maintenance_history: {{ damages_json | safe }}
+        equipment_name: deviceData.dev_name,
+        device_id:   deviceData.device_id,
+        current_status: deviceData.status_raw,
+        status:      deviceData.status_label,
+        category:    deviceData.dev_cat,
+        room:        deviceData.dev_room,
+        maintenance_history: deviceData.damages
       })
     });
     const data = await r.json();

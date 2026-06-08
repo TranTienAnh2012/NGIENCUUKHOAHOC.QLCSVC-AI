@@ -128,10 +128,19 @@
     <a href="javascript:history.back()">← Quay lại</a>
   </div>
 
+<script type="application/json" id="scanData">
+  {
+    "host": {{ host | tojson }},
+    "verify_id": {{ verify_id | tojson }},
+    "default_tab": {{ default_tab | tojson }}
+  }
+</script>
+
 <script>
-const HOST = '{{ host }}';
-const VERIFY_ID = {{ verify_id }};
-let currentTab = '{{ default_tab }}';
+const scanData = JSON.parse(document.getElementById('scanData').textContent);
+const HOST = scanData.host;
+const VERIFY_ID = scanData.verify_id;
+let currentTab = scanData.default_tab || 'qr';
 let qrScanner = null;
 let aiStream = null;
 let cameraStarted = false;

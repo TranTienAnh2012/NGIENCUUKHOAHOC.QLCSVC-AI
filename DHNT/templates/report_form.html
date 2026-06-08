@@ -110,7 +110,7 @@
 
 <div class="body">
 
-  <form id="reportForm" onsubmit="submitReport(event)">
+  <form id="reportForm" onsubmit="submitReport(event)" data-submit-url="{{ submit_url }}">
     <input type="hidden" name="device_id" value="{{ device_id }}">
 
     <!-- Mức độ nghiêm trọng -->
@@ -225,7 +225,9 @@
     for (const [k,v] of fd.entries()) params.append(k, v);
 
     try {
-      const r = await fetch('{{ submit_url }}', {
+      const formEl = document.getElementById('reportForm');
+      const submitUrl = formEl ? formEl.getAttribute('data-submit-url') : '';
+      const r = await fetch(submitUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: params.toString()
