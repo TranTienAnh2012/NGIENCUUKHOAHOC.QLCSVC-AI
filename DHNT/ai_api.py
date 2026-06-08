@@ -41,7 +41,7 @@ try:
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
-    print("[WARN] Pillow chưa cài. Chạy: pip install Pillow")
+    print("[WARN] Pillow chua duoc cai. Chay: pip install Pillow")
 
 # qrcode — sinh QR code local. Optional: fallback dùng API online.
 try:
@@ -50,7 +50,7 @@ try:
     QR_AVAILABLE = True
 except ImportError:
     QR_AVAILABLE = False
-    print("[WARN] qrcode chưa cài. Chạy: pip install qrcode[pil]")
+    print("[WARN] qrcode chua duoc cai. Chay: pip install qrcode[pil]")
 
 # ============================================================
 # 2. CẤU HÌNH ỨNG DỤNG
@@ -283,7 +283,7 @@ def fetch_spring_data(endpoint: str, timeout: int = 3):
         if r.status_code == 200:
             return r.json()
     except Exception as e:
-        print(f"[ERROR] Không kết nối được Spring Boot ({endpoint}): {e}")
+        print(f"[ERROR] Khong ket noi duoc Spring Boot ({endpoint}): {e}")
     return None
 
 
@@ -677,7 +677,7 @@ def device_info_page(device_id):
                 borrow_history = [b for b in all_borrows if name in (b.get('device_name') or '').lower()][:5]
 
     except Exception as e:
-        print(f"[ERROR] Lấy thông tin thiết bị {device_id}: {e}")
+        print(f"[ERROR] Lay thong tin thiet bi {device_id}: {e}")
         db_ok = False
 
     if not device:
@@ -838,7 +838,7 @@ def scan_page():
 if __name__ == '__main__':
     port = int(os.getenv('FLASK_PORT', 5000))
     debug = os.getenv('FLASK_ENV', 'development') == 'development'
-    print(f"[INFO] Flask AI Gateway đang chạy tại http://0.0.0.0:{port}")
+    print(f"[INFO] Flask AI Gateway dang chay tai http://0.0.0.0:{port}")
     print(f"[INFO] Spring Boot API: {SPRING_BASE}")
     print(f"[INFO] Debug mode: {debug}")
     app.run(host='0.0.0.0', port=port, debug=debug)
