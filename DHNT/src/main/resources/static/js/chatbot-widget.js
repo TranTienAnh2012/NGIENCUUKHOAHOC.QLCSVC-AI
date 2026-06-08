@@ -105,6 +105,9 @@
 
         // Load conversation history from sessionStorage
         loadConversationHistory();
+
+        // Setup resizable container
+        setupResizer();
     }
 
     /**
@@ -208,7 +211,12 @@
         } catch (error) {
             console.error('Error sending message:', error);
             hideTypingIndicator();
-            addMessage('Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại sau hoặc kiểm tra xem Flask AI API có đang chạy không.', 'ai', true);
+            
+            let displayError = error.message || '';
+            if (displayError.includes('Failed to fetch') || displayError.includes('fetch') || displayError.includes('NetworkError')) {
+                displayError = 'Không thể kết nối đến AI API. Vui lòng kiểm tra xem Flask AI API có đang chạy không.';
+            }
+            addMessage(displayError, 'ai', true);
         } finally {
             setInputState(true);
             chatInput.focus();
@@ -238,7 +246,16 @@
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            let errorMessage = `Lỗi từ máy chủ (Mã: ${response.status})`;
+            try {
+                const errData = await response.json();
+                if (errData && errData.error) {
+                    errorMessage = errData.error;
+                }
+            } catch (jsonErr) {
+                errorMessage = `Lỗi kết nối máy chủ (Mã: ${response.status})`;
+            }
+            throw new Error(errorMessage);
         }
 
         const data = await response.json();
@@ -288,31 +305,88 @@
     }
 
     /**
-     * Format message content (convert line breaks, etc.)
+     * Format message content (convert line breaks, headers, and bullet lists cleanly)
      */
     function formatMessage(content) {
-        // 1. Convert Markdown Images: ![alt](url) -> <img src="url" alt="alt" class="chatbot-image">
-        content = content.replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" class="chatbot-image" onerror="this.style.display=\'none\'">');
+        // Prevent XSS but keep styling
+        let escaped = content
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
 
-        // 2. Convert Markdown Links: [text](url) -> <a href="url" class="chatbot-link" target="_self">$1</a>
-        // Note: target="_self" because these are internal app links
-        content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="chatbot-link">$1</a>');
+        // 1. Convert Markdown Images: ![alt](url)
+        escaped = escaped.replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" class="chatbot-image" onerror="this.style.display=\'none\'">');
 
-        // 3. Convert line breaks to <br>
-        content = content.replace(/\n/g, '<br>');
+        // 2. Convert Markdown Links: [text](url)
+        escaped = escaped.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="chatbot-link" target="_self">$1</a>');
 
-        // 4. Convert **bold** to <strong>
-        content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        // 3. Convert **bold** to <strong>
+        escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-        // 5. Convert bullet points
-        content = content.replace(/^- (.+)$/gm, '<li>$1</li>');
-        if (content.includes('<li>')) {
-            // Wrap contiguous <li> in <ul>
-            // A bit simplified but works for standard bullet lists
-            content = content.replace(/(<li>.*?<\/li>)+/s, (match) => `<ul>${match}</ul>`);
+        // 4. Convert *italic* to <em> (only when not part of bullet points)
+        escaped = escaped.replace(/(?<!\*)\*(?!\s)(.*?)(?!\s)\*(?!\*)/g, '<em>$1</em>');
+
+        // 5. Process line-by-line for bullet lists and headers
+        let lines = escaped.split('\n');
+        let inList = false;
+        let resultLines = [];
+
+        for (let line of lines) {
+            let trimmed = line.trim();
+
+            // Strip raw/rogue markdown markers on their own lines
+            if (trimmed === '*' || trimmed === '-' || trimmed === '_') {
+                continue;
+            }
+
+            // Headers
+            if (trimmed.startsWith('### ')) {
+                if (inList) { inList = false; resultLines.push('</ul>'); }
+                resultLines.push(`<h4>${trimmed.substring(4).trim()}</h4>`);
+                continue;
+            }
+            if (trimmed.startsWith('## ')) {
+                if (inList) { inList = false; resultLines.push('</ul>'); }
+                resultLines.push(`<h3>${trimmed.substring(3).trim()}</h3>`);
+                continue;
+            }
+            if (trimmed.startsWith('# ')) {
+                if (inList) { inList = false; resultLines.push('</ul>'); }
+                resultLines.push(`<h2>${trimmed.substring(2).trim()}</h2>`);
+                continue;
+            }
+
+            // Bullet points
+            if (trimmed.startsWith('* ') || trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
+                let listContent = trimmed.substring(2).trim();
+                if (!inList) {
+                    inList = true;
+                    resultLines.push('<ul>');
+                }
+                resultLines.push(`<li>${listContent}</li>`);
+            } else {
+                if (inList) {
+                    inList = false;
+                    resultLines.push('</ul>');
+                }
+                resultLines.push(line);
+            }
+        }
+        if (inList) {
+            resultLines.push('</ul>');
         }
 
-        return `<div class="message-text">${content}</div>`;
+        let processed = resultLines.join('\n');
+
+        // Convert remaining newlines to breaks
+        processed = processed.replace(/\n/g, '<br>');
+        
+        // Clean up excess breaks around block elements
+        processed = processed.replace(/<br><ul/g, '<ul').replace(/<\/ul><br>/g, '</ul>');
+        processed = processed.replace(/<\/li><br>/g, '</li>').replace(/<br><li>/g, '<li>');
+        processed = processed.replace(/<ul><br>/g, '<ul>').replace(/<\/ul><br>/g, '</ul>');
+
+        return `<div class="message-text">${processed}</div>`;
     }
 
     /**
@@ -386,6 +460,90 @@
             console.error('Error loading conversation history:', e);
         }}
     }}
+
+    /**
+     * Setup resizable container with handles and persistent settings
+     */
+    function setupResizer() {
+        const container = document.getElementById('chatbot-container');
+        if (!container) return;
+
+        // Create resize handles
+        const topHandle = document.createElement('div');
+        topHandle.className = 'chat-resize-handle chat-resize-n';
+        
+        const leftHandle = document.createElement('div');
+        leftHandle.className = 'chat-resize-handle chat-resize-w';
+        
+        const topLeftHandle = document.createElement('div');
+        topLeftHandle.className = 'chat-resize-handle chat-resize-nw';
+
+        container.appendChild(topHandle);
+        container.appendChild(leftHandle);
+        container.appendChild(topLeftHandle);
+
+        let startX, startY, startWidth, startHeight;
+
+        function doDrag(e) {
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            
+            if (e.target.classList.contains('chat-resize-w') || e.target.classList.contains('chat-resize-nw')) {
+                const newWidth = startWidth + (startX - clientX);
+                if (newWidth > 320 && newWidth < window.innerWidth - 40) {
+                    container.style.width = newWidth + 'px';
+                }
+            }
+            if (e.target.classList.contains('chat-resize-n') || e.target.classList.contains('chat-resize-nw')) {
+                const newHeight = startHeight + (startY - clientY);
+                if (newHeight > 350 && newHeight < window.innerHeight - 120) {
+                    container.style.height = newHeight + 'px';
+                }
+            }
+        }
+
+        function stopDrag() {
+            document.removeEventListener('mousemove', doDrag);
+            document.removeEventListener('mouseup', stopDrag);
+            document.removeEventListener('touchmove', doDrag);
+            document.removeEventListener('touchend', stopDrag);
+            
+            // Persist the size
+            localStorage.setItem('chatbot_pref_width', container.style.width);
+            localStorage.setItem('chatbot_pref_height', container.style.height);
+        }
+
+        function initDrag(e) {
+            if (e.type === 'mousedown' && e.button !== 0) return;
+            
+            startX = e.clientX || (e.touches && e.touches[0].clientX);
+            startY = e.clientY || (e.touches && e.touches[0].clientY);
+            
+            startWidth = parseInt(document.defaultView.getComputedStyle(container).width, 10);
+            startHeight = parseInt(document.defaultView.getComputedStyle(container).height, 10);
+
+            document.addEventListener('mousemove', doDrag);
+            document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchmove', doDrag);
+            document.addEventListener('touchend', stopDrag);
+            
+            e.preventDefault();
+        }
+
+        topHandle.addEventListener('mousedown', initDrag);
+        leftHandle.addEventListener('mousedown', initDrag);
+        topLeftHandle.addEventListener('mousedown', initDrag);
+        
+        topHandle.addEventListener('touchstart', initDrag);
+        leftHandle.addEventListener('touchstart', initDrag);
+        topLeftHandle.addEventListener('touchstart', initDrag);
+
+        // Restore persisted size if available
+        const prefWidth = localStorage.getItem('chatbot_pref_width');
+        const prefHeight = localStorage.getItem('chatbot_pref_height');
+        if (prefWidth) container.style.width = prefWidth;
+        if (prefHeight) container.style.height = prefHeight;
+    }
 
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {

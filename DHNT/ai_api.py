@@ -586,7 +586,7 @@ def get_device_qr(device_id):
     host = request.host_url.rstrip('/')
     info_url = f"{host}/api/ai/device-info/{device_id}"
 
-    if not QR_AVAILABLE:
+    if not QR_AVAILABLE or not PIL_AVAILABLE:
         # Fallback: dùng API online
         return redirect(
             f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={urllib.parse.quote(info_url)}"
@@ -599,7 +599,7 @@ def get_device_qr(device_id):
     img = qr.make_image(fill_color="#1a1a2e", back_color="white")
 
     buf = io.BytesIO()
-    img.save(buf, format='PNG')
+    img.save(buf, 'PNG')
     buf.seek(0)
     return send_file(buf, mimetype='image/png')
 
