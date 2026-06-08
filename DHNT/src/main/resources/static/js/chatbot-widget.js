@@ -314,6 +314,10 @@
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;");
 
+        // Clean up newlines between list numbers and list titles/content
+        escaped = escaped.replace(/(\n|^)(\d+\.)\s*\n\s*\*\*/g, '$1$2 **');
+        escaped = escaped.replace(/(\n|^)(\d+\.)\s*\n\s*([^\n\d\s#\-*•])/g, '$1$2 $3');
+
         // 1. Convert Markdown Images: ![alt](url)
         escaped = escaped.replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" class="chatbot-image" onerror="this.style.display=\'none\'">');
 
