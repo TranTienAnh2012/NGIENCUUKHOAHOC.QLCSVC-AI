@@ -62,13 +62,53 @@ app = Flask(__name__)
 # CORS: Cho phép Spring Boot (port 8080) gọi cross-origin sang Flask (port 5000)
 CORS(app)
 
-# --- Google Gemini AI ---
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY không tìm thấy trong file .env")
+# --- Google Gemini AI (Cấu hình danh sách API Keys dự phòng) ---
+API_KEYS = []
+keys_env = os.getenv('GEMINI_API_KEYS')
+if keys_env:
+    API_KEYS = [k.strip() for k in keys_env.split(',') if k.strip()]
+else:
+    primary_key = os.getenv('GEMINI_API_KEY')
+    backup_key = os.getenv('GEMINI_API_KEY_BACKUP')
+    if primary_key:
+        API_KEYS.append(primary_key.strip())
+    if backup_key:
+        API_KEYS.append(backup_key.strip())
 
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-flash-latest')
+if not API_KEYS:
+    raise ValueError("Không tìm thấy GEMINI_API_KEY hoặc GEMINI_API_KEY_BACKUP trong file .env")
+
+current_key_idx = 0
+
+def generate_gemini_content(contents):
+    """
+    Gọi API Gemini với cơ chế tự động xoay vòng API Keys dự phòng khi bị Rate Limit (429).
+    """
+    global current_key_idx
+    num_keys = len(API_KEYS)
+    last_error = None
+
+    for attempt in range(num_keys):
+        active_key = API_KEYS[current_key_idx]
+        try:
+            genai.configure(api_key=active_key)
+            m = genai.GenerativeModel('gemini-flash-latest')
+            # Thực hiện cuộc gọi API
+            return m.generate_content(contents)
+        except Exception as e:
+            err_str = str(e)
+            print(f"[WARN] Loi khi goi Gemini bang Key index {current_key_idx}: {err_str}")
+            if "429" in err_str or "ResourceExhausted" in err_str or "quota" in err_str.lower():
+                next_idx = (current_key_idx + 1) % num_keys
+                print(f"[INFO] Tu dong chuyen API Key tu index {current_key_idx} sang {next_idx}")
+                current_key_idx = next_idx
+                last_error = e
+                continue
+            else:
+                raise e
+
+    raise Exception(f"Tất cả các API Key Gemini đều gặp lỗi hoặc hết hạn mức. Lỗi cuối: {last_error}")
+
 
 # --- Internal API Key ---
 # Dùng để Flask gọi ngược vào Spring Boot endpoint /api/ai-data/**
@@ -366,7 +406,7 @@ def chatbot():
 
         # Ghép prompt hoàn chỉnh
         full_prompt = f"{CHATBOT_SYSTEM_PROMPT}\n{role_instructions}\n{context_data}User: {user_message}"
-        response = model.generate_content(full_prompt)
+        response = generate_gemini_content(full_prompt)
         ai_response = response.text
 
         # Lưu lịch sử hội thoại
@@ -393,7 +433,7 @@ def simple_chat():
         if not message:
             return jsonify({"error": "Thiếu message"}), 400
 
-        response = model.generate_content(message)
+        response = generate_gemini_content(message)
         try:
             text = response.text
         except ValueError:
@@ -423,7 +463,7 @@ def analyze_damage():
         if not desc:
             return jsonify({"error": "Thiếu mô tả hư hỏng"}), 400
 
-        resp = model.generate_content(f"{DAMAGE_ANALYSIS_PROMPT}\nDescription: {desc}")
+        resp = generate_gemini_content(f"{DAMAGE_ANALYSIS_PROMPT}\nDescription: {desc}")
         return jsonify({"success": True, "analysis": resp.text}), 200
 
     except Exception as e:
@@ -444,7 +484,7 @@ def suggest_maintenance():
         name = data.get('equipment_name') or data.get('device_name') or 'Thiết bị'
         status = data.get('current_status', 'TOT')
 
-        resp = model.generate_content(f"{MAINTENANCE_SUGGESTION_PROMPT}\nDevice: {name}\nStatus: {status}")
+        resp = generate_gemini_content(f"{MAINTENANCE_SUGGESTION_PROMPT}\nDevice: {name}\nStatus: {status}")
         return jsonify({"success": True, "recommendations": resp.text}), 200
 
     except Exception as e:
@@ -479,7 +519,7 @@ def scan_image():
 
         # Gửi ảnh cho Gemini Vision
         image_part = {'inline_data': {'mime_type': 'image/jpeg', 'data': img_base64}}
-        resp = model.generate_content([IMAGE_SCAN_PROMPT, image_part])
+        resp = generate_gemini_content([IMAGE_SCAN_PROMPT, image_part])
 
         # Parse JSON từ response (Gemini đôi khi wrap trong ```)
         scan_result = {}
@@ -556,7 +596,7 @@ def verify_device():
             code=device.get('code', '')
         )
         image_part = {'inline_data': {'mime_type': 'image/jpeg', 'data': img_base64}}
-        resp = model.generate_content([prompt, image_part])
+        resp = generate_gemini_content([prompt, image_part])
 
         # Parse JSON response
         res_txt = resp.text
@@ -826,10 +866,13 @@ def scan_page():
     Nếu có param ?verify=<id> → chế độ xác minh (so sánh với DB).
     """
     verify_id = request.args.get('verify', '0')
+    default_tab = 'ai' if verify_id and verify_id != '0' else 'qr'
     return render_template('scan.html',
         verify_id=verify_id,
+        default_tab=default_tab,
         host=request.host_url.rstrip('/')
     )
+
 
 
 # ============================================================
