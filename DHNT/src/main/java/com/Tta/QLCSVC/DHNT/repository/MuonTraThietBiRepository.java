@@ -16,7 +16,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 @Repository
 public interface MuonTraThietBiRepository extends JpaRepository<MuonTraThietBi, Long> {
 
-    @EntityGraph(attributePaths = {"thietBi", "nguoiMuon", "nguoiChoMuon", "nguoiNhanTra"})
+    @EntityGraph(attributePaths = {"thietBi", "nguoiMuon"})
     Page<MuonTraThietBi> findAll(Pageable pageable);
 
     // Lấy tất cả phiếu mượn của user, eager-load thietBi và nguoiMuon

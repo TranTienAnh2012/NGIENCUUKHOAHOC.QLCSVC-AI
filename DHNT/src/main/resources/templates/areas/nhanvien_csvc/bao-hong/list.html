@@ -73,23 +73,23 @@
                                                 22/01/2026</td>
                                             <td>
                                                 <span
-                                                    th:class="'badge ' + ${item.mucDoNghiemTrong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.MucDoNghiemTrong).KHAN_CAP ? 'bg-danger' : 
-                                                    item.mucDoNghiemTrong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.MucDoNghiemTrong).CAO ? 'bg-warning' : 
-                                                    item.mucDoNghiemTrong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.MucDoNghiemTrong).TRUNG_BINH ? 'bg-info' : 'bg-secondary'}"
+                                                    th:class="'badge ' + ${item.mucDoNghiemTrong?.name() == 'KHAN_CAP' ? 'bg-danger' : 
+                                                    item.mucDoNghiemTrong?.name() == 'CAO' ? 'bg-warning' : 
+                                                    item.mucDoNghiemTrong?.name() == 'TRUNG_BINH' ? 'bg-info' : 'bg-secondary'}"
                                                     th:text="${item.mucDoNghiemTrong}">TRUNG_BINH</span>
                                             </td>
                                             <td>
-                                                <span th:if="${item.trangThaiPhanCong != null}"
-                                                    th:class="'badge ' + ${item.trangThaiPhanCong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiPhanCong).CHUA_PHAN_CONG ? 'bg-secondary' : 
-                                                    item.trangThaiPhanCong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiPhanCong).CHO_XAC_NHAN ? 'bg-warning text-dark' : 
-                                                    item.trangThaiPhanCong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiPhanCong).DA_NHAN ? 'bg-success' : 'bg-danger'}"
-                                                    th:text="${item.trangThaiPhanCong}">CHO_XAC_NHAN</span>
+                                                <span
+                                                    th:class="'badge ' + ${item.trangThaiPhanCong?.name() == 'CHUA_PHAN_CONG' ? 'bg-secondary' : 
+                                                    item.trangThaiPhanCong?.name() == 'CHO_XAC_NHAN' ? 'bg-warning text-dark' : 
+                                                    item.trangThaiPhanCong?.name() == 'DA_NHAN' ? 'bg-success' : 'bg-danger'}"
+                                                    th:text="${item.trangThaiPhanCong}">CHƯA_PHÂN_CÔNG</span>
                                             </td>
                                             <td>
                                                 <span
-                                                    th:class="'badge ' + ${item.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).CHO_XU_LY ? 'bg-warning' : 
-                                                    item.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).DANG_XU_LY ? 'bg-info' : 
-                                                    item.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).HOAN_THANH ? 'bg-success' : 'bg-secondary'}"
+                                                    th:class="'badge ' + ${item.trangThai?.name() == 'CHO_XU_LY' ? 'bg-warning' : 
+                                                    item.trangThai?.name() == 'DANG_XU_LY' ? 'bg-info' : 
+                                                    item.trangThai?.name() == 'HOAN_THANH' ? 'bg-success' : 'bg-secondary'}"
                                                     th:text="${item.trangThai}">CHO_XU_LY</span>
                                             </td>
                                             <td>
@@ -99,26 +99,24 @@
                                                         <i data-lucide="eye"></i>
                                                     </a>
                                                     
-                                                    <!-- Nút Nhận việc / Từ chối (chỉ hiện khi CHO_XAC_NHAN) -->
-                                                    <button th:if="${item.trangThaiPhanCong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiPhanCong).CHO_XAC_NHAN}"
-                                                        class="btn btn-primary" th:onclick="'acceptTask(' + ${item.id} + ')'" title="Nhận việc">
-                                                        <i data-lucide="check-circle"></i> Nhận
-                                                    </button>
-                                                    <button th:if="${item.trangThaiPhanCong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiPhanCong).CHO_XAC_NHAN}"
-                                                        class="btn btn-danger" th:onclick="'rejectTask(' + ${item.id} + ')'" title="Từ chối">
+                                                    <form th:action="@{/nhanvien-csvc/bao-hong/{id}/accept(id=${item.id})}" method="post" class="d-inline">
+                                                        <button th:if="${item.trangThaiPhanCong?.name() == 'CHO_XAC_NHAN'}" type="submit" class="btn btn-success" title="Nhận công việc">
+                                                            <i data-lucide="check-circle"></i> Nhận
+                                                        </button>
+                                                    </form>
+                                                    
+                                                    <button th:if="${item.trangThaiPhanCong?.name() == 'CHO_XAC_NHAN'}" class="btn btn-danger" th:onclick="'rejectTask(' + ${item.id} + ')'" title="Từ chối">
                                                         <i data-lucide="x-circle"></i> Từ chối
                                                     </button>
                                                     
-                                                    <!-- AI Tự động xử lý -->
-                                                    <button th:if="${(item.trangThaiPhanCong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiPhanCong).CHO_XAC_NHAN or item.trangThaiPhanCong == null or item.trangThaiPhanCong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiPhanCong).CHUA_PHAN_CONG) and item.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).CHO_XU_LY}"
+                                                    <button th:if="${(item.trangThaiPhanCong?.name() == 'CHO_XAC_NHAN' or item.trangThaiPhanCong == null or item.trangThaiPhanCong?.name() == 'CHUA_PHAN_CONG') and item.trangThai?.name() == 'CHO_XU_LY'}"
                                                         class="btn btn-dark" th:onclick="'aiAutoSchedule(' + ${item.id} + ')'" title="AI tự động nhận và tạo lịch">
                                                         <i data-lucide="bot"></i> AI Xử lý
                                                     </button>
 
-                                                    <!-- Lên lịch bảo trì (chỉ khi đã nhận) -->
-                                                    <a th:if="${item.trangThaiPhanCong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiPhanCong).DA_NHAN}"
+                                                    <a th:if="${item.trangThaiPhanCong?.name() == 'DA_NHAN'}"
                                                         th:href="@{/nhanvien-csvc/bao-tri/create(baoHongId=${item.id})}"
-                                                        class="btn btn-success" title="Lên lịch bảo trì">
+                                                        class="btn btn-primary" title="Xử lý (Tạo bảo trì)">
                                                         <i data-lucide="calendar-plus"></i> Tạo BT
                                                     </a>
                                                 </div>

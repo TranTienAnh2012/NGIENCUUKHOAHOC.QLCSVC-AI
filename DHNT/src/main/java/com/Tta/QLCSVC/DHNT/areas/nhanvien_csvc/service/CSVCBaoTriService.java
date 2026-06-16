@@ -27,13 +27,19 @@ public class CSVCBaoTriService {
     private final BaoHongRepository baoHongRepository;
     private final NguoiDungRepository nguoiDungRepository;
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<BaoTri> getAllBaoTri() {
-        return baoTriRepository.findAll();
+        List<BaoTri> list = baoTriRepository.findAll();
+        list.forEach(this::initLazy);
+        return list;
     }
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public BaoTri getBaoTriById(Long id) {
-        return baoTriRepository.findById(id)
+        BaoTri bt = baoTriRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("BaoTri", "id", id));
+        initLazy(bt);
+        return bt;
     }
 
     public List<BaoTri> getBaoTriByThietBi(Long thietBiId) {
@@ -114,6 +120,15 @@ public class CSVCBaoTriService {
         }
         thietBiRepository.save(thietBi);
 
+        // Cập nhật trạng thái Báo hỏng (Đơn hỏng) nếu có
+        if (baoTri.getBaoHong() != null) {
+            BaoHong baoHong = baoTri.getBaoHong();
+            if (ketQua == BaoTri.KetQuaBaoTri.THANH_CONG) {
+                baoHong.setTrangThai(BaoHong.TrangThaiBaoHong.HOAN_THANH);
+            }
+            baoHongRepository.save(baoHong);
+        }
+
         return baoTriRepository.save(baoTri);
     }
 
@@ -147,5 +162,17 @@ public class CSVCBaoTriService {
                 // Không bắt buộc — nếu không lấy được context thì để null
             }
         }
+    }
+
+    private NguoiDung getCurrentUser() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return nguoiDungRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("NguoiDung", "email", email));
+    }
+
+    private void initLazy(BaoTri bt) {
+        if (bt.getThietBi() != null) bt.getThietBi().getTenThietBi();
+        if (bt.getNguoiThucHien() != null) bt.getNguoiThucHien().getHoTen();
+        if (bt.getBaoHong() != null) bt.getBaoHong().getNgayBao();
     }
 }

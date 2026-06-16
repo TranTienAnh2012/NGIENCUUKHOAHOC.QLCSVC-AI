@@ -49,8 +49,8 @@
                                             <td th:text="${item.thietBi?.tenThietBi}">Máy chiếu</td>
                                             <td>
                                                 <span
-                                                    th:class="'badge ' + ${item.loaiBaoTri == T(com.Tta.QLCSVC.DHNT.entity.BaoTri.LoaiBaoTri).SUA_CHUA ? 'bg-warning' : 
-                                                    item.loaiBaoTri == T(com.Tta.QLCSVC.DHNT.entity.BaoTri.LoaiBaoTri).DINH_KY ? 'bg-info' : 'bg-success'}"
+                                                    th:class="'badge ' + ${item.loaiBaoTri.name() == 'SUA_CHUA' ? 'bg-warning' : 
+                                                    item.loaiBaoTri.name() == 'DINH_KY' ? 'bg-info' : 'bg-success'}"
                                                     th:text="${item.loaiBaoTri}">SUA_CHUA</span>
                                             </td>
                                             <td th:text="${#temporals.format(item.ngayBaoTri, 'dd/MM/yyyy')}">22/01/2026
@@ -61,8 +61,8 @@
                                                 500,000 VNĐ</td>
                                             <td>
                                                 <span th:if="${item.ketQua != null}"
-                                                    th:class="'badge ' + ${item.ketQua == T(com.Tta.QLCSVC.DHNT.entity.BaoTri.KetQuaBaoTri).THANH_CONG ? 'bg-success' : 
-                                                    item.ketQua == T(com.Tta.QLCSVC.DHNT.entity.BaoTri.KetQuaBaoTri).THAT_BAI ? 'bg-danger' : 'bg-warning'}"
+                                                    th:class="'badge ' + ${item.ketQua.name() == 'THANH_CONG' ? 'bg-success' : 
+                                                    item.ketQua.name() == 'THAT_BAI' ? 'bg-danger' : 'bg-warning'}"
                                                     th:text="${item.ketQua}">THANH_CONG</span>
                                                 <span th:if="${item.ketQua == null}" class="badge bg-secondary">Chưa
                                                     thực hiện</span>

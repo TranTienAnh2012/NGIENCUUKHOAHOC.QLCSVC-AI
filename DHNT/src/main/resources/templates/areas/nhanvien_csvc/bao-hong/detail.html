@@ -58,9 +58,9 @@
                                     <label class="text-muted small">Mức độ nghiêm trọng</label>
                                     <p>
                                         <span
-                                            th:class="'badge ' + ${baoHong.mucDoNghiemTrong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.MucDoNghiemTrong).KHAN_CAP ? 'bg-danger' : 
-                                            baoHong.mucDoNghiemTrong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.MucDoNghiemTrong).CAO ? 'bg-warning' : 
-                                            baoHong.mucDoNghiemTrong == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.MucDoNghiemTrong).TRUNG_BINH ? 'bg-info' : 'bg-secondary'}"
+                                            th:class="'badge ' + ${baoHong.mucDoNghiemTrong?.name() == 'KHAN_CAP' ? 'bg-danger' : 
+                                            baoHong.mucDoNghiemTrong?.name() == 'CAO' ? 'bg-warning' : 
+                                            baoHong.mucDoNghiemTrong?.name() == 'TRUNG_BINH' ? 'bg-info' : 'bg-secondary'}"
                                             th:text="${baoHong.mucDoNghiemTrong}">TRUNG_BINH</span>
                                     </p>
                                 </div>
@@ -68,9 +68,9 @@
                                     <label class="text-muted small">Trạng thái</label>
                                     <p>
                                         <span
-                                            th:class="'badge ' + ${baoHong.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).CHO_XU_LY ? 'bg-warning' : 
-                                            baoHong.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).DANG_XU_LY ? 'bg-info' : 
-                                            baoHong.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).HOAN_THANH ? 'bg-success' : 'bg-secondary'}"
+                                            th:class="'badge ' + ${baoHong.trangThai?.name() == 'CHO_XU_LY' ? 'bg-warning' : 
+                                            baoHong.trangThai?.name() == 'DANG_XU_LY' ? 'bg-info' : 
+                                            baoHong.trangThai?.name() == 'HOAN_THANH' ? 'bg-success' : 'bg-secondary'}"
                                             th:text="${baoHong.trangThai}">CHO_XU_LY</span>
                                     </p>
                                 </div>
@@ -100,21 +100,20 @@
                             <h5 class="mb-0">Thao tác</h5>
                         </div>
                         <div class="card-body">
-                            <div
-                                th:if="${baoHong.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).CHO_XU_LY}">
+                            <div th:if="${baoHong.trangThai?.name() == 'CHO_XU_LY'}">
                                 <a th:href="@{/nhanvien-csvc/bao-tri/create(baoHongId=${baoHong.id})}"
                                     class="btn btn-success w-100 mb-2">
                                     <i data-lucide="calendar-plus"></i> Lên lịch bảo trì
                                 </a>
                             </div>
-                            <div
-                                th:if="${baoHong.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).DANG_XU_LY}">
+                            <div class="mt-4 pt-3 border-top"
+                                th:if="${baoHong.trangThai?.name() == 'DANG_XU_LY'}">
                                 <div class="alert alert-info">
                                     <i data-lucide="info"></i> Đang xử lý
                                 </div>
                             </div>
-                            <div
-                                th:if="${baoHong.trangThai == T(com.Tta.QLCSVC.DHNT.entity.BaoHong.TrangThaiBaoHong).HOAN_THANH}">
+                            <div class="mt-4 pt-3 border-top"
+                                th:if="${baoHong.trangThai?.name() == 'HOAN_THANH'}">
                                 <div class="alert alert-success">
                                     <i data-lucide="check-circle"></i> Đã hoàn thành
                                 </div>

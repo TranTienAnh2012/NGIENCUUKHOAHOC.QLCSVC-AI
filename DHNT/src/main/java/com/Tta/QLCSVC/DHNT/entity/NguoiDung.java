@@ -3,8 +3,11 @@ package com.Tta.QLCSVC.DHNT.entity;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "nguoi_dung")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "matKhau"})
 public class NguoiDung {
 
     @Id
