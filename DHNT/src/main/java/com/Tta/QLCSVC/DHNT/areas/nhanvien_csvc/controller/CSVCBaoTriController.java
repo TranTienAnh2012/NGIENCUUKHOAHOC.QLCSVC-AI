@@ -39,6 +39,16 @@ public class CSVCBaoTriController {
         return ResponseEntity.ok(ApiResponse.success("Tạo phiếu bảo trì thành công", result));
     }
 
+    @PostMapping("/sync-trang-thai")
+    @Operation(summary = "Đồng bộ trạng thái thiết bị theo kết quả bảo trì",
+               description = "Quét toàn bộ phiếu bảo trì và cập nhật trạng thái thiết bị cho khớp. " +
+                             "Dùng để sửa dữ liệu cũ bị không nhất quán.")
+    public ResponseEntity<ApiResponse<String>> syncTrangThai() {
+        int fixedCount = baoTriService.syncThietBiTrangThai();
+        return ResponseEntity.ok(ApiResponse.success(
+            "✅ Đã đồng bộ " + fixedCount + " thiết bị về đúng trạng thái", null));
+    }
+
     @PutMapping("/{id}/hoan-thanh")
     @Operation(summary = "Hoàn thành bảo trì", description = "Cập nhật kết quả và chi phí sau khi bảo trì xong")
     public ResponseEntity<ApiResponse<BaoTri>> hoanThanhBaoTri(

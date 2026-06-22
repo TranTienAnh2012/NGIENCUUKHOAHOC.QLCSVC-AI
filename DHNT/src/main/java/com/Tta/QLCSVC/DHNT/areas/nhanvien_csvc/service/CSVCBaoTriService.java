@@ -137,6 +137,39 @@ public class CSVCBaoTriService {
         return baoTriRepository.save(baoTri);
     }
 
+    /**
+     * Đồng bộ trạng thái thiết bị dựa theo kết quả bảo trì mới nhất.
+     * Dùng để fix dữ liệu cũ bị không nhất quán (seed SQL bypass service).
+     * Chỉ cập nhật khi trạng thái thiết bị KHÔNG khớp với kết quả bảo trì.
+     */
+    @Transactional
+    public int syncThietBiTrangThai() {
+        List<BaoTri> allBaoTri = baoTriRepository.findAll();
+        int fixedCount = 0;
+
+        for (BaoTri bt : allBaoTri) {
+            if (bt.getKetQua() == null || bt.getThietBi() == null) continue;
+
+            ThietBi thietBi = thietBiRepository.findById(bt.getThietBi().getId()).orElse(null);
+            if (thietBi == null) continue;
+
+            ThietBi.TrangThaiThietBi expectedStatus = switch (bt.getKetQua()) {
+                case THANH_CONG -> ThietBi.TrangThaiThietBi.TOT;
+                case THAT_BAI   -> ThietBi.TrangThaiThietBi.HONG;
+                case CAN_THAY_THE -> ThietBi.TrangThaiThietBi.HONG;
+            };
+
+            // Chỉ fix nếu trạng thái hiện tại KHÔNG khớp
+            if (thietBi.getTrangThai() != expectedStatus
+                    && thietBi.getTrangThai() != ThietBi.TrangThaiThietBi.THANH_LY) {
+                thietBi.setTrangThai(expectedStatus);
+                thietBiRepository.save(thietBi);
+                fixedCount++;
+            }
+        }
+        return fixedCount;
+    }
+
     /** Auto-set nguoiThucHien từ SecurityContext nếu chưa được set */
     private void setNguoiThucHienFromContext(BaoTri baoTri) {
         if (baoTri.getNguoiThucHien() == null) {
