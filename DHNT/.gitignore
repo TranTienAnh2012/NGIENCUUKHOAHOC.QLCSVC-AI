@@ -51,3 +51,11 @@ ENV/
 # Flask
 instance/
 .pytest_cache/
+
+### Logs & Temp files ###
+*.log
+*_error.log
+build_output.txt
+compile-errors*.txt
+test_compile.txt
+server_startup.log
