@@ -1,22 +1,39 @@
+### ============================================
+### .gitignore — QLCSVC AI Project (Root)
+### ============================================
+
+# ── Maven / Spring Boot ──────────────────────
 HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### Sensitive Files - DO NOT COMMIT ###
-# Database credentials & config
-src/main/resources/application.properties
+# ── Sensitive / Config ────────────────────────
+# KHÔNG commit file chứa credentials lên GitHub!
+DHNT/src/main/resources/application.properties
+DHNT/.env
+.env
 
-# Uploaded files (user data)
+# ── Uploaded files (dữ liệu người dùng) ──────
 uploads/
+DHNT/uploads/
 
-# Build output & compile error logs
+# ── Logs & Temp ───────────────────────────────
+*.log
+*_error.log
 build_output.txt
-compile-errors.txt
-compile-errors2.txt
+compile-errors*.txt
+test_compile.txt
+server_startup.log
 
-### STS ###
+# ── IDE: IntelliJ IDEA ───────────────────────
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# ── IDE: Spring Tool Suite (STS) ─────────────
 .apt_generated
 .classpath
 .factorypath
@@ -25,13 +42,7 @@ compile-errors2.txt
 .springBeans
 .sts4-cache
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
-### NetBeans ###
+# ── IDE: NetBeans ────────────────────────────
 /nbproject/private/
 /nbbuild/
 /dist/
@@ -41,25 +52,22 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### VS Code ###
+# ── IDE: VS Code ─────────────────────────────
 .vscode/
 
-### Python ###
-# Environment variables (contains API keys)
-.env
-
-# Python cache
+# ── Python ───────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 
-# Virtual environments
+# ── Python Virtual Environments ──────────────
 venv/
 env/
 ENV/
 .venv
+DHNT/venv/
 
-# Flask
+# ── Flask ─────────────────────────────────────
 instance/
 .pytest_cache/
